@@ -1,27 +1,26 @@
 import express from "express";
 import {
+  checkRideAvailability,
   bookRide,
+  getRideStatus,
+  cancelRide,
+  handleIgoWebhook,
+  getPriceEstimate,
   getUserRides,
-  getAllRides,
-  updateRideStatus,
 } from "../controllers/rideController.js";
-import { assignDriver } from "../controllers/rideController.js";
-import { authenticateAdmin , authenticateUser } from "../middlewares/authMiddleware.js"
+import { authenticateUser } from "../middlewares/authMiddleware.js"; // Ensure user is authenticated
 
 const router = express.Router();
 
-// Book a ride
+// Protected routes (require authentication)
+router.post("/estimate", authenticateUser, getPriceEstimate);
+router.post("/availability", authenticateUser, checkRideAvailability);
 router.post("/book", authenticateUser, bookRide);
+router.get("/status/:bookingId", authenticateUser, getRideStatus);
+router.delete("/cancel/:bookingId", authenticateUser, cancelRide);
+router.get("/user/:userId", authenticateUser, getUserRides);
 
-// Get all rides for logged-in user
-router.get("/my", authenticateUser, getUserRides);
+// Webhook endpoint for iGo events (no authentication required)
+router.post("/webhook/igo", handleIgoWebhook);
 
-// Get all rides (AtuhauthenticateAdmin only)
-router.get("/", authenticateUser, authenticateAdmin, getAllRides);
-
-// Update ride status (AtuhauthenticateAdmin or Driver)
-router.put("/:id/status", authenticateUser, authenticateAdmin, updateRideStatus);
-
-// Assign a driver to a ride (AtuhauthenticateAdmin only)
-router.put("/:id/assign", authenticateUser, authenticateAdmin, assignDriver);
 export default router;

@@ -17,16 +17,17 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { join } from "path";
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const envPath = join(__dirname, "/config/config.env");
+
+// Load environment variables
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000; // Default to 5000 for compatibility with tests
 
 const io = new Server(server, {
   cors: {
@@ -34,8 +35,6 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-
-console.log("the port is " + process.env.PORT);
 
 // Listen for connections
 io.on("connection", (socket) => {
@@ -50,14 +49,8 @@ io.on("connection", (socket) => {
   });
 });
 
-
-// Load environment variables
-dotenv.config();
-
 // Connect to MongoDB
 connectDB();
-
-// Initialize Express app
 
 // Middleware setup
 app.use(cors()); // Enable CORS
@@ -67,12 +60,16 @@ app.use(express.json()); // Body parser for JSON
 app.use(cookieParser()); // Cookie parser
 
 // Routes
-app.use("/api/user/",userRoutes)
+app.use("/api/users/", userRoutes); // Changed from user to users to match test config
 // app.use("/api/auth", authRoutes); // User authentication routes
-app.use("/api/ride", rideRoutes); // Ride booking & management routes
+app.use("/api/rides/", rideRoutes); // Changed from ride to rides to match test config
 // app.use("/api/drivers", driverRoutes); // Driver-related routes
 app.use("/api/payment", paymentRoutes); // Payment-related routes
 
+// Health check endpoint for tests
+app.get("/health-check", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is running" });
+});
 
 // Default route
 app.get("/", (req, res) => {
@@ -84,7 +81,8 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Health check: http://127.0.0.1:${PORT}/health-check`);
+  console.log(`API base URL: http://127.0.0.1:${PORT}/api`);
 });
