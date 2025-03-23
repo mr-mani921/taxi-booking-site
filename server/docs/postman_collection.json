@@ -1,0 +1,260 @@
+{
+  "info": {
+    "name": "Taxi Booking - iGo API Integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/users/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"Password123!\",\n    \"phone\": \"+447700900000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/users/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"john@example.com\",\n    \"password\": \"Password123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bids",
+      "item": [
+        {
+          "name": "Request Vendor Bids",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/rides/bids",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pickup\": {\n        \"address\": \"123 Pickup St, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1278\n    },\n    \"dropoff\": {\n        \"address\": \"456 Dropoff Ave, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1400\n    },\n    \"time\": \"2023-06-15T14:30:00Z\",\n    \"vehicleType\": \"STANDARD\",\n    \"bidType\": \"IMMEDIATE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Request competitive bids from multiple vendors for a ride."
+          }
+        },
+        {
+          "name": "Get Bids By Reference",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/rides/bids/:bidReference",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "variable": [
+              {
+                "key": "bidReference",
+                "value": "BID_12345"
+              }
+            ],
+            "description": "Retrieve previously requested bids by their reference ID."
+          }
+        },
+        {
+          "name": "Select Bid",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/rides/bids/select",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"bidReference\": \"BID_12345\",\n    \"vendorId\": \"VENDOR_1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Select a specific bid from multiple options and proceed to availability check."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rides",
+      "item": [
+        {
+          "name": "Get Price Estimate",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/rides/estimate",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pickup\": {\n        \"address\": \"123 Pickup St, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1278\n    },\n    \"dropoff\": {\n        \"address\": \"456 Dropoff Ave, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1400\n    },\n    \"time\": \"2023-06-15T14:30:00Z\",\n    \"vehicleType\": \"STANDARD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Get a price estimate for a ride without checking availability."
+          }
+        },
+        {
+          "name": "Check Availability",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/rides/availability",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pickup\": {\n        \"address\": \"123 Pickup St, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1278\n    },\n    \"dropoff\": {\n        \"address\": \"456 Dropoff Ave, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1400\n    },\n    \"time\": \"2023-06-15T14:30:00Z\",\n    \"vehicleType\": \"STANDARD\",\n    \"pricingModel\": \"STANDARD\",\n    \"paymentPoint\": \"APP\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Check if a ride is available and get a price estimate and availability reference."
+          }
+        },
+        {
+          "name": "Book Ride",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/rides/book",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"user-id-here\",\n    \"pickup\": {\n        \"address\": \"123 Pickup St, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1278\n    },\n    \"dropoff\": {\n        \"address\": \"456 Dropoff Ave, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1400\n    },\n    \"pickupTime\": \"2023-06-15T14:30:00Z\",\n    \"fare\": 20.50,\n    \"vehicleType\": \"STANDARD\",\n    \"pricingModel\": \"STANDARD\",\n    \"paymentPoint\": \"APP\",\n    \"availabilityReference\": \"avail-ref-from-availability-check\",\n    \"passengers\": [\n        {\n            \"firstName\": \"John\",\n            \"lastName\": \"Doe\",\n            \"phone\": \"+447700900000\"\n        }\n    ],\n    \"specialInstructions\": \"Please call when arrived\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Book a ride with a valid availability reference."
+          }
+        },
+        {
+          "name": "Get Ride Status",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/rides/status/:bookingId",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "variable": [
+              {
+                "key": "bookingId",
+                "value": "booking-id-here"
+              }
+            ],
+            "description": "Get the current status of a ride."
+          }
+        },
+        {
+          "name": "Cancel Ride",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/rides/cancel/:bookingId",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "variable": [
+              {
+                "key": "bookingId",
+                "value": "booking-id-here"
+              }
+            ],
+            "description": "Cancel a booked ride."
+          }
+        },
+        {
+          "name": "Get User Rides",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/rides/user/:userId",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "variable": [
+              {
+                "key": "userId",
+                "value": "user-id-here"
+              }
+            ],
+            "description": "Get all rides for a specific user."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "authToken",
+      "value": "your-auth-token-here"
+    }
+  ]
+}

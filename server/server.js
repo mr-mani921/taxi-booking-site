@@ -20,10 +20,10 @@ import { join } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const envPath = join(__dirname, "/config/config.env");
+const envPath = join(__dirname, ".env");
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: envPath });
 
 const app = express();
 const server = http.createServer(app);
@@ -60,9 +60,9 @@ app.use(express.json()); // Body parser for JSON
 app.use(cookieParser()); // Cookie parser
 
 // Routes
-app.use("/api/users/", userRoutes); // Changed from user to users to match test config
+app.use("/api/user/", userRoutes); // Changed from user to users to match test config
 // app.use("/api/auth", authRoutes); // User authentication routes
-app.use("/api/rides/", rideRoutes); // Changed from ride to rides to match test config
+app.use("/api/ride/", rideRoutes); // Changed from ride to rides to match test config
 // app.use("/api/drivers", driverRoutes); // Driver-related routes
 app.use("/api/payment", paymentRoutes); // Payment-related routes
 
@@ -82,7 +82,7 @@ app.use(errorHandler);
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Health check: http://127.0.0.1:${PORT}/health-check`);
-  console.log(`API base URL: http://127.0.0.1:${PORT}/api`);
+  console.log(`🏃🏽‍➡️ Server running on port ${PORT}`);
+  console.log(`🔍 Health check: http://127.0.0.1:${PORT}/health-check`);
+  console.log(`🔗 API base URL: http://127.0.0.1:${PORT}/api`);
 });

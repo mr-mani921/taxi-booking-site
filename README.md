@@ -7,18 +7,30 @@ This project is a taxi booking platform integrated with iGo API for dispatch ser
 - User authentication and management
 - Taxi ride booking, tracking, and cancellation
 - Driver management
+- Vendor bid comparison for competitive pricing
 - iGo API integration for professional dispatch services
 
 ## iGo API Integration
 
 The application integrates with iGo API to provide the following features:
 
+- **Vendor Bidding**: Request and compare bids from multiple service providers
 - Ride availability checking
 - Price estimation
 - Booking automation
 - Real-time ride status tracking
 - Ride cancellation
 - Event handling for dispatch events
+
+### iGo API Message Flow
+
+The application implements the complete iGo Protocol V1.41 message flow:
+
+1. **AgentBidRequest** - Request and compare bids from multiple vendors
+2. **AgentBookingAvailabilityRequest** - Check ride availability and get price estimates
+3. **AgentBookingAuthorizationRequest** - Book a ride with a selected vendor
+4. **AgentBookingStatusRequest** - Check the status of a booking
+5. **AgentBookingCancellationRequest** - Cancel an existing booking
 
 ### iGo API Configuration
 
@@ -73,6 +85,18 @@ The system handles the following iGo events:
 | DELETE | /api/rides/cancel/:bookingId | Cancel a ride |
 | GET | /api/rides/user/:userId | Get all rides for a user |
 | POST | /api/rides/webhook/igo | Webhook for iGo events |
+| POST | /api/rides/bids | Request vendor bids for comparison |
+| GET | /api/rides/bids/:bidReference | Get saved bids by reference |
+| POST | /api/rides/bids/select | Select a bid from available options |
+
+## Bidding Workflow
+
+The bidding process enables users to compare offers from multiple vendors:
+
+1. **Request Bids**: Send a request with journey details to get offers from available vendors
+2. **Compare Offers**: Review different prices, ETAs, and vehicle types
+3. **Select Preferred Vendor**: Choose the best offer based on user preferences
+4. **Complete Booking**: Proceed with standard booking flow using the selected vendor
 
 ## Getting Started
 
@@ -142,5 +166,7 @@ For testing, you can use the testing credentials provided by iGo:
 To run tests:
 
 ```
-npm test
+npm test                # Run all tests
+npm run test:igo        # Run iGo integration tests
+npm run test:bids       # Run bidding functionality tests
 ``` 

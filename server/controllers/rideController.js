@@ -9,9 +9,12 @@ import {
   PRICING_MODELS,
   PAYMENT_POINTS,
   PRICING_FLAGS,
+  requestBids,
+  checkAvailability,
 } from "../services/igoService.js";
 import Ride from "../models/Ride.js";
 import igoConfig from "../config/igoConfig.js";
+import Bid from "../models/Bid.js";
 
 /**
  * Get price estimate for a ride
@@ -60,34 +63,41 @@ export const checkRideAvailability = async (req, res) => {
       });
     }
 
-    const xmlRequest = buildXmlRequest({
-      AgentBookingAvailabilityRequest: {
-        Agent: buildAgentSection(),
-        Vendor: buildVendorSection(),
-        Journey: {
-          Pickup: pickup,
-          Dropoff: dropoff,
-          Time: time,
+    // Use igoConfig functions for consistent XML structure
+    const response = await sendIgoRequest(
+      igoConfig.buildXmlRequest({
+        AgentBookingAvailabilityRequest: {
+          Agent: igoConfig.buildAgentSection(),
+          Vendor: igoConfig.buildVendorSection(),
+          Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
+          VehicleType: vehicleType || igoConfig.vehicleTypes.STANDARD,
+          Pricing: igoConfig.buildPricingSection({
+            pricingModel: pricingModel || PRICING_MODELS.UP_FRONT,
+            paymentPoint: paymentPoint || PAYMENT_POINTS.TIME_OF_BOOKING,
+            flags: [
+              PRICING_FLAGS.ALLOW_WAITING_TIME,
+              PRICING_FLAGS.ALLOW_EXTRAS,
+            ],
+          }),
+          Notifications: {
+            SMS: true,
+            Email: true,
+          },
         },
-        VehicleType: vehicleType || "Standard",
-        Pricing: buildPricingSection({
-          pricingModel: pricingModel || PRICING_MODELS.UP_FRONT,
-          paymentPoint: paymentPoint || PAYMENT_POINTS.TIME_OF_BOOKING,
-          flags: [PRICING_FLAGS.ALLOW_WAITING_TIME, PRICING_FLAGS.ALLOW_EXTRAS],
-        }),
-      },
-    });
+      })
+    );
 
-    const response = await sendIgoRequest(xmlRequest);
-
-    // Store the availability reference for later use
+    // Store the availability reference in response
+    let availabilityReference = null;
     if (
       response.AgentBookingAvailabilityResponse &&
       response.AgentBookingAvailabilityResponse.AvailabilityReference
     ) {
-      // You might want to store this temporarily in a cache or session
-      req.session.availabilityReference =
+      availabilityReference =
         response.AgentBookingAvailabilityResponse.AvailabilityReference;
+
+      // Add it to the response so client can use it
+      response.savedAvailabilityReference = availabilityReference;
     }
 
     res.json(response);
@@ -120,10 +130,30 @@ export const bookRide = async (req, res) => {
     } = req.body;
 
     // Validate required inputs
-    if (!userId || !pickup || !dropoff || !time || !passengerDetails) {
+    if (!pickup || !dropoff || !time || !passengerDetails) {
       return res.status(400).json({
         message: "Missing required fields for booking",
       });
+    }
+
+    // Get user ID from authenticated user if not provided
+    const userObjectId = req.user?._id || userId;
+
+    // Validate user ID format
+    if (
+      !userObjectId ||
+      (typeof userObjectId === "string" &&
+        !userObjectId.match(/^[0-9a-fA-F]{24}$/))
+    ) {
+      return res.status(400).json({
+        message: "Invalid user ID format. Must be a valid MongoDB ObjectId",
+      });
+    }
+
+    // Ensure at least one passenger is marked as lead
+    const hasLeadPassenger = passengerDetails.some((p) => p.isLead === true);
+    if (!hasLeadPassenger && passengerDetails.length > 0) {
+      passengerDetails[0].isLead = true; // Mark first passenger as lead if none specified
     }
 
     // Generate a unique booking reference
@@ -131,7 +161,7 @@ export const bookRide = async (req, res) => {
 
     // Create new ride record in database
     const newRide = new Ride({
-      user: userId,
+      user: userObjectId,
       pickupLocation: pickup,
       dropoffLocation: dropoff,
       pickupTime: new Date(time),
@@ -141,46 +171,37 @@ export const bookRide = async (req, res) => {
       paymentPoint: paymentPoint || PAYMENT_POINTS.TIME_OF_BOOKING,
       passengers: passengerDetails,
       specialInstructions: specialInstructions || "",
-      vehicleType: vehicleType || "Standard",
-      igoAvailabilityReference:
-        availabilityReference || req.session?.availabilityReference,
+      vehicleType: vehicleType || igoConfig.vehicleTypes.STANDARD,
+      igoAvailabilityReference: availabilityReference,
       bookedAt: new Date(),
     });
 
     // Save ride to get the _id
     await newRide.save();
 
-    const xmlRequest = buildXmlRequest({
+    // Use igoConfig functions for consistent XML structure
+    const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAuthorizationRequest: {
-        Agent: buildAgentSection(),
-        Vendor: buildVendorSection(),
+        Agent: igoConfig.buildAgentSection(),
+        Vendor: igoConfig.buildVendorSection(),
         AvailabilityReference:
-          availabilityReference ||
-          req.session?.availabilityReference ||
-          "AvailabilityRef",
+          availabilityReference || `AvailabilityRef_${Date.now()}`,
         AgentBookingReference: agentBookingReference,
-        Journey: {
-          Pickup: pickup,
-          Dropoff: dropoff,
-          Time: time,
-        },
-        VehicleType: vehicleType || "Standard",
-        Pricing: buildPricingSection({
+        Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
+        VehicleType: vehicleType || igoConfig.vehicleTypes.STANDARD,
+        Pricing: igoConfig.buildPricingSection({
           pricingModel: pricingModel || PRICING_MODELS.UP_FRONT,
           paymentPoint: paymentPoint || PAYMENT_POINTS.TIME_OF_BOOKING,
           price,
           flags: [PRICING_FLAGS.ALLOW_WAITING_TIME, PRICING_FLAGS.ALLOW_EXTRAS],
         }),
-        Passengers: {
-          PassengerDetails: passengerDetails.map((passenger) => ({
-            Name: passenger.name,
-            TelephoneNumber: passenger.phone,
-            EmailAddress: passenger.email,
-            IsLead: passenger.isLead ? "true" : "false",
-          })),
-        },
+        Passengers: igoConfig.buildPassengerSection(passengerDetails),
         DriverNote: specialInstructions || "",
         YourReference: `Booking_${newRide._id}`,
+        Notifications: {
+          SMS: true,
+          Email: true,
+        },
       },
     });
 
@@ -227,13 +248,8 @@ export const getRideStatus = async (req, res) => {
   try {
     const { bookingId } = req.params;
 
-    // Check if the booking exists in our system
     const ride = await Ride.findOne({
-      $or: [
-        { _id: bookingId },
-        { igoBookingId: bookingId },
-        { igoAuthorizationReference: bookingId },
-      ],
+      igoBookingId: bookingId, // Match by iGo booking ID
     });
 
     if (!ride) {
@@ -243,10 +259,10 @@ export const getRideStatus = async (req, res) => {
     }
 
     // Get latest status from iGo
-    const xmlRequest = buildXmlRequest({
+    const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingStatusRequest: {
-        Agent: buildAgentSection(),
-        Vendor: buildVendorSection(),
+        Agent: igoConfig.buildAgentSection(),
+        Vendor: igoConfig.buildVendorSection(),
         AuthorizationReference: ride.igoAuthorizationReference,
       },
     });
@@ -377,11 +393,7 @@ export const cancelRide = async (req, res) => {
 
     // Find the ride in our database
     const ride = await Ride.findOne({
-      $or: [
-        { _id: bookingId },
-        { igoBookingId: bookingId },
-        { igoAuthorizationReference: bookingId },
-      ],
+      igoBookingId: bookingId, // Match by iGo booking ID
     });
 
     if (!ride) {
@@ -408,10 +420,10 @@ export const cancelRide = async (req, res) => {
       });
     }
 
-    const xmlRequest = buildXmlRequest({
+    const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingCancellationRequest: {
-        Agent: buildAgentSection(),
-        Vendor: buildVendorSection(),
+        Agent: igoConfig.buildAgentSection(),
+        Vendor: igoConfig.buildVendorSection(),
         AuthorizationReference: ride.igoAuthorizationReference,
         CancellationReason:
           cancellationReason || "Customer requested cancellation",
@@ -479,6 +491,294 @@ export const handleIgoWebhook = async (req, res) => {
     console.error("Webhook handling error:", error);
     res.status(500).json({
       message: "Error processing webhook",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Request bids from multiple vendors
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
+export const requestVendorBids = async (req, res) => {
+  try {
+    const { pickup, dropoff, time, vehicleType, bidType } = req.body;
+    const userId = req.user?._id;
+
+    // Validate user ID
+    if (!userId) {
+      return res.status(401).json({ message: "User authentication required" });
+    }
+
+    // Validate required fields
+    if (!pickup || !pickup.address || !pickup.lat || !pickup.lng) {
+      return res
+        .status(400)
+        .json({ message: "Pickup location details are required" });
+    }
+
+    if (!dropoff || !dropoff.address || !dropoff.lat || !dropoff.lng) {
+      return res
+        .status(400)
+        .json({ message: "Dropoff location details are required" });
+    }
+
+    if (!time) {
+      return res.status(400).json({ message: "Pickup time is required" });
+    }
+
+    // Helper function to normalize vehicle type
+    const normalizeVehicleType = (type) => {
+      if (!type) return igoConfig.vehicleTypes.STANDARD;
+
+      // Convert to lowercase for case-insensitive comparison
+      const lowercaseType = type.toLowerCase();
+
+      // Find matching vehicle type in igoConfig
+      for (const [key, value] of Object.entries(igoConfig.vehicleTypes)) {
+        if (
+          value.toLowerCase() === lowercaseType ||
+          key.toLowerCase() === lowercaseType
+        ) {
+          return value;
+        }
+      }
+
+      // If no match found, return as is
+      return type;
+    };
+
+    // Request bids from iGo service
+    const bidsResponse = await requestBids(
+      pickup,
+      dropoff,
+      time,
+      vehicleType || igoConfig.vehicleTypes.STANDARD
+    );
+
+    // Convert the bids to the correct format for our schema
+    const formattedBids = Array.isArray(
+      bidsResponse.AgentBidResponse?.Bids?.Bid
+    )
+      ? bidsResponse.AgentBidResponse.Bids.Bid.map((bid) => ({
+          vendorId: bid.VendorId,
+          vendorName: bid.VendorName,
+          priceBand: {
+            currency: bid.PriceBand.Currency,
+            minimumPrice: parseFloat(bid.PriceBand.MinimumPrice),
+            maximumPrice: parseFloat(bid.PriceBand.MaximumPrice),
+            estimatedPrice: parseFloat(bid.PriceBand.EstimatedPrice),
+          },
+          etaInMinutes: parseInt(bid.ETAInMinutes, 10),
+          vehicleType: normalizeVehicleType(bid.VehicleType), // Normalize the vehicle type
+        }))
+      : [];
+
+    if (
+      !Array.isArray(bidsResponse.AgentBidResponse?.Bids?.Bid) &&
+      bidsResponse.AgentBidResponse?.Bids?.Bid
+    ) {
+      // Single bid case
+      const bid = bidsResponse.AgentBidResponse.Bids.Bid;
+      formattedBids.push({
+        vendorId: bid.VendorId,
+        vendorName: bid.VendorName,
+        priceBand: {
+          currency: bid.PriceBand.Currency,
+          minimumPrice: parseFloat(bid.PriceBand.MinimumPrice),
+          maximumPrice: parseFloat(bid.PriceBand.MaximumPrice),
+          estimatedPrice: parseFloat(bid.PriceBand.EstimatedPrice),
+        },
+        etaInMinutes: parseInt(bid.ETAInMinutes, 10),
+        vehicleType: normalizeVehicleType(bid.VehicleType), // Normalize the vehicle type
+      });
+    }
+
+    // Calculate expiration time (5 minutes)
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Save bids to database
+    const newBid = new Bid({
+      user: userId,
+      bidReference: bidsResponse.AgentBidResponse?.BidReference,
+      status: igoConfig.bidStatuses.AVAILABLE,
+      bidType: bidType || igoConfig.bidTypes.IMMEDIATE,
+      pickup,
+      dropoff,
+      requestedTime: new Date(time),
+      expiresAt,
+      bids: formattedBids,
+      igoResponseLog: JSON.stringify(bidsResponse),
+    });
+
+    await newBid.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Bids retrieved successfully",
+      bidReference: bidsResponse.AgentBidResponse?.BidReference,
+      expiresAt,
+      bids: formattedBids,
+    });
+  } catch (error) {
+    console.error("Error requesting vendor bids:", error);
+    return res.status(500).json({
+      message: "Error requesting vendor bids",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get saved bids by reference
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
+export const getBidsByReference = async (req, res) => {
+  try {
+    const { bidReference } = req.params;
+    const userId = req.user?._id;
+
+    // Validate reference
+    if (!bidReference) {
+      return res.status(400).json({ message: "Bid reference is required" });
+    }
+
+    // Find bids
+    const bid = await Bid.findOne({ bidReference, user: userId });
+
+    if (!bid) {
+      return res.status(404).json({ message: "Bids not found" });
+    }
+
+    // Check if bids have expired
+    if (new Date() > bid.expiresAt) {
+      bid.status = igoConfig.bidStatuses.UNAVAILABLE;
+      await bid.save();
+      return res.status(400).json({
+        message: "Bids have expired",
+        expiresAt: bid.expiresAt,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      bidReference: bid.bidReference,
+      status: bid.status,
+      expiresAt: bid.expiresAt,
+      bids: bid.bids,
+      selectedBid: bid.selectedBid,
+    });
+  } catch (error) {
+    console.error("Error retrieving bids:", error);
+    return res.status(500).json({
+      message: "Error retrieving bids",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Select a bid from available bids
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
+export const selectBid = async (req, res) => {
+  try {
+    const { bidReference, vendorId } = req.body;
+    const userId = req.user?._id;
+
+    // Validate inputs
+    if (!bidReference) {
+      return res.status(400).json({ message: "Bid reference is required" });
+    }
+
+    if (!vendorId) {
+      return res.status(400).json({ message: "Vendor ID is required" });
+    }
+
+    // Helper function to normalize vehicle type
+    const normalizeVehicleType = (type) => {
+      if (!type) return igoConfig.vehicleTypes.STANDARD;
+
+      // Convert to lowercase for case-insensitive comparison
+      const lowercaseType = type.toLowerCase();
+
+      // Find matching vehicle type in igoConfig
+      for (const [key, value] of Object.entries(igoConfig.vehicleTypes)) {
+        if (
+          value.toLowerCase() === lowercaseType ||
+          key.toLowerCase() === lowercaseType
+        ) {
+          return value;
+        }
+      }
+
+      // If no match found, return as is
+      return type;
+    };
+
+    // Find bids
+    const bid = await Bid.findOne({ bidReference, user: userId });
+
+    if (!bid) {
+      return res.status(404).json({ message: "Bids not found" });
+    }
+
+    // Check if bids have expired
+    if (new Date() > bid.expiresAt) {
+      bid.status = igoConfig.bidStatuses.UNAVAILABLE;
+      await bid.save();
+      return res.status(400).json({
+        message: "Bids have expired",
+        expiresAt: bid.expiresAt,
+      });
+    }
+
+    // Find selected vendor bid
+    const selectedBid = bid.bids.find((b) => b.vendorId === vendorId);
+
+    if (!selectedBid) {
+      return res.status(404).json({ message: "Selected vendor bid not found" });
+    }
+
+    // Update bid with selection
+    bid.selectedBid = selectedBid;
+    await bid.save();
+
+    // Proceed with availability check using the selected bid - use checkAvailability directly from imports
+    const availabilityResponse = await checkAvailability(
+      bid.pickup,
+      bid.dropoff,
+      bid.requestedTime,
+      normalizeVehicleType(selectedBid.vehicleType) // Normalize vehicle type for API request
+    );
+
+    // Return the availability reference for booking
+    return res.status(200).json({
+      success: true,
+      message: "Bid selected successfully",
+      bidReference: bid.bidReference,
+      selectedBid: selectedBid,
+      availabilityReference:
+        availabilityResponse.AgentBookingAvailabilityResponse
+          ?.AvailabilityReference,
+      priceBand: {
+        currency: selectedBid.priceBand.currency,
+        minimumPrice: selectedBid.priceBand.minimumPrice,
+        maximumPrice: selectedBid.priceBand.maximumPrice,
+        estimatedPrice: selectedBid.priceBand.estimatedPrice,
+      },
+      etaInMinutes: selectedBid.etaInMinutes,
+    });
+  } catch (error) {
+    console.error("Error selecting bid:", error);
+    return res.status(500).json({
+      message: "Error selecting bid",
       error: error.message,
     });
   }

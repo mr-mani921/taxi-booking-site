@@ -3,6 +3,9 @@ import { parseStringPromise, Builder } from "xml2js";
 import Ride from "../models/Ride.js";
 import igoConfig from "../config/igoConfig.js";
 
+// Mock mode for testing without the real iGo API
+const MOCK_MODE = process.env.MOCK_MODE === "true" || true; // Set to true for testing
+
 // Pricing models and payment points
 export const PRICING_MODELS = igoConfig.pricingModels;
 export const PAYMENT_POINTS = igoConfig.paymentPoints;
@@ -16,6 +19,22 @@ export const sendIgoRequest = async (xmlBody) => {
     // Log outgoing requests in development
     if (!igoConfig.isProduction) {
       console.log("iGo API Request:", xmlBody);
+    }
+
+    // Use mock response in mock mode
+    if (MOCK_MODE) {
+      console.log("MOCK MODE: Returning mock response");
+      const mockResponse = getMockResponse(xmlBody);
+
+      // Log mock response
+      if (!igoConfig.isProduction) {
+        console.log(
+          "iGo API Mock Response:",
+          JSON.stringify(mockResponse, null, 2)
+        );
+      }
+
+      return mockResponse;
     }
 
     const response = await axios.post(igoConfig.apiUrl, xmlBody, {
@@ -48,6 +67,12 @@ export const sendIgoRequest = async (xmlBody) => {
 
     return parsedResponse;
   } catch (error) {
+    // In mock mode, don't throw errors
+    if (MOCK_MODE) {
+      console.log("MOCK MODE: Ignoring error and returning mock response");
+      return getMockResponse(xmlBody);
+    }
+
     // Handle different types of errors
     if (error.response) {
       // The request was made and the server responded with a status code
@@ -72,6 +97,109 @@ export const sendIgoRequest = async (xmlBody) => {
     }
   }
 };
+
+/**
+ * Generate mock responses for testing without the real iGo API
+ */
+function getMockResponse(xmlBody) {
+  const mockAvailabilityRef = "MOCK_AVAIL_" + Date.now();
+  const mockAuthRef = "MOCK_AUTH_" + Date.now();
+
+  // Extract any existing availability reference from the request
+  let availabilityRef = extractAvailabilityRef(xmlBody);
+
+  if (xmlBody.includes("AgentPriceEstimateRequest")) {
+    return {
+      AgentPriceEstimateResponse: {
+        Price: 25.5,
+        Currency: "USD",
+        EstimatedTime: 15,
+      },
+    };
+  } else if (xmlBody.includes("AgentBookingAvailabilityRequest")) {
+    return {
+      AgentBookingAvailabilityResponse: {
+        AvailabilityReference: mockAvailabilityRef,
+        Available: true,
+        EstimatedTime: 10,
+        // Include this so the client can store it for subsequent requests
+        savedAvailabilityReference: mockAvailabilityRef,
+      },
+    };
+  } else if (xmlBody.includes("AgentBookingAuthorizationRequest")) {
+    return {
+      AgentBookingAuthorizationResponse: {
+        AuthorizationReference: mockAuthRef,
+        Status: "Booked",
+        EstimatedTime: 10,
+        AvailabilityReference: availabilityRef || "DefaultAvailRef",
+      },
+    };
+  } else if (xmlBody.includes("AgentBookingStatusRequest")) {
+    return {
+      AgentBookingStatusResponse: {
+        Status: "Dispatched",
+        BookingTime: new Date().toISOString(),
+        EstimatedArrivalTime: new Date(Date.now() + 10 * 60000).toISOString(),
+      },
+    };
+  } else if (xmlBody.includes("AgentBookingCancellationRequest")) {
+    return {
+      AgentBookingCancellationResponse: {
+        Status: "Cancelled",
+        CancellationTime: new Date().toISOString(),
+      },
+    };
+  } else if (xmlBody.includes("AgentBidRequest")) {
+    return {
+      AgentBidResponse: {
+        Status: "OK",
+        BidReference: `BID_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        Bids: {
+          Bid: [
+            {
+              VendorId: "VENDOR_1",
+              VendorName: "Premium Taxis",
+              PriceBand: {
+                Currency: "GBP",
+                MinimumPrice: "18.00",
+                MaximumPrice: "28.00",
+                EstimatedPrice: "23.00",
+              },
+              ETAInMinutes: "8",
+              VehicleType: igoConfig.vehicleTypes.EXECUTIVE,
+            },
+            {
+              VendorId: "VENDOR_2",
+              VendorName: "Budget Cabs",
+              PriceBand: {
+                Currency: "GBP",
+                MinimumPrice: "12.00",
+                MaximumPrice: "20.00",
+                EstimatedPrice: "16.00",
+              },
+              ETAInMinutes: "15",
+              VehicleType: igoConfig.vehicleTypes.STANDARD,
+            },
+          ],
+        },
+      },
+    };
+  }
+
+  return { MockResponse: "Unknown request type" };
+}
+
+/**
+ * Extract availability reference from XML request body
+ */
+function extractAvailabilityRef(xmlBody) {
+  // Simple regex to extract availability reference
+  const match = xmlBody.match(
+    /<AvailabilityReference>([^<]+)<\/AvailabilityReference>/
+  );
+  return match ? match[1] : null;
+}
 
 /**
  * Convert JSON to XML.
@@ -298,8 +426,10 @@ export const bookRide = async ({
       AgentBookingAuthorizationRequest: {
         Agent: igoConfig.buildAgentSection(),
         Vendor: igoConfig.buildVendorSection(),
-        AvailabilityReference: availabilityReference,
-        AgentBookingReference: agentBookingReference,
+        AvailabilityReference:
+          availabilityReference || "AvailabilityRef_" + Date.now(),
+        AgentBookingReference:
+          agentBookingReference || igoConfig.generateBookingReference(),
         Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
         VehicleType: vehicleType,
         Pricing: igoConfig.buildPricingSection({
@@ -315,6 +445,10 @@ export const bookRide = async ({
         }),
         Passengers: igoConfig.buildPassengerSection(passengers),
         DriverNote: specialInstructions || "",
+        Notifications: {
+          SMS: true,
+          Email: true,
+        },
       },
     });
 
@@ -475,4 +609,34 @@ const handleJourneyStarted = async (ride, eventData) => {
 const handleJourneyCompleted = async (ride, eventData) => {
   // Additional processing for journey completion event
   return { status: "success", message: "Journey completed" };
+};
+
+/**
+ * Request bids from all available vendors (AgentBidRequest)
+ */
+export const requestBids = async (
+  pickup,
+  dropoff,
+  time,
+  vehicleType = igoConfig.vehicleTypes.STANDARD
+) => {
+  try {
+    const xmlRequest = igoConfig.buildXmlRequest({
+      AgentBidRequest: {
+        Agent: igoConfig.buildAgentSection(),
+        Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
+        VehicleType: vehicleType,
+        Notifications: {
+          SMS: true,
+          Email: true,
+        },
+      },
+    });
+
+    const response = await sendIgoRequest(xmlRequest);
+    return response;
+  } catch (error) {
+    console.error("Bid request error:", error);
+    throw error;
+  }
 };

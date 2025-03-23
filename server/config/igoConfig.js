@@ -6,8 +6,8 @@
 import dotenv from "dotenv";
 import { Builder } from "xml2js";
 
-// Load environment variables
 dotenv.config();
+console.log("IGO_AGENT_ID:", process.env.IGO_AGENT_ID);
 
 // Default values for testing environment
 const defaults = {
@@ -16,9 +16,9 @@ const defaults = {
   EVENT_BASE_URL: "https://cxagent.autocab.net/events",
 
   // Credentials
-  AGENT_ID: "300999",
-  AGENT_PASSWORD: "jEHJE5Kv",
-  VENDOR_ID: "700999",
+  AGENT_ID: process.env.IGO_AGENT_ID,
+  AGENT_PASSWORD: process.env.IGO_AGENT_PASSWORD,
+  VENDOR_ID: process.env.IGO_VENDOR_ID,
 
   // Request configuration
   API_TIMEOUT: 30000, // 30 seconds
@@ -117,20 +117,22 @@ const igoConfig = {
         indent: "  ",
         newline: "\n",
       },
+      xmldec: { version: "1.0", encoding: "UTF-8" },
+      attrkey: "$", // This tells xml2js to use $ for attributes
     });
     return builder.buildObject(jsonData);
   },
 
   // Common request sections
   buildAgentSection: () => ({
-    Id: igoConfig.agentId,
+    $: { Id: igoConfig.agentId }, // Set Id as an attribute using $ key
     Password: igoConfig.agentPassword,
     Reference: `AgentRef_${Date.now()}`,
     Time: new Date().toISOString(),
   }),
 
   buildVendorSection: () => ({
-    Id: igoConfig.vendorId,
+    $: { Id: igoConfig.vendorId }, // Set Id as an attribute using $ key
   }),
 
   buildPricingSection: ({ pricingModel, paymentPoint, price, flags = [] }) => ({
@@ -154,6 +156,24 @@ const igoConfig = {
       IsLead: passenger.isLead ? "true" : "false",
     })),
   }),
+
+  // Update the igoConfig object to include bid statuses and bid types
+  bidStatuses: {
+    AVAILABLE: "AVAILABLE",
+    UNAVAILABLE: "UNAVAILABLE",
+    PARTIAL: "PARTIAL",
+  },
+
+  bidTypes: {
+    IMMEDIATE: "IMMEDIATE",
+    PREBOOK: "PREBOOK",
+    BOTH: "BOTH",
+  },
+
+  webhookUrl: `${
+    process.env.API_BASE_URL || "http://localhost:5000"
+  }/api/rides/webhook/igo`,
+  mockMode: process.env.IGO_MOCK_MODE === "true" || true,
 };
 
 export default igoConfig;
