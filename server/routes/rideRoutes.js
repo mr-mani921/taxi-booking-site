@@ -10,6 +10,9 @@ import {
   requestVendorBids,
   getBidsByReference,
   selectBid,
+  processPayment,
+  requestBill,
+  getReceipt,
 } from "../controllers/rideController.js";
 import { authenticateUser } from "../middlewares/authMiddleware.js"; // Ensure user is authenticated
 
@@ -25,6 +28,11 @@ router.get("/user/:userId", authenticateUser, getUserRides);
 router.post("/bids", authenticateUser, requestVendorBids);
 router.get("/bids/:bidReference", authenticateUser, getBidsByReference);
 router.post("/bids/select", authenticateUser, selectBid);
+
+// Payment processing
+router.post("/:id/payment", authenticateUser, processPayment);
+router.get("/:id/bill", authenticateUser, requestBill);
+router.get("/:id/receipt", authenticateUser, getReceipt);
 
 // Webhook endpoint for iGo events (no authentication required)
 router.post("/webhook/igo", handleIgoWebhook);

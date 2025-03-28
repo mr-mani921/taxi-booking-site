@@ -13,7 +13,7 @@ console.log("IGO_AGENT_ID:", process.env.IGO_AGENT_ID);
 const defaults = {
   // API URLs
   API_URL: "https://cxs-staging.autocab.net/api/agent",
-  EVENT_BASE_URL: "https://cxagent.autocab.net/events",
+  EVENT_BASE_URL: process.env.IGO_EVENT_BASE_URL,
 
   // Credentials
   AGENT_ID: process.env.IGO_AGENT_ID,

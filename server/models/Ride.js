@@ -58,119 +58,131 @@ const rideSchema = new mongoose.Schema(
       type: driverSchema,
       default: null,
     },
+    passengers: [passengerSchema],
     pickupLocation: {
-      type: String,
-      required: true,
+      address: { type: String, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
     },
     dropoffLocation: {
-      type: String,
-      required: true,
+      address: { type: String, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
     },
-    pickupTime: {
-      type: Date,
-      required: true,
-    },
-    estimatedArrivalTime: {
-      type: Date,
-    },
-    actualArrivalTime: {
-      type: Date,
-    },
-    journeyStartTime: {
-      type: Date,
-    },
-    journeyEndTime: {
-      type: Date,
-    },
-    fare: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    finalFare: {
-      type: Number,
-    },
+    pickupTime: { type: Date, required: true },
+    estimatedArrivalTime: { type: Date },
+    actualArrivalTime: { type: Date },
+    journeyStartTime: { type: Date },
+    journeyEndTime: { type: Date },
+    fare: { type: Number, required: true },
+    originalFare: { type: Number },
+    finalFare: { type: Number },
+    platformMarkup: { type: String },
     status: {
       type: String,
       enum: Object.values(igoConfig.rideStatuses),
       default: igoConfig.rideStatuses.PENDING,
     },
+    specialInstructions: { type: String },
     // iGo specific fields
-    igoBookingId: {
-      type: String,
-      index: true,
-    },
-    igoAvailabilityReference: {
-      type: String,
-    },
-    igoAuthorizationReference: {
-      type: String,
-    },
+    igoBookingId: { type: String },
+    igoAvailabilityReference: { type: String },
+    igoAuthorizationReference: { type: String },
     pricingModel: {
       type: String,
       enum: Object.values(igoConfig.pricingModels),
-      default: igoConfig.pricingModels.UP_FRONT,
     },
     paymentPoint: {
       type: String,
       enum: Object.values(igoConfig.paymentPoints),
-      default: igoConfig.paymentPoints.TIME_OF_BOOKING,
     },
-    vehicleType: {
-      type: String,
-      enum: Object.values(igoConfig.vehicleTypes),
-      default: igoConfig.vehicleTypes.STANDARD,
-    },
-    pricingFlags: [
-      {
-        type: String,
-        enum: Object.values(igoConfig.pricingFlags),
-      },
-    ],
-    passengers: [passengerSchema],
-    specialInstructions: {
-      type: String,
-      default: "",
-    },
-    driverNotes: {
-      type: String,
-      default: "",
-    },
-    cancellationReason: {
-      type: String,
-    },
-    // Response logs for debugging
+    vehicleType: { type: String },
+    pricingFlags: [String],
+    // Logging fields
     igoResponseLogs: [
       {
-        type: {
-          type: String,
-          enum: ["authorization", "status", "event"],
-        },
-        data: mongoose.Schema.Types.Mixed,
-        timestamp: {
-          type: Date,
-          default: Date.now,
-        },
+        timestamp: { type: Date, default: Date.now },
+        requestType: String,
+        response: mongoose.Schema.Types.Mixed,
       },
     ],
-    // Event history
     eventHistory: [
       {
-        type: {
-          type: String,
-          enum: Object.values(igoConfig.eventTypes),
-        },
-        data: mongoose.Schema.Types.Mixed,
-        timestamp: {
-          type: Date,
-          default: Date.now,
-        },
+        timestamp: { type: Date, default: Date.now },
+        eventType: String,
+        eventData: mongoose.Schema.Types.Mixed,
       },
     ],
+    // Payment-related fields
+    paymentStatus: {
+      type: String,
+      enum: ["PENDING", "PAID", "FAILED"],
+      default: "PENDING",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["CARD"],
+    },
+    paymentReference: { type: String },
+    paymentTransactionReference: { type: String },
+    paymentDate: { type: Date },
+    paymentCardDetails: {
+      cardType: String,
+      lastFourDigits: String,
+      expiryMonth: String,
+      expiryYear: String,
+    },
+    // Commission details for platform
+    commissionDetails: {
+      commissionAmount: { type: Number },
+      vendorAmount: { type: Number },
+      commissionPercentage: { type: String },
+      markupPercentage: { type: String },
+      calculatedAt: { type: Date },
+    },
+    billDetails: {
+      billItems: [
+        {
+          description: String,
+          amount: String,
+          type: String,
+        },
+      ],
+      subTotal: String,
+      tax: String,
+      total: String,
+      currency: String,
+      paymentStatus: String,
+    },
+    receiptDetails: {
+      receiptNumber: String,
+      vendorName: String,
+      bookingReference: String,
+      paymentReference: String,
+      journeyDetails: {
+        startTime: Date,
+        endTime: Date,
+        pickupAddress: String,
+        dropoffAddress: String,
+        distance: String,
+      },
+      billItems: [
+        {
+          description: String,
+          amount: String,
+          type: String,
+        },
+      ],
+      subTotal: String,
+      tax: String,
+      total: String,
+      currency: String,
+      paymentMethod: String,
+      paymentTime: Date,
+      receiptURL: String,
+    },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 // Indexes for better query performance

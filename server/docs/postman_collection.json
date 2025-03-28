@@ -174,14 +174,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"userId\": \"user-id-here\",\n    \"pickup\": {\n        \"address\": \"123 Pickup St, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1278\n    },\n    \"dropoff\": {\n        \"address\": \"456 Dropoff Ave, London\",\n        \"lat\": 51.5074,\n        \"lng\": -0.1400\n    },\n    \"pickupTime\": \"2023-06-15T14:30:00Z\",\n    \"fare\": 20.50,\n    \"vehicleType\": \"STANDARD\",\n    \"pricingModel\": \"STANDARD\",\n    \"paymentPoint\": \"APP\",\n    \"availabilityReference\": \"avail-ref-from-availability-check\",\n    \"passengers\": [\n        {\n            \"firstName\": \"John\",\n            \"lastName\": \"Doe\",\n            \"phone\": \"+447700900000\"\n        }\n    ],\n    \"specialInstructions\": \"Please call when arrived\"\n}",
+              "raw": "{\n    \"userId\": \"user-id-here\",\n    \"pickup\": {\n        \"address\": \"123 Pickup St, London\",\n        \"latitude\": 51.5074,\n        \"longitude\": -0.1278\n    },\n    \"dropoff\": {\n        \"address\": \"456 Dropoff Ave, London\",\n        \"latitude\": 51.5074,\n        \"longitude\": -0.1400\n    },\n    \"time\": \"2023-06-15T14:30:00Z\",\n    \"fare\": 20.50,\n    \"vehicleType\": \"STANDARD\",\n    \"pricingModel\": \"UP_FRONT\",\n    \"paymentPoint\": \"TIME_OF_BOOKING\",\n    \"availabilityReference\": \"avail-ref-from-availability-check\",\n    \"passengers\": [\n        {\n            \"name\": \"John Doe\",\n            \"phone\": \"+447700900000\",\n            \"email\": \"john@example.com\",\n            \"isLead\": true\n        }\n    ],\n    \"specialInstructions\": \"Please call when arrived\",\n    \"paymentToken\": \"tok_visa\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Book a ride with a valid availability reference."
+            "description": "Book a ride with a valid availability reference. If paymentPoint is TIME_OF_BOOKING, a payment token is required to process upfront payment.\n\nValid payment tokens include:\n- Stripe test tokens (tok_visa, tok_mastercard, tok_amex, etc.) for testing\n- Real tokens created by Stripe.js on the client side\n- Payment Method IDs (starting with pm_) created previously\n\nNote: When using paymentPoint: \"TIME_OF_BOOKING\", the paymentToken parameter is mandatory and will be used to charge the customer immediately upon successful booking. For END_OF_JOURNEY payments, the token is not required at booking time."
           }
         },
         {
@@ -242,6 +242,80 @@
               }
             ],
             "description": "Get all rides for a specific user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Request Bill",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/rides   ",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "variable": [
+              {
+                "key": "id",
+                "value": "ride-id-here"
+              }
+            ],
+            "description": "Request a detailed bill for a completed ride."
+          }
+        },
+        {
+          "name": "Process Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/rides/:id/payment",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"paymentToken\": \"tok_visa\",\n    \"cardDetails\": {\n        \"cardType\": \"VISA\",\n        \"lastFourDigits\": \"4242\",\n        \"expiryMonth\": \"12\",\n        \"expiryYear\": \"2025\"\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "variable": [
+              {
+                "key": "id",
+                "value": "ride-id-here"
+              }
+            ],
+            "description": "Process payment for a completed ride. The paymentToken is a secure representation of payment details, which can be:\n\n- A Stripe test token (tok_visa, tok_mastercard, tok_amex, etc.) for testing\n- A real token created by Stripe.js on the client side\n- A Payment Method ID (starting with pm_) created previously\n\nFor testing, you can use these test tokens:\n- tok_visa (Visa card)\n- tok_mastercard (Mastercard)\n- tok_amex (American Express)\n- tok_discover (Discover card)\n\nThe cardDetails are used for record-keeping only and are not sent to Stripe."
+          }
+        },
+        {
+          "name": "Get Receipt",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/rides/:id/receipt",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "variable": [
+              {
+                "key": "id",
+                "value": "ride-id-here"
+              }
+            ],
+            "description": "Get a receipt for a paid ride."
           }
         }
       ]

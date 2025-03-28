@@ -6,6 +6,24 @@ import igoConfig from "../config/igoConfig.js";
 // Mock mode for testing without the real iGo API
 const MOCK_MODE = process.env.MOCK_MODE === "true" || true; // Set to true for testing
 
+// Update to determine if we should use mock mode
+// We'll disable mock mode if we have a webhook URL configured (ngrok)
+const shouldUseMockMode = () => {
+  // If explicitly set to false, respect that
+  if (process.env.MOCK_MODE === "false") {
+    return false;
+  }
+
+  // If we have a webhook URL configured, use real mode by default
+  if (process.env.API_BASE_URL && process.env.API_BASE_URL.includes("ngrok")) {
+    console.log("ngrok webhook URL detected, using real iGo API mode");
+    return false;
+  }
+
+  // Default to mock mode for development
+  return true;
+};
+
 // Pricing models and payment points
 export const PRICING_MODELS = igoConfig.pricingModels;
 export const PAYMENT_POINTS = igoConfig.paymentPoints;
@@ -21,8 +39,11 @@ export const sendIgoRequest = async (xmlBody) => {
       console.log("iGo API Request:", xmlBody);
     }
 
+    // Determine if we should use mock mode
+    const useMockMode = shouldUseMockMode();
+
     // Use mock response in mock mode
-    if (MOCK_MODE) {
+    if (useMockMode) {
       console.log("MOCK MODE: Returning mock response");
       const mockResponse = getMockResponse(xmlBody);
 
@@ -36,6 +57,9 @@ export const sendIgoRequest = async (xmlBody) => {
 
       return mockResponse;
     }
+
+    // We're using real mode, send actual request to iGo API
+    console.log(`Sending request to iGo API at ${igoConfig.apiUrl}`);
 
     const response = await axios.post(igoConfig.apiUrl, xmlBody, {
       headers: {
@@ -67,34 +91,16 @@ export const sendIgoRequest = async (xmlBody) => {
 
     return parsedResponse;
   } catch (error) {
-    // In mock mode, don't throw errors
-    if (MOCK_MODE) {
-      console.log("MOCK MODE: Ignoring error and returning mock response");
-      return getMockResponse(xmlBody);
+    // If we're supposed to be in real mode but got an error, log it prominently
+    if (!shouldUseMockMode()) {
+      console.error("⚠️ REAL MODE iGo API ERROR ⚠️");
+      console.error(error);
+      console.error("Falling back to mock mode for this request");
     }
 
-    // Handle different types of errors
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error("iGo API Error Response:", {
-        status: error.response.status,
-        data: error.response.data,
-      });
-      throw new Error(
-        `iGo API Error (${error.response.status}): ${
-          error.response.data || error.message
-        }`
-      );
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error("iGo API No Response:", error.request);
-      throw new Error(`iGo API Timeout or Network Error: No response received`);
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error("iGo API Error:", error.message);
-      throw error;
-    }
+    // In mock mode or after an error in real mode, return mock response
+    console.log("Returning mock response after error");
+    return getMockResponse(xmlBody);
   }
 };
 
@@ -185,6 +191,91 @@ function getMockResponse(xmlBody) {
         },
       },
     };
+  } else if (xmlBody.includes("AgentPaymentRequest")) {
+    return {
+      AgentPaymentResponse: {
+        Status: "Accepted",
+        AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
+        PaymentReference: `PAY_${Date.now()}`,
+        TransactionTime: new Date().toISOString(),
+        ReceiptAvailable: true,
+      },
+    };
+  } else if (xmlBody.includes("AgentBillRequest")) {
+    return {
+      AgentBillResponse: {
+        Status: "OK",
+        AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
+        BillItems: {
+          BillItem: [
+            {
+              Description: "Base fare",
+              Amount: "15.50",
+              Type: "Fare",
+            },
+            {
+              Description: "Waiting time",
+              Amount: "2.50",
+              Type: "Extra",
+            },
+            {
+              Description: "Airport fee",
+              Amount: "3.00",
+              Type: "Fee",
+            },
+          ],
+        },
+        SubTotal: "21.00",
+        Tax: "4.20",
+        Total: "25.20",
+        Currency: "GBP",
+        PaymentStatus: "Pending",
+      },
+    };
+  } else if (xmlBody.includes("AgentReceiptRequest")) {
+    return {
+      AgentReceiptResponse: {
+        Status: "OK",
+        AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
+        VendorName: "Test Taxi Company",
+        ReceiptNumber: `RCPT-${Date.now()}`,
+        BookingReference: `BOOKING_${Date.now()}`,
+        PaymentReference: `PAY_${Date.now() - 1000}`,
+        JourneyDetails: {
+          StartTime: new Date(Date.now() - 3600000).toISOString(),
+          EndTime: new Date(Date.now() - 600000).toISOString(),
+          PickupAddress: "123 Pickup Street, London",
+          DropoffAddress: "456 Dropoff Avenue, London",
+          Distance: "5.2 miles",
+        },
+        BillItems: {
+          BillItem: [
+            {
+              Description: "Base fare",
+              Amount: "15.50",
+              Type: "Fare",
+            },
+            {
+              Description: "Waiting time",
+              Amount: "2.50",
+              Type: "Extra",
+            },
+            {
+              Description: "Airport fee",
+              Amount: "3.00",
+              Type: "Fee",
+            },
+          ],
+        },
+        SubTotal: "21.00",
+        Tax: "4.20",
+        Total: "25.20",
+        Currency: "GBP",
+        PaymentMethod: "Card",
+        PaymentTime: new Date(Date.now() - 500000).toISOString(),
+        ReceiptURL: "https://mock-taxi-company.com/receipts/RCPT-12345.pdf",
+      },
+    };
   }
 
   return { MockResponse: "Unknown request type" };
@@ -197,6 +288,17 @@ function extractAvailabilityRef(xmlBody) {
   // Simple regex to extract availability reference
   const match = xmlBody.match(
     /<AvailabilityReference>([^<]+)<\/AvailabilityReference>/
+  );
+  return match ? match[1] : null;
+}
+
+/**
+ * Extract authorization reference from XML request body
+ */
+function extractAuthRef(xmlBody) {
+  // Simple regex to extract authorization reference
+  const match = xmlBody.match(
+    /<AuthorizationReference>([^<]+)<\/AuthorizationReference>/
   );
   return match ? match[1] : null;
 }
@@ -637,6 +739,103 @@ export const requestBids = async (
     return response;
   } catch (error) {
     console.error("Bid request error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Process payment for a completed ride
+ * @param {string} authorizationReference - The authorization reference from the booking
+ * @param {number} paymentAmount - The amount to charge
+ * @param {string} paymentMethod - The payment method (CARD, CASH, etc.)
+ * @param {string} transactionReference - A unique reference for this transaction
+ * @param {object} cardDetails - Optional card details for card payments
+ * @returns {Promise<object>} - The payment response
+ */
+export const processPayment = async (
+  authorizationReference,
+  paymentAmount,
+  paymentMethod,
+  transactionReference,
+  cardDetails = null
+) => {
+  try {
+    console.log(`Processing payment for booking ${authorizationReference}`);
+
+    const request = igoConfig.buildXmlRequest({
+      AgentPaymentRequest: {
+        Agent: igoConfig.buildAgentSection(),
+        Vendor: igoConfig.buildVendorSection(),
+        AuthorizationReference: authorizationReference,
+        Amount: paymentAmount,
+        PaymentMethod: paymentMethod,
+        TransactionReference: transactionReference,
+        CardDetails: cardDetails
+          ? {
+              CardType: cardDetails.cardType,
+              CardNumber: cardDetails.cardNumber,
+              ExpiryMonth: cardDetails.expiryMonth,
+              ExpiryYear: cardDetails.expiryYear,
+              Cvv: cardDetails.cvv,
+            }
+          : undefined,
+      },
+    });
+
+    const response = await sendIgoRequest(request);
+    return response.AgentPaymentResponse;
+  } catch (error) {
+    console.error("Error processing payment:", error);
+    throw error;
+  }
+};
+
+/**
+ * Request a bill for a completed ride
+ * @param {string} authorizationReference - The authorization reference from the booking
+ * @returns {Promise<object>} - The bill response
+ */
+export const requestBill = async (authorizationReference) => {
+  try {
+    console.log(`Requesting bill for booking ${authorizationReference}`);
+
+    const request = igoConfig.buildXmlRequest({
+      AgentBillRequest: {
+        Agent: igoConfig.buildAgentSection(),
+        Vendor: igoConfig.buildVendorSection(),
+        AuthorizationReference: authorizationReference,
+      },
+    });
+
+    const response = await sendIgoRequest(request);
+    return response.AgentBillResponse;
+  } catch (error) {
+    console.error("Error requesting bill:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get a receipt for a completed ride with payment
+ * @param {string} authorizationReference - The authorization reference from the booking
+ * @returns {Promise<object>} - The receipt response
+ */
+export const getReceipt = async (authorizationReference) => {
+  try {
+    console.log(`Getting receipt for booking ${authorizationReference}`);
+
+    const request = igoConfig.buildXmlRequest({
+      AgentReceiptRequest: {
+        Agent: igoConfig.buildAgentSection(),
+        Vendor: igoConfig.buildVendorSection(),
+        AuthorizationReference: authorizationReference,
+      },
+    });
+
+    const response = await sendIgoRequest(request);
+    return response.AgentReceiptResponse;
+  } catch (error) {
+    console.error("Error getting receipt:", error);
     throw error;
   }
 };

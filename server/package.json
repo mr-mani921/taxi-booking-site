@@ -9,6 +9,8 @@
     "test:manual": "node tests/manualTest.js",
     "test:server": "cross-env NODE_ENV=test nodemon server.js",
     "test:win": "npx jest",
+    "test:bids": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest tests/igoBidding.test.js",
+    "test:payment": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest tests/igoPayment.test.js",
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
