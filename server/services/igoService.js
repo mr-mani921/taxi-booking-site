@@ -2,6 +2,7 @@ import axios from "axios";
 import { parseStringPromise, Builder } from "xml2js";
 import Ride from "../models/Ride.js";
 import igoConfig from "../config/igoConfig.js";
+import { sendRideStatusNotification } from "./notificationService.js";
 
 // Mock mode for testing without the real iGo API
 const MOCK_MODE = process.env.MOCK_MODE === "true" || true; // Set to true for testing
@@ -31,8 +32,9 @@ export const PRICING_FLAGS = igoConfig.pricingFlags;
 
 /**
  * Send a request to the iGo API with XML payload.
+ * Basic version without retries.
  */
-export const sendIgoRequest = async (xmlBody) => {
+const sendIgoRequestBasic = async (xmlBody) => {
   try {
     // Log outgoing requests in development
     if (!igoConfig.isProduction) {
@@ -91,17 +93,85 @@ export const sendIgoRequest = async (xmlBody) => {
 
     return parsedResponse;
   } catch (error) {
-    // If we're supposed to be in real mode but got an error, log it prominently
-    if (!shouldUseMockMode()) {
-      console.error("⚠️ REAL MODE iGo API ERROR ⚠️");
-      console.error(error);
-      console.error("Falling back to mock mode for this request");
+    console.error("iGo API Request Error:", error.message);
+
+    // Check if we're in mock mode and should fall back to mock response
+    if (!shouldUseMockMode() && process.env.FALLBACK_TO_MOCK === "true") {
+      console.log("Error in real mode, falling back to mock response");
+      return getMockResponse(xmlBody);
     }
 
-    // In mock mode or after an error in real mode, return mock response
-    console.log("Returning mock response after error");
-    return getMockResponse(xmlBody);
+    throw error;
   }
+};
+
+/**
+ * Send a request to the iGo API with retry logic for production reliability.
+ * This function will retry failed requests based on configuration.
+ *
+ * @param {string} xmlBody - The XML body to send to the iGo API
+ * @param {Object} options - Options for the retry logic
+ * @param {number} options.maxRetries - Maximum number of retry attempts (default: 3)
+ * @param {number} options.baseDelay - Base delay between retries in ms (default: 1000)
+ * @param {boolean} options.exponentialBackoff - Whether to use exponential backoff (default: true)
+ * @returns {Promise<Object>} The parsed response from the iGo API
+ */
+export const sendIgoRequest = async (xmlBody, options = {}) => {
+  const {
+    maxRetries = 3,
+    baseDelay = 1000,
+    exponentialBackoff = true,
+  } = options;
+
+  let attempts = 0;
+  let lastError = null;
+
+  // Critical operations that should always be retried
+  const isCriticalOperation = (xml) => {
+    return (
+      xml.includes("AgentBookingAuthorizationRequest") || // Booking confirmation
+      xml.includes("AgentPaymentRequest") || // Payment processing
+      xml.includes("AgentBookingCancellationRequest") // Booking cancellation
+    );
+  };
+
+  // Determine if this operation should use retry logic
+  const shouldRetry = isCriticalOperation(xmlBody);
+
+  // If not a critical operation, just send once
+  if (!shouldRetry) {
+    return sendIgoRequestBasic(xmlBody);
+  }
+
+  // For critical operations, use retry logic
+  while (attempts <= maxRetries) {
+    try {
+      return await sendIgoRequestBasic(xmlBody);
+    } catch (error) {
+      lastError = error;
+      attempts++;
+
+      if (attempts > maxRetries) {
+        console.error(
+          `All ${maxRetries} retry attempts failed for iGo API request`
+        );
+        break;
+      }
+
+      // Calculate delay with optional exponential backoff
+      const delay = exponentialBackoff
+        ? baseDelay * Math.pow(2, attempts - 1)
+        : baseDelay;
+
+      console.log(
+        `Retry attempt ${attempts}/${maxRetries} after ${delay}ms...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  // All retries failed
+  throw lastError;
 };
 
 /**
@@ -626,7 +696,8 @@ const handleBookingDispatched = async (ride, eventData) => {
 
     await ride.save();
 
-    // TODO: Send notification to user about dispatch
+    // Send notification to user about dispatch
+    await sendRideStatusNotification(ride, "booking.dispatched", eventData);
 
     return {
       status: "processed",
@@ -652,7 +723,8 @@ const handleBookingCompleted = async (ride, eventData) => {
 
     await ride.save();
 
-    // TODO: Send notification to user about completion
+    // Send notification to user about completion
+    await sendRideStatusNotification(ride, "booking.completed", eventData);
 
     return {
       status: "processed",
@@ -670,12 +742,12 @@ const handleBookingCancelled = async (ride, eventData) => {
     // Update ride with cancellation information
     ride.status = igoConfig.rideStatuses.CANCELLED;
     ride.cancelledAt = new Date();
-    ride.cancellationReason =
-      eventData.CancellationReason || "Cancelled by dispatch system";
+    ride.cancellationReason = eventData.Reason || "Cancelled via iGo";
 
     await ride.save();
 
-    // TODO: Send notification to user about cancellation
+    // Send notification to user about cancellation
+    await sendRideStatusNotification(ride, "booking.cancelled", eventData);
 
     return {
       status: "processed",
@@ -689,28 +761,146 @@ const handleBookingCancelled = async (ride, eventData) => {
 };
 
 const handleBookingFailed = async (ride, eventData) => {
-  // Additional processing for failure event
-  return { status: "success", message: "Booking failed" };
+  try {
+    // Update ride with failure information
+    ride.status = igoConfig.rideStatuses.FAILED;
+    ride.failedAt = new Date();
+    ride.failureReason = eventData.Reason || "Failed via iGo";
+
+    await ride.save();
+
+    // Send notification to user about failure
+    await sendRideStatusNotification(ride, "booking.failed", eventData);
+
+    return {
+      status: "processed",
+      message: "Booking failed",
+      rideId: ride._id,
+    };
+  } catch (error) {
+    console.error("Error handling booking failure:", error);
+    return { status: "error", message: error.message };
+  }
 };
 
 const handleDriverAssigned = async (ride, eventData) => {
-  // Additional processing for driver assignment event
-  return { status: "success", message: "Driver assigned" };
+  try {
+    // Update ride with driver information
+    ride.status = igoConfig.rideStatuses.DRIVER_ASSIGNED;
+    ride.driverAssignedAt = new Date();
+
+    // Extract driver information
+    if (eventData.Driver) {
+      ride.driverDetails = {
+        name: eventData.Driver.Name,
+        phone: eventData.Driver.TelephoneNumber,
+        vehicleDetails: eventData.Driver.VehicleDetails,
+        licensePlate: eventData.Driver.LicensePlate,
+      };
+    }
+
+    await ride.save();
+
+    // Send notification to user about driver assignment
+    await sendRideStatusNotification(
+      ride,
+      "booking.driver_assigned",
+      eventData
+    );
+
+    return {
+      status: "processed",
+      message: "Driver assigned",
+      rideId: ride._id,
+    };
+  } catch (error) {
+    console.error("Error handling driver assignment:", error);
+    return { status: "error", message: error.message };
+  }
 };
 
 const handleDriverArrived = async (ride, eventData) => {
-  // Additional processing for driver arrival event
-  return { status: "success", message: "Driver arrived" };
+  try {
+    // Update ride with arrival information
+    ride.status = igoConfig.rideStatuses.DRIVER_ARRIVED;
+    ride.driverArrivedAt = new Date();
+
+    await ride.save();
+
+    // Send notification to user about driver arrival
+    await sendRideStatusNotification(ride, "booking.driver_arrived", eventData);
+
+    return {
+      status: "processed",
+      message: "Driver arrived",
+      rideId: ride._id,
+    };
+  } catch (error) {
+    console.error("Error handling driver arrival:", error);
+    return { status: "error", message: error.message };
+  }
 };
 
 const handleJourneyStarted = async (ride, eventData) => {
-  // Additional processing for journey start event
-  return { status: "success", message: "Journey started" };
+  try {
+    // Update ride with journey start information
+    ride.status = igoConfig.rideStatuses.JOURNEY_STARTED;
+    ride.journeyStartedAt = new Date();
+
+    await ride.save();
+
+    // Send notification to user about journey start
+    await sendRideStatusNotification(
+      ride,
+      "booking.journey_started",
+      eventData
+    );
+
+    return {
+      status: "processed",
+      message: "Journey started",
+      rideId: ride._id,
+    };
+  } catch (error) {
+    console.error("Error handling journey start:", error);
+    return { status: "error", message: error.message };
+  }
 };
 
 const handleJourneyCompleted = async (ride, eventData) => {
-  // Additional processing for journey completion event
-  return { status: "success", message: "Journey completed" };
+  try {
+    // Update ride with journey completion information
+    ride.status = igoConfig.rideStatuses.JOURNEY_COMPLETED;
+    ride.journeyCompletedAt = new Date();
+
+    // Update final fare if available
+    if (eventData.FinalFare) {
+      const originalFare = parseFloat(eventData.FinalFare);
+      const markedUpFare = parseFloat((originalFare * 1.25).toFixed(2));
+
+      ride.originalFare = originalFare;
+      ride.finalFare = markedUpFare;
+      ride.platformMarkup = "25%";
+    }
+
+    await ride.save();
+
+    // Send notification to user about journey completion
+    await sendRideStatusNotification(
+      ride,
+      "booking.journey_completed",
+      eventData
+    );
+
+    return {
+      status: "processed",
+      message: "Journey completed",
+      rideId: ride._id,
+    };
+  } catch (error) {
+    console.error("Error handling journey completion:", error);
+    return { status: "error", message: error.message };
+  }
 };
 
 /**

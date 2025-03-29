@@ -14,27 +14,38 @@ import {
   requestBill,
   getReceipt,
 } from "../controllers/rideController.js";
-import { authenticateUser } from "../middlewares/authMiddleware.js"; // Ensure user is authenticated
+import {
+  verifyIgoWebhookSignature,
+  webhookRateLimit,
+} from "../middlewares/webhookAuth.js";
+import { authenticateUser } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// Protected routes (require authentication)
-router.post("/estimate", authenticateUser, getPriceEstimate);
-router.post("/availability", authenticateUser, checkRideAvailability);
-router.post("/book", authenticateUser, bookRide);
-router.get("/status/:bookingId", authenticateUser, getRideStatus);
-router.delete("/cancel/:bookingId", authenticateUser, cancelRide);
-router.get("/user/:userId", authenticateUser, getUserRides);
-router.post("/bids", authenticateUser, requestVendorBids);
-router.get("/bids/:bidReference", authenticateUser, getBidsByReference);
-router.post("/bids/select", authenticateUser, selectBid);
+// Public routes (no authentication required)
+router.post(
+  "/webhook/igo",
+  webhookRateLimit,
+  verifyIgoWebhookSignature,
+  handleIgoWebhook
+);
 
-// Payment processing
+// Protected routes (authentication required)
+router.post("/price-estimate", authenticateUser, getPriceEstimate);
+router.post("/check-availability", authenticateUser, checkRideAvailability);
+router.post("/book", authenticateUser, bookRide);
+router.post("/cancel/:id", authenticateUser, cancelRide);
+router.get("/status/:id", authenticateUser, getRideStatus);
+router.get("/user/:userId", authenticateUser, getUserRides);
+// router.get("/vehicle-types", authenticateUser, getSavedVehicleTypes);
+
+// Bid-related routes
+router.post("/request-bids", authenticateUser, requestVendorBids);
+router.post("/select-bid", authenticateUser, selectBid);
+
+// Payment-related routes
 router.post("/:id/payment", authenticateUser, processPayment);
 router.get("/:id/bill", authenticateUser, requestBill);
 router.get("/:id/receipt", authenticateUser, getReceipt);
-
-// Webhook endpoint for iGo events (no authentication required)
-router.post("/webhook/igo", handleIgoWebhook);
 
 export default router;

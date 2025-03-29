@@ -12,6 +12,8 @@ import FAQ from "./pages/FAQ";
 import Services from "./pages/Services";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/PrivacyPage";
+import Quotes from "./pages/Quotes";
+import Payment from "./pages/Payment";
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
           <Route path="/services" element={<Services />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/quotes" element={<Quotes />} />
+          <Route path="/payment" element={<Payment />} />
         </Routes>
       </div>
       <Footer />
