@@ -3,9 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { setPaymentStatus, setPaymentError } from "../store/quoteSlice.js";
-
-
+import { setPaymentStatus } from "../store/quoteSlice.js";
 
 const PaymentForm = () => {
   const stripe = useStripe();
@@ -42,7 +40,6 @@ const PaymentForm = () => {
       dispatch(setPaymentStatus("success"));
       navigate("/booking-confirmation");
     } catch (error) {
-      dispatch(setPaymentError(error.message));
       dispatch(setPaymentStatus("error"));
     } finally {
       setProcessing(false);

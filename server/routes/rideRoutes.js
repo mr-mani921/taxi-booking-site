@@ -31,7 +31,7 @@ router.post(
 );
 
 // Protected routes (authentication required)
-router.post("/price-estimate", authenticateUser, getPriceEstimate);
+router.post("/quotes/estimate", authenticateUser, getPriceEstimate);
 router.post("/check-availability", authenticateUser, checkRideAvailability);
 router.post("/book", authenticateUser, bookRide);
 router.post("/cancel/:id", authenticateUser, cancelRide);

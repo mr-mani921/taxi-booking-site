@@ -2,55 +2,56 @@ import mongoose from "mongoose";
 import igoConfig from "../config/igoConfig.js";
 
 // Schema for price band information
-const priceBandSchema = new mongoose.Schema(
+const pricingSchema = new mongoose.Schema(
   {
+    pricingMethod: String,
+    price: Number,
+    commission: Number,
+    gratuity: Number,
     currency: {
       type: String,
-      required: true,
       default: "GBP",
     },
-    minimumPrice: {
-      type: Number,
-      required: true,
-    },
-    maximumPrice: {
-      type: Number,
-      required: true,
-    },
-    estimatedPrice: {
-      type: Number,
-      required: true,
-    },
+    loyaltyCard: Number,
+    promotionCodeDiscount: Number,
+    priceNET: Number,
+    serviceCharge: Number,
+    VAT: Number,
+    marketPlaceCommission: Number,
+    marketPlaceCommissionVAT: Number,
+    serviceChargeVAT: Number,
+    agentCommission: Number,
+    agentCommissionVAT: Number,
+    cancellationCharge: Number,
+    noFareCharge: Number,
+    areaCharge: Number,
+    surgeFactor: Number,
   },
   { _id: false }
 );
 
+
 // Schema for individual vendor bids
 const vendorBidSchema = new mongoose.Schema(
   {
-    vendorId: {
-      type: String,
-      required: true,
+    vendorName: String,
+    vendorAddress: String,
+    vendorCity: String,
+    vendorCountry: String,
+    vendorPhone: String,
+    rating: String,
+    numberOfRatings: Number,
+    vehicleType: String,
+    etaInMinutes: Number,
+    pricing: {
+      type: pricingSchema,
     },
-    vendorName: {
-      type: String,
-      required: true,
-    },
-    priceBand: {
-      type: priceBandSchema,
-      required: true,
-    },
-    etaInMinutes: {
-      type: Number,
-      required: true,
-    },
-    vehicleType: {
-      type: String,
-      required: true,
-    },
+    estimatedDistance: Number,
+    estimatedDuration: Number,
   },
   { _id: false }
 );
+
 
 // Main bid schema
 const bidSchema = new mongoose.Schema(
@@ -106,6 +107,7 @@ const bidSchema = new mongoose.Schema(
     selectedBid: {
       type: vendorBidSchema,
     },
+
     igoResponseLog: {
       type: String,
     },

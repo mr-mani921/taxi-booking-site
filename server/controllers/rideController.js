@@ -24,40 +24,296 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
  */
 export const getPriceEstimate = async (req, res) => {
   try {
-    const { pickup, dropoff, time, vehicleType } = req.body;
+    const {
+      pickupLocation,
+      dropoffLocation,
+      pickupTime,
+      passengers = 1,
+      luggage,
+      isOneWay,
+    } = req.body;
+    console.log(
+      `Request received for price estimate maeney tumhey bss pakkar hi lia :`,
+      JSON.stringify(
+        {
+          pickupLocation,
+          dropoffLocation,
+          pickupTime,
+          passengers,
+        },
+        null,
+        2
+      )
+    );
 
     // Validate required inputs
-    if (!pickup || !dropoff || !time) {
+    if (!pickupLocation || !dropoffLocation || !pickupTime) {
       return res.status(400).json({
         message:
-          "Missing required fields: pickup, dropoff, and time are required",
+          "Missing required fields: pickupLocation, dropoffLocation, and pickupTime are required",
       });
     }
 
-    const response = await getEstimatedPrice(
-      pickup,
-      dropoff,
-      time,
-      vehicleType
-    );
-
-    // Apply 25% markup to the price
-    if (
-      response.AgentPriceEstimateResponse &&
-      response.AgentPriceEstimateResponse.Price
-    ) {
-      const originalPrice = response.AgentPriceEstimateResponse.Price;
-      const markedUpPrice = originalPrice * 1.25; // Add 25%
-      response.AgentPriceEstimateResponse.Price = parseFloat(
-        markedUpPrice.toFixed(2)
-      );
-
-      // Store both original and platform prices for reference
-      response.AgentPriceEstimateResponse.originalPrice = originalPrice;
-      response.AgentPriceEstimateResponse.platformMarkup = "25%";
+    // Validate coordinates
+    if (!pickupLocation.lat || !pickupLocation.lng) {
+      return res.status(400).json({
+        message: "Pickup location must include lat and lng coordinates",
+      });
     }
 
-    res.json(response);
+    // Format the pickup location to include address if available
+    const formattedPickup = {
+      lat: pickupLocation.lat,
+      lng: pickupLocation.lng,
+      address:
+        pickupLocation.address ||
+        `${pickupLocation.lat.toFixed(6)}, ${pickupLocation.lng.toFixed(6)}`,
+    };
+
+    // Format the dropoff location to include address if available
+    let formattedDropoff;
+    if (
+      typeof dropoffLocation === "string" ||
+      !dropoffLocation.lat ||
+      !dropoffLocation.lng
+    ) {
+      console.log(
+        "Warning: dropoffLocation is not properly formatted. This should not happen if using the updated frontend."
+      );
+
+      // For backward compatibility, create a fake coordinate close to pickup
+      formattedDropoff = {
+        lat: parseFloat(pickupLocation.lat) + 0.01,
+        lng: parseFloat(pickupLocation.lng) + 0.01,
+        address:
+          typeof dropoffLocation === "string"
+            ? dropoffLocation
+            : "Unknown location",
+      };
+    } else {
+      formattedDropoff = {
+        lat: dropoffLocation.lat,
+        lng: dropoffLocation.lng,
+        address:
+          dropoffLocation.address ||
+          `${dropoffLocation.lat.toFixed(6)}, ${dropoffLocation.lng.toFixed(
+            6
+          )}`,
+      };
+    }
+
+    // Format the date properly
+    let formattedPickupTime;
+    try {
+      // Ensure the date is valid and properly formatted
+      const pickupDate = new Date(pickupTime);
+      if (isNaN(pickupDate.getTime())) {
+        throw new Error("Invalid date format");
+      }
+      formattedPickupTime = pickupDate.toISOString();
+      console.log("Formatted pickup time:", formattedPickupTime);
+    } catch (err) {
+      return res.status(400).json({
+        message:
+          "Invalid pickup time format. Please use ISO format (YYYY-MM-DDTHH:MM)",
+      });
+    }
+
+    // Create passenger information for the request
+    const passengerDetails = [];
+    const mainPassenger = {
+      name: req.user?.name || "Guest User",
+      phone: req.user?.phone || "",
+      email: req.user?.email || "",
+      isLead: true,
+    };
+    passengerDetails.push(mainPassenger);
+
+    // Add additional passengers if specified
+    if (passengers > 1) {
+      for (let i = 1; i < passengers; i++) {
+        passengerDetails.push({
+          name: `Additional Passenger ${i}`,
+          phone: "",
+          email: "",
+          isLead: false,
+        });
+      }
+    }
+
+    // Log the request parameters for debugging
+    console.log("Sending bid request with:", {
+      pickup: formattedPickup,
+      dropoff: formattedDropoff,
+      time: formattedPickupTime,
+      passengers: passengerDetails.length,
+    });
+
+    const response = await getEstimatedPrice(
+      formattedPickup,
+      formattedDropoff,
+      formattedPickupTime,
+      undefined, // Use default vehicle type
+      passengerDetails
+    );
+
+    // Process the AgentBidResponse (different from AgentPriceEstimateResponse)
+    let formattedResponse = {
+      estimatedPrice: 0,
+      originalPrice: 0,
+      platformMarkup: "25%",
+      quotes: [],
+    };
+
+    // Extract quotes from bids in the response
+    if (
+      response.AgentBidResponse &&
+      response.AgentBidResponse.Bids &&
+      response.AgentBidResponse.Bids.Bid
+    ) {
+      const bids = Array.isArray(response.AgentBidResponse.Bids.Bid)
+        ? response.AgentBidResponse.Bids.Bid
+        : [response.AgentBidResponse.Bids.Bid];
+
+      formattedResponse.quotes = bids.map((bid, index) => {
+        // Extract price information
+        let price = 0;
+        if (bid.PriceBand && bid.PriceBand.EstimatedPrice) {
+          price = parseFloat(bid.PriceBand.EstimatedPrice);
+        }
+
+        // Apply 25% markup
+        const markedUpPrice = price * 1.25;
+
+        return {
+          id: index + 1,
+          vendorId: bid.VendorId,
+          vendorName: bid.VendorName || `Vendor ${index + 1}`,
+          price: parseFloat(markedUpPrice.toFixed(2)),
+          originalPrice: price,
+          vehicleType: bid.VehicleType || "standard",
+          estimatedArrival: new Date(
+            new Date(pickupTime).getTime() + (bid.ETAInMinutes || 15) * 60000
+          ),
+          etaInMinutes: bid.ETAInMinutes || 15,
+        };
+      });
+
+      // Set the estimated price based on the first quote or average
+      if (formattedResponse.quotes.length > 0) {
+        if (formattedResponse.quotes.length === 1) {
+          formattedResponse.estimatedPrice = formattedResponse.quotes[0].price;
+          formattedResponse.originalPrice =
+            formattedResponse.quotes[0].originalPrice;
+        } else {
+          // Calculate average price
+          const totalPrice = formattedResponse.quotes.reduce(
+            (sum, quote) => sum + quote.price,
+            0
+          );
+          const totalOriginal = formattedResponse.quotes.reduce(
+            (sum, quote) => sum + quote.originalPrice,
+            0
+          );
+          formattedResponse.estimatedPrice = parseFloat(
+            (totalPrice / formattedResponse.quotes.length).toFixed(2)
+          );
+          formattedResponse.originalPrice = parseFloat(
+            (totalOriginal / formattedResponse.quotes.length).toFixed(2)
+          );
+        }
+      }
+
+      // Store the bid reference if available
+      if (response.AgentBidResponse.BidReference) {
+        formattedResponse.bidReference = response.AgentBidResponse.BidReference;
+      }
+    } else {
+      // Check for error response
+      if (
+        response.AgentBidResponse &&
+        response.AgentBidResponse.Result &&
+        response.AgentBidResponse.Result.Success === "false"
+      ) {
+        console.log("API returned an error:", response.AgentBidResponse.Result);
+        return res.status(400).json({
+          message: `API Error: ${
+            response.AgentBidResponse.Result.FailureReason || "Unknown error"
+          }`,
+          code: response.AgentBidResponse.Result.FailureCode || "UNKNOWN",
+        });
+      }
+
+      console.log("No bids returned from API:", response);
+
+      // For development/testing, create a mock bid to allow UI to continue working
+      if (
+        process.env.NODE_ENV !== "production" ||
+        process.env.MOCK_MODE === "true"
+      ) {
+        console.log("Using mock data for quotes");
+        // Generate multiple mock bids with different prices and times
+        formattedResponse.quotes = [
+          {
+            id: 1,
+            vendorId: "MOCK_VENDOR_1",
+            vendorName: "Premium Taxi Service",
+            price: 28.5,
+            originalPrice: 22.8,
+            vehicleType: "premium",
+            estimatedArrival: new Date(
+              new Date(pickupTime).getTime() + 10 * 60000
+            ),
+            etaInMinutes: 10,
+          },
+          {
+            id: 2,
+            vendorId: "MOCK_VENDOR_2",
+            vendorName: "Standard Taxi Service",
+            price: 21.25,
+            originalPrice: 17.0,
+            vehicleType: "standard",
+            estimatedArrival: new Date(
+              new Date(pickupTime).getTime() + 15 * 60000
+            ),
+            etaInMinutes: 15,
+          },
+          {
+            id: 3,
+            vendorId: "MOCK_VENDOR_3",
+            vendorName: "Budget Taxi Service",
+            price: 18.75,
+            originalPrice: 15.0,
+            vehicleType: "standard",
+            estimatedArrival: new Date(
+              new Date(pickupTime).getTime() + 20 * 60000
+            ),
+            etaInMinutes: 20,
+          },
+        ];
+
+        // Calculate average for estimated price
+        const totalPrice = formattedResponse.quotes.reduce(
+          (sum, quote) => sum + quote.price,
+          0
+        );
+        const totalOriginal = formattedResponse.quotes.reduce(
+          (sum, quote) => sum + quote.originalPrice,
+          0
+        );
+
+        formattedResponse.estimatedPrice = parseFloat(
+          (totalPrice / formattedResponse.quotes.length).toFixed(2)
+        );
+        formattedResponse.originalPrice = parseFloat(
+          (totalOriginal / formattedResponse.quotes.length).toFixed(2)
+        );
+        formattedResponse.bidReference = "MOCK_BID_" + Date.now();
+        formattedResponse.isMocked = true;
+      }
+    }
+
+    res.json(formattedResponse);
   } catch (error) {
     console.error("Price estimation error:", error);
     res.status(500).json({
@@ -153,13 +409,13 @@ export const bookRide = async (req, res) => {
   try {
     const {
       userId,
-      pickup,
-      dropoff,
-      time,
+      pickupLocation,
+      dropoffLocation,
+      pickupTime,
       pricingModel,
       paymentPoint,
       price,
-      passengerDetails,
+      passengers,
       specialInstructions,
       vehicleType,
       availabilityReference,
@@ -167,7 +423,9 @@ export const bookRide = async (req, res) => {
     } = req.body;
 
     // Validate required inputs
-    if (!pickup || !dropoff || !time || !passengerDetails) {
+    if (!pickupLocation || !dropoffLocation || !pickupTime || !passengers) {
+      console.log("the data is ", req.body);
+
       return res.status(400).json({
         message: "Missing required fields for booking",
       });
@@ -747,39 +1005,51 @@ export const handleIgoWebhook = async (req, res) => {
  */
 export const requestVendorBids = async (req, res) => {
   try {
-    const { pickup, dropoff, time, vehicleType, bidType } = req.body;
-    const userId = req.user?._id;
+    const {
+      pickupLocation,
+      dropoffLocation,
+      pickupTime,
+      vehicleType,
+      passengers = 1,
+      bidType = igoConfig.bidTypes.BOTH,
+    } = req.body;
 
-    // Validate user ID
+    const userId = req.user?._id;
+    console.log("Received bid request:", req.body);
+
     if (!userId) {
       return res.status(401).json({ message: "User authentication required" });
     }
 
-    // Validate required fields
-    if (!pickup || !pickup.address || !pickup.lat || !pickup.lng) {
+    if (
+      !pickupLocation ||
+      !pickupLocation.address ||
+      !pickupLocation.lat ||
+      !pickupLocation.lng
+    ) {
       return res
         .status(400)
         .json({ message: "Pickup location details are required" });
     }
 
-    if (!dropoff || !dropoff.address || !dropoff.lat || !dropoff.lng) {
+    if (
+      !dropoffLocation ||
+      !dropoffLocation.address ||
+      !dropoffLocation.lat ||
+      !dropoffLocation.lng
+    ) {
       return res
         .status(400)
         .json({ message: "Dropoff location details are required" });
     }
 
-    if (!time) {
+    if (!pickupTime) {
       return res.status(400).json({ message: "Pickup time is required" });
     }
 
-    // Helper function to normalize vehicle type
     const normalizeVehicleType = (type) => {
       if (!type) return igoConfig.vehicleTypes.STANDARD;
-
-      // Convert to lowercase for case-insensitive comparison
       const lowercaseType = type.toLowerCase();
-
-      // Find matching vehicle type in igoConfig
       for (const [key, value] of Object.entries(igoConfig.vehicleTypes)) {
         if (
           value.toLowerCase() === lowercaseType ||
@@ -788,69 +1058,76 @@ export const requestVendorBids = async (req, res) => {
           return value;
         }
       }
-
-      // If no match found, return as is
-      return type;
+      console.warn("Unknown vehicle type received:", type);
+      return igoConfig.vehicleTypes.STANDARD;
     };
 
-    // Request bids from iGo service
+    const normalizedVehicleType = normalizeVehicleType(vehicleType);
+
     const bidsResponse = await requestBids(
-      pickup,
-      dropoff,
-      time,
-      vehicleType || igoConfig.vehicleTypes.STANDARD
+      pickupLocation,
+      dropoffLocation,
+      pickupTime,
+      normalizedVehicleType,
+      passengers
     );
 
-    // Convert the bids to the correct format for our schema
-    const formattedBids = Array.isArray(
-      bidsResponse.AgentBidResponse?.Bids?.Bid
-    )
-      ? bidsResponse.AgentBidResponse.Bids.Bid.map((bid) => ({
-          vendorId: bid.VendorId,
-          vendorName: bid.VendorName,
-          priceBand: {
-            currency: bid.PriceBand.Currency,
-            minimumPrice: parseFloat(bid.PriceBand.MinimumPrice),
-            maximumPrice: parseFloat(bid.PriceBand.MaximumPrice),
-            estimatedPrice: parseFloat(bid.PriceBand.EstimatedPrice),
-          },
-          etaInMinutes: parseInt(bid.ETAInMinutes, 10),
-          vehicleType: normalizeVehicleType(bid.VehicleType), // Normalize the vehicle type
-        }))
-      : [];
+    const formattedBids = [];
+    const rawBids = bidsResponse.AgentBidResponse?.Offers?.Offer;
+    const ensureArray = (data) => (Array.isArray(data) ? data : [data]);
 
-    if (
-      !Array.isArray(bidsResponse.AgentBidResponse?.Bids?.Bid) &&
-      bidsResponse.AgentBidResponse?.Bids?.Bid
-    ) {
-      // Single bid case
-      const bid = bidsResponse.AgentBidResponse.Bids.Bid;
+    for (const bid of ensureArray(rawBids)) {
+      const pricing = bid.Pricing || {};
+      const vendor = bid.VendorDetails || {};
+      const journey = bid.EstimatedJourney || {};
+
       formattedBids.push({
-        vendorId: bid.VendorId,
-        vendorName: bid.VendorName,
-        priceBand: {
-          currency: bid.PriceBand.Currency,
-          minimumPrice: parseFloat(bid.PriceBand.MinimumPrice),
-          maximumPrice: parseFloat(bid.PriceBand.MaximumPrice),
-          estimatedPrice: parseFloat(bid.PriceBand.EstimatedPrice),
+        vendorName: vendor.Name || "Unknown Vendor",
+        vendorAddress: vendor.Address || "",
+        vendorCity: vendor.City || "",
+        vendorCountry: vendor.Country || "",
+        vendorPhone: vendor.TelephoneNumber || "",
+        rating: bid.Rating || null,
+        numberOfRatings: parseInt(bid.NumberOfRatings || "0", 10),
+        vehicleType: normalizeVehicleType(bid.VehicleType),
+        etaInMinutes: parseInt(bid.AverageEta || "0", 10),
+        estimatedDistance: parseFloat(journey.Distance || 0),
+        estimatedDuration: parseInt(journey.Duration || "0", 10),
+        pricing: {
+          pricingMethod: pricing.PricingMethod || "",
+          price: parseFloat(pricing.Price || 0),
+          commission: parseFloat(pricing.Commission || 0),
+          gratuity: parseFloat(pricing.Gratuity || 0),
+          currency: pricing.Currency || "GBP",
+          loyaltyCard: parseFloat(pricing.LoyaltyCard || 0),
+          promotionCodeDiscount: parseFloat(pricing.PromotionCodeDiscount || 0),
+          priceNET: parseFloat(pricing.PriceNET || 0),
+          serviceCharge: parseFloat(pricing.ServiceCharge || 0),
+          VAT: parseFloat(pricing.VAT || 0),
+          marketPlaceCommission: parseFloat(pricing.MarketPlaceCommission || 0),
+          marketPlaceCommissionVAT: parseFloat(pricing.MarketPlaceCommissionVAT || 0),
+          serviceChargeVAT: parseFloat(pricing.ServiceChargeVAT || 0),
+          agentCommission: parseFloat(pricing.AgentCommission || 0),
+          agentCommissionVAT: parseFloat(pricing.AgentCommissionVAT || 0),
+          cancellationCharge: parseFloat(pricing.CancellationCharge || 0),
+          noFareCharge: parseFloat(pricing.NoFareCharge || 0),
+          areaCharge: parseFloat(pricing.AreaCharge || 0),
+          surgeFactor: parseFloat(pricing.SurgeFactor || 100),
         },
-        etaInMinutes: parseInt(bid.ETAInMinutes, 10),
-        vehicleType: normalizeVehicleType(bid.VehicleType), // Normalize the vehicle type
       });
+      
     }
 
-    // Calculate expiration time (5 minutes)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    // Save bids to database
     const newBid = new Bid({
       user: userId,
       bidReference: bidsResponse.AgentBidResponse?.BidReference,
       status: igoConfig.bidStatuses.AVAILABLE,
-      bidType: bidType || igoConfig.bidTypes.IMMEDIATE,
-      pickup,
-      dropoff,
-      requestedTime: new Date(time),
+      bidType,
+      pickup: pickupLocation,
+      dropoff: dropoffLocation,
+      requestedTime: new Date(pickupTime),
       expiresAt,
       bids: formattedBids,
       igoResponseLog: JSON.stringify(bidsResponse),

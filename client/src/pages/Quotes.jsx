@@ -1,10 +1,17 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { motion } from 'framer-motion';
-import { FaCar, FaClock, FaExclamationCircle, FaMoneyBillWave, FaStar, FaUserTie } from 'react-icons/fa';
-import { format } from 'date-fns';
-import { setSelectedQuote } from '../store/quoteSlice';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { motion } from "framer-motion";
+import {
+  FaCar,
+  FaClock,
+  FaExclamationCircle,
+  FaMoneyBillWave,
+  FaStar,
+  FaUserTie,
+} from "react-icons/fa";
+import { format } from "date-fns";
+import { setSelectedQuote } from "../store/quoteSlice";
 
 // Mock data - replace with actual API integration
 const mockQuotes = [
@@ -12,12 +19,13 @@ const mockQuotes = [
     id: 1,
     driverName: "John Smith",
     rating: 4.8,
-    price: 25.50,
+    price: 25.5,
     vehicleType: "Sedan",
     vehicleModel: "Toyota Camry",
     estimatedArrival: new Date(Date.now() + 10 * 60000),
     paymentPoints: ["TimeOfBooking", "Prepay"],
-    driverImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100"
+    driverImage:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100",
   },
   {
     id: 2,
@@ -28,36 +36,36 @@ const mockQuotes = [
     vehicleModel: "Honda CR-V",
     estimatedArrival: new Date(Date.now() + 15 * 60000),
     paymentPoints: ["Postpay"],
-    driverImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100"
+    driverImage:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100",
   },
   {
     id: 3,
     driverName: "Michael Chen",
     rating: 4.7,
-    price: 23.00,
+    price: 23.0,
     vehicleType: "Compact",
     vehicleModel: "Toyota Prius",
     estimatedArrival: new Date(Date.now() + 8 * 60000),
     paymentPoints: ["TimeOfBooking", "Prepay", "Postpay"],
-    driverImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100"
-  }
+    driverImage:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100",
+  },
 ];
 
 function Quotes() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { userLocation } = useSelector(state => state.booking);
-  const { quotes, loading, error } = useSelector(state => state.quote);
-
-
+  const { userLocation } = useSelector((state) => state.booking);
+  const { quotes, loading, error } = useSelector((state) => state.quote);
 
   const handleQuoteSelect = (quote) => {
     dispatch(setSelectedQuote(quote));
-    if (quote.paymentPoints.includes('Prepay')) {
-      navigate('/payment');
+    if (quote.paymentPoints.includes("Prepay")) {
+      navigate("/payment");
     } else {
       // Handle postpay booking confirmation
-      console.log('Booking confirmed for postpay');
+      console.log("Booking confirmed for postpay");
     }
   };
 
@@ -126,7 +134,9 @@ function Quotes() {
                       className="w-16 h-16 rounded-full object-cover"
                     />
                     <div>
-                      <h3 className="text-xl font-semibold text-white">{quote.driverName}</h3>
+                      <h3 className="text-xl font-semibold text-white">
+                        {quote.driverName}
+                      </h3>
                       <div className="flex items-center gap-2 text-primary">
                         <FaStar />
                         <span>{quote.rating}</span>
@@ -142,7 +152,9 @@ function Quotes() {
                       <FaCar className="text-primary" />
                       <span>{quote.vehicleType}</span>
                     </div>
-                    <span className="text-white font-semibold">{quote.vehicleModel}</span>
+                    <span className="text-white font-semibold">
+                      {quote.vehicleModel}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -151,7 +163,7 @@ function Quotes() {
                       <span>Arrival</span>
                     </div>
                     <span className="text-white font-semibold">
-                      {format(quote.estimatedArrival, 'HH:mm')}
+                      {format(quote.estimatedArrival, "HH:mm")}
                     </span>
                   </div>
 
@@ -160,7 +172,9 @@ function Quotes() {
                       <FaMoneyBillWave className="text-primary" />
                       <span>Price</span>
                     </div>
-                    <span className="text-white font-semibold">${quote.price.toFixed(2)}</span>
+                    <span className="text-white font-semibold">
+                      ${quote.price.toFixed(2)}
+                    </span>
                   </div>
 
                   {/* Payment Options */}

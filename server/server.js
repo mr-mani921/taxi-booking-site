@@ -104,7 +104,7 @@ app.use("/api/", apiLimiter);
 // Routes
 app.use("/api/user/", userRoutes); // Changed from user to users to match test config
 // app.use("/api/auth", authRoutes); // User authentication routes
-app.use("/api/ride/", rideRoutes); // Changed from ride to rides to match test config
+app.use("/api/rides/", rideRoutes); // Changed from ride to rides to match test config
 // app.use("/api/drivers", driverRoutes); // Driver-related routes
 app.use("/api/payment", paymentRoutes); // Payment-related routes
 

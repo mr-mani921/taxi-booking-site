@@ -8,9 +8,12 @@ import {
   FaUser,
 } from "react-icons/fa";
 import BackroundImage from "../assets/authBgImage.jpeg";
+import { useDispatch } from "react-redux";
+import { loginUser, registerUser } from "../store/thunks.js";
 
 function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -19,8 +22,12 @@ function Auth() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission
-    console.log("Form submitted:", formData);
+    isLogin ? dispatch(loginUser(formData)) : dispatch(registerUser(formData));
+    setFormData[{
+      email:"",
+      password:"",
+      name:"",
+    }]
   };
 
   const handleInputChange = (e) => {
@@ -33,9 +40,7 @@ function Auth() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row justify-center items-center pt-20">
       {/* Left Side - Background Image */}
-      <div
-        className="hidden md:flex md:w-1/2 bg-cover bg-center relative ml-4"
-      >
+      <div className="hidden md:flex md:w-1/2 bg-cover bg-center relative ml-4">
         <img src={BackroundImage} alt="Background" className="rounded-lg " />
 
         <div className="absolute inset-0 bg-gradient-to-r from-dark/90 to-dark/50 flex items-center justify-center p-12">

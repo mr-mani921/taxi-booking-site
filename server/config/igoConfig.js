@@ -72,6 +72,24 @@ const igoConfig = {
     MINIBUS: "Minibus",
   },
 
+  // Vehicle categories (as per iGo Protocol V1.41)
+  vehicleCategories: {
+    STANDARD: "Standard",
+    EXECUTIVE: "Executive",
+    LUXURY: "Luxury",
+    HACKNEY: "Hackney",
+  },
+
+  // Vehicle types (as per iGo Protocol V1.41)
+  vehicleTypeEnums: {
+    SALOON: "Saloon",
+    ESTATE: "Estate",
+    MPV: "MPV",
+    COACH: "Coach",
+    MINIBUS: "MiniBus",
+    SUV: "SUV",
+  },
+
   // Ride statuses (as per iGo Protocol V1.41)
   rideStatuses: {
     PENDING: "Pending",
@@ -118,21 +136,23 @@ const igoConfig = {
         newline: "\n",
       },
       xmldec: { version: "1.0", encoding: "UTF-8" },
-      attrkey: "$", // This tells xml2js to use $ for attributes
+      attrkey: "$",
+      attrValueProcessors: [(value) => value.toString()],
+      cdata: true,
     });
     return builder.buildObject(jsonData);
   },
 
   // Common request sections
   buildAgentSection: () => ({
-    $: { Id: igoConfig.agentId }, // Set Id as an attribute using $ key
+    $: { Id: igoConfig.agentId }, // sets attribute
     Password: igoConfig.agentPassword,
     Reference: `AgentRef_${Date.now()}`,
     Time: new Date().toISOString(),
   }),
 
   buildVendorSection: () => ({
-    $: { Id: igoConfig.vendorId }, // Set Id as an attribute using $ key
+    $: { Id: igoConfig.vendorId },
   }),
 
   buildPricingSection: ({ pricingModel, paymentPoint, price, flags = [] }) => ({
@@ -142,11 +162,28 @@ const igoConfig = {
     Flags: flags,
   }),
 
-  buildJourneySection: ({ pickup, dropoff, time }) => ({
-    Pickup: pickup,
-    Dropoff: dropoff,
-    Time: time,
-  }),
+  buildJourneySection: ({ pickup, dropoff, time }) => {
+    // Build the journey section in the format required by iGo Protocol V1.41
+    return {
+      From: {
+        Type: "Coordinate",
+        Coordinate: {
+          Latitude: pickup.lat,
+          Longitude: pickup.lng,
+        },
+        ...(pickup.address ? { Address: pickup.address } : {}),
+      },
+      To: {
+        Type: "Coordinate",
+        Coordinate: {
+          Latitude: dropoff.lat,
+          Longitude: dropoff.lng,
+        },
+        ...(dropoff.address ? { Address: dropoff.address } : {}),
+      },
+      Time: new Date(time).toISOString(),
+    };
+  },
 
   buildPassengerSection: (passengers) => ({
     PassengerDetails: passengers.map((passenger) => ({

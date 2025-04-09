@@ -517,28 +517,86 @@ export const handleIgoEvent = async (eventType, eventData) => {
 };
 
 /**
- * Get estimated price for a journey
+ * Get estimated price for a ride (AgentPriceRequest)
  */
 export const getEstimatedPrice = async (
-  pickup,
-  dropoff,
-  time,
-  vehicleType = igoConfig.vehicleTypes.STANDARD
+  pickupLocation,
+  dropoffLocation,
+  pickupTime,
+  vehicleType = igoConfig.vehicleTypes.STANDARD,
+  passengers = []
 ) => {
   try {
-    const xmlRequest = igoConfig.buildXmlRequest({
-      AgentPriceEstimateRequest: {
+    const passengerDetails =
+      passengers.length > 0
+        ? passengers
+        : [
+            {
+              name: "Default Passenger",
+              phone: "",
+              email: "",
+              isLead: true,
+            },
+          ];
+
+    // Format pickup time
+    const bookingTime = new Date(pickupTime).toISOString();
+
+    // Map vehicle type to appropriate category and type enums
+    let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
+    let vehicleTypeEnum = igoConfig.vehicleTypeEnums.SALOON;
+
+    // Map the vehicle type to the appropriate category and type
+    if (vehicleType === igoConfig.vehicleTypes.EXECUTIVE) {
+      vehicleCategory = igoConfig.vehicleCategories.EXECUTIVE;
+    } else if (vehicleType === igoConfig.vehicleTypes.LUXURY) {
+      vehicleCategory = igoConfig.vehicleCategories.LUXURY;
+    } else if (vehicleType === igoConfig.vehicleTypes.MINIBUS) {
+      vehicleTypeEnum = igoConfig.vehicleTypeEnums.MINIBUS;
+    }
+
+    const xmlRequest = {
+      AgentPriceRequest: {
         Agent: igoConfig.buildAgentSection(),
         Vendor: igoConfig.buildVendorSection(),
-        Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
-        VehicleType: vehicleType,
-      },
-    });
+        PriceParameters: {
+          Source: "Other",
+          BookingTimeMode: "Fixed",
+          BookingTime: bookingTime,
+          Availability: "Any",
+          ...igoConfig.buildPassengerSection(passengerDetails),
 
-    const response = await sendIgoRequest(xmlRequest);
+          Pricing: {
+            Currency: "GBP",
+            PaymentType: "Account",
+            PaymentPoint: igoConfig.paymentPoints.TIME_OF_BOOKING,
+            MarketPlace: "IGO",
+          },
+
+          Journey: igoConfig.buildJourneySection({
+            pickup: pickupLocation,
+            dropoff: dropoffLocation,
+            time: pickupTime,
+          }),
+
+          Ride: {
+            Type: "Passenger",
+            Count: (passengers.length || 1).toString(),
+            VehicleType: vehicleTypeEnum,
+            VehicleCategory: vehicleCategory,
+          },
+        },
+      },
+    };
+
+    const xmlString = igoConfig.buildXmlRequest(xmlRequest);
+    console.log("Sending price request to iGo:", xmlString);
+
+    const response = await sendIgoRequest(xmlString);
+    console.log("Received price response from iGo:", response);
     return response;
   } catch (error) {
-    console.error("Price estimation error:", error);
+    console.error("Price request error:", error);
     throw error;
   }
 };
@@ -547,9 +605,9 @@ export const getEstimatedPrice = async (
  * Check ride availability
  */
 export const checkAvailability = async (
-  pickup,
-  dropoff,
-  time,
+  pickupLocation,
+  dropoffLocation,
+  pickupTime,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
   pricingModel = igoConfig.pricingModels.UP_FRONT,
   paymentPoint = igoConfig.paymentPoints.TIME_OF_BOOKING
@@ -559,8 +617,13 @@ export const checkAvailability = async (
       AgentBookingAvailabilityRequest: {
         Agent: igoConfig.buildAgentSection(),
         Vendor: igoConfig.buildVendorSection(),
-        Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
-        VehicleType: vehicleType,
+        Journey: igoConfig.buildJourneySection({
+          pickupLocation,
+          dropoffLocation,
+          pickupTime,
+        }),
+        VehicleType: igoConfig.vehicleTypeEnums.SALOON,
+        VehicleCategory: igoConfig.vehicleCategories.STANDARD,
         Pricing: igoConfig.buildPricingSection({
           pricingModel,
           paymentPoint,
@@ -581,9 +644,9 @@ export const checkAvailability = async (
  * Book a ride
  */
 export const bookRide = async ({
-  pickup,
-  dropoff,
-  time,
+  pickupLocation,
+  dropoffLocation,
+  pickupTime,
   vehicleType,
   pricingModel,
   paymentPoint,
@@ -602,8 +665,13 @@ export const bookRide = async ({
           availabilityReference || "AvailabilityRef_" + Date.now(),
         AgentBookingReference:
           agentBookingReference || igoConfig.generateBookingReference(),
-        Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
-        VehicleType: vehicleType,
+        Journey: igoConfig.buildJourneySection({
+          pickupLocation,
+          dropoffLocation,
+          pickupTime,
+        }),
+        VehicleType: igoConfig.vehicleTypeEnums.SALOON,
+        VehicleCategory: igoConfig.vehicleCategories.STANDARD,
         Pricing: igoConfig.buildPricingSection({
           pricingModel,
           paymentPoint,
@@ -907,25 +975,80 @@ const handleJourneyCompleted = async (ride, eventData) => {
  * Request bids from all available vendors (AgentBidRequest)
  */
 export const requestBids = async (
-  pickup,
-  dropoff,
-  time,
-  vehicleType = igoConfig.vehicleTypes.STANDARD
+  pickupLocation,
+  dropoffLocation,
+  pickupTime,
+  vehicleType = igoConfig.vehicleTypes.STANDARD,
+  passengers = []
 ) => {
   try {
-    const xmlRequest = igoConfig.buildXmlRequest({
+    const passengerDetails =
+      passengers.length > 0
+        ? passengers
+        : [
+            {
+              name: "Default Passenger",
+              phone: "",
+              email: "",
+              isLead: true,
+            },
+          ];
+
+    // Format pickup time
+    const bookingTime = new Date(pickupTime).toISOString();
+
+    // Map vehicle type to appropriate category and type enums
+    let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
+    let vehicleTypeEnum = igoConfig.vehicleTypeEnums.SALOON;
+
+    // Map the vehicle type to the appropriate category and type
+    if (vehicleType === igoConfig.vehicleTypes.EXECUTIVE) {
+      vehicleCategory = igoConfig.vehicleCategories.EXECUTIVE;
+    } else if (vehicleType === igoConfig.vehicleTypes.LUXURY) {
+      vehicleCategory = igoConfig.vehicleCategories.LUXURY;
+    } else if (vehicleType === igoConfig.vehicleTypes.MINIBUS) {
+      vehicleTypeEnum = igoConfig.vehicleTypeEnums.MINIBUS;
+    }
+
+    const xmlRequest = {
       AgentBidRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
-        VehicleType: vehicleType,
-        Notifications: {
-          SMS: true,
-          Email: true,
+        Vendor: igoConfig.buildVendorSection(),
+        BidParameters: {
+          Source: "Other",
+          BookingTimeMode: "Fixed",
+          BookingTime: bookingTime,
+          Availability: "Any",
+          ...igoConfig.buildPassengerSection(passengerDetails),
+
+          Pricing: {
+            Currency: "GBP",
+            PaymentType: "Account",
+            PaymentPoint: igoConfig.paymentPoints.TIME_OF_BOOKING,
+            MarketPlace: "IGO",
+          },
+
+          Journey: igoConfig.buildJourneySection({
+            pickup: pickupLocation,
+            dropoff: dropoffLocation,
+            time: pickupTime,
+          }),
+
+          Ride: {
+            Type: "Passenger",
+            Count: (passengers.length || 1).toString(),
+            VehicleType: vehicleTypeEnum,
+            VehicleCategory: vehicleCategory,
+          },
         },
       },
-    });
+    };
 
-    const response = await sendIgoRequest(xmlRequest);
+    const xmlString = igoConfig.buildXmlRequest(xmlRequest);
+    console.log("Sending bid request to iGo:", xmlString);
+
+    const response = await sendIgoRequest(xmlString);
+    console.log("Full offer details:", JSON.stringify(response));
     return response;
   } catch (error) {
     console.error("Bid request error:", error);

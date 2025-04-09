@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
-import { setSelectedRideType } from '../store/bookingSlice';
+// import { setSelectedRideType } from '../store/bookingSlice';
 import { FaUsers, FaSuitcase, FaLeaf, FaCar, FaWifi, FaSnowflake } from 'react-icons/fa';
 
 const vehicles = [
@@ -80,7 +80,7 @@ function FeaturedRides() {
               className={`glass-effect rounded-xl overflow-hidden cursor-pointer group
                 ${selectedRideType === vehicle.type ? 'border-2 border-primary' : 'border border-gray-700'}
               `}
-              onClick={() => dispatch(setSelectedRideType(vehicle.type))}
+              // onClick={() => dispatch(setSelectedRideType(vehicle.type))}
             >
               {/* Image Container */}
               <div className="relative h-48">

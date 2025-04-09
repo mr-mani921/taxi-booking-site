@@ -34,7 +34,7 @@ export const registerUser = asyncHandler(async (req, res) => {
       token: generateToken(user, "User Registered successfully", 200, res),
     });
   } else {
-    res.status(400);
+    res.status(400).json({message: "Invalid user data"});
     throw new Error("Invalid user data");
   }
 });
@@ -62,6 +62,7 @@ export const authUser = asyncHandler(async (req, res) => {
 });
 
 export const logoutUser = asyncHandler(async (req, res, next) => {
+  console.log("request is in the backend logging out");
   res
     .status(200)
     .cookie("userToken", "", {

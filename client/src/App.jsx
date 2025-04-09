@@ -1,6 +1,4 @@
-import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { motion } from "framer-motion";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
@@ -14,8 +12,27 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/PrivacyPage";
 import Quotes from "./pages/Quotes";
 import Payment from "./pages/Payment";
+import RideDetails from "./pages/RideDetails";
+import RideConfirmation from "./pages/RideConfirmation";
+import RideHistory from "./pages/RideHistory";
+import UserProfile from "./pages/UserProfile";
+import RateRide from "./pages/RateRide";
+import RatingSuccess from "./pages/RatingSuccess";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { setIsAuthenticated } from "./store/userSlice";
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    // Check if user is authenticated on app load
+    const token = localStorage.getItem("token");
+    if (token) {
+      dispatch(setIsAuthenticated(true));
+    }
+  }, [dispatch]);
+
   return (
     <Router>
       <Navbar />
@@ -32,6 +49,14 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/payment" element={<Payment />} />
+
+          {/* New routes for the taxi booking application */}
+          <Route path="/ride/:rideId" element={<RideDetails />} />
+          <Route path="/ride-confirmation" element={<RideConfirmation />} />
+          <Route path="/ride-history" element={<RideHistory />} />
+          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/rate-ride/:rideId" element={<RateRide />} />
+          <Route path="/rating-success/:rideId" element={<RatingSuccess />} />
         </Routes>
       </div>
       <Footer />

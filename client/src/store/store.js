@@ -1,10 +1,22 @@
 import { configureStore } from "@reduxjs/toolkit";
-import bookingReducer from "./bookingSlice";
-import quoteReducer from "./quoteSlice";
+import userReducer from "./userSlice.js";
+import quoteReducer from "./quoteSlice.js";
+import bookingReducer from "./bookingSlice.js";
+import apiReducer from "./apiSlice.js";
+import paymentReducer from "./paymentSlice.js";
 
 export const store = configureStore({
   reducer: {
-    booking: bookingReducer,
+    user: userReducer,
     quote: quoteReducer,
+    booking: bookingReducer,
+    api: apiReducer,
+    payment: paymentReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
+
+export default store;

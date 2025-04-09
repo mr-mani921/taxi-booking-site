@@ -1,54 +1,84 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   quotes: [],
   selectedQuote: null,
-  loading: false,
-  error: null,
-  paymentStatus: 'idle', // idle, processing, success, error
-  paymentError: null
+  estimatedPrice: null,
+  vehicleTypes: [
+    {
+      id: "standard",
+      name: "Standard",
+      description: "Comfortable sedan for up to 3 passengers",
+      capacity: 3,
+      priceMultiplier: 1,
+      icon: "🚗",
+    },
+    {
+      id: "premium",
+      name: "Premium",
+      description: "Luxury vehicle for up to 3 passengers",
+      capacity: 3,
+      priceMultiplier: 1.5,
+      icon: "✨",
+    },
+    {
+      id: "xl",
+      name: "XL",
+      description: "Spacious SUV for up to 6 passengers",
+      capacity: 6,
+      priceMultiplier: 2,
+      icon: "🚙",
+    },
+  ],
+  selectedVehicleType: null,
+  paymentStatus: null,
+  paymentMethod: null,
+  savedPaymentMethods: [],
 };
 
-export const quoteSlice = createSlice({
-  name: 'quote',
+const quoteSlice = createSlice({
+  name: "quote",
   initialState,
   reducers: {
     setQuotes: (state, action) => {
       state.quotes = action.payload;
-      state.loading = false;
-      state.error = null;
     },
     setSelectedQuote: (state, action) => {
       state.selectedQuote = action.payload;
     },
-    setLoading: (state, action) => {
-      state.loading = action.payload;
+    setEstimatedPrice: (state, action) => {
+      state.estimatedPrice = action.payload;
     },
-    setError: (state, action) => {
-      state.error = action.payload;
-      state.loading = false;
+    setSelectedVehicleType: (state, action) => {
+      state.selectedVehicleType = action.payload;
     },
     setPaymentStatus: (state, action) => {
       state.paymentStatus = action.payload;
     },
-    setPaymentError: (state, action) => {
-      state.paymentError = action.payload;
+    setPaymentMethod: (state, action) => {
+      state.paymentMethod = action.payload;
+    },
+    setSavedPaymentMethods: (state, action) => {
+      state.savedPaymentMethods = action.payload;
     },
     resetPayment: (state) => {
-      state.paymentStatus = 'idle';
-      state.paymentError = null;
-    }
-  }
+      state.paymentStatus = null;
+      state.paymentMethod = null;
+    },
+    resetQuoteState: () => initialState,
+  },
 });
 
 export const {
   setQuotes,
   setSelectedQuote,
-  setLoading,
-  setError,
+  setEstimatedPrice,
+  setSelectedVehicleType,
   setPaymentStatus,
-  setPaymentError,
-  resetPayment
+  setPaymentMethod,
+  setSavedPaymentMethods,
+  resetPayment,
+  resetQuoteState,
 } = quoteSlice.actions;
 
 export default quoteSlice.reducer;

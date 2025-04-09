@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { FaCreditCard, FaLock, FaShieldAlt } from 'react-icons/fa';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { setPaymentStatus, setPaymentError } from '../store/quoteSlice.js';
 import PaymentForm from '../components/PaymentForm.jsx';
 
 // Initialize Stripe

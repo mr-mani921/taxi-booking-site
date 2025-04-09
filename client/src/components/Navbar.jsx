@@ -4,13 +4,18 @@ import { FaTaxi, FaBars, FaTimes, FaUser, FaChevronDown } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 import NavbarMobileMenu from "./NavBarMobileMenu";
 import { Dropdown } from "flowbite-react";
+import { useSelector, useDispatch } from "react-redux";
+import { logoutUser } from "../store/thunks";
+import { FaLocationDot } from "react-icons/fa6";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isOthersDropdownOpen, setIsOthersDropdownOpen] = useState(false);
+  const dispatch = useDispatch();
   const location = useLocation();
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
 
   // Handle scroll effect
   useEffect(() => {
@@ -31,7 +36,13 @@ function Navbar() {
   const userMenuItems = [
     { label: "My Rides", path: "/my-rides" },
     { label: "Settings", path: "/settings" },
-    { label: "Logout", action: () => console.log("Logout clicked") },
+    {
+      label: "Logout",
+      action: () => {
+        console.log("logging out");
+        dispatch(logoutUser());
+      },
+    },
   ];
   const otherPagesLink = [
     { label: "Services", path: "/services" },
@@ -58,8 +69,8 @@ function Navbar() {
               to="/"
               className="flex items-center space-x-2 hover:scale-105 transition-transform"
             >
-              <FaTaxi className="text-primary text-2xl" />
-              <span className="text-white font-bold text-xl">TaxiGo</span>
+              <FaLocationDot className="text-primary text-2xl" />
+              <span className="text-white font-bold text-xl">Zappy Taxi</span>
             </Link>
           </motion.div>
 
@@ -126,59 +137,61 @@ function Navbar() {
             </Link>
 
             {/* User Menu */}
+            {!isAuthenticated ? (
+              <div className="relative">
+                <Link
+                  to={"/auth"}
+                  className="flex items-center space-x-2 p-4 text-primary transition-colors"
+                >
+                  Login/SignUp
+                </Link>
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-2 p-4 text-lightGray hover:text-primary transition-colors"
+                >
+                  <FaUser />
+                  <FaChevronDown
+                    className={`transition-transform ${
+                      isDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-            <div className="relative">
-              <Link
-                to={"/auth"}
-                className="flex items-center space-x-2 p-4 text-primary transition-colors"
-              >
-                Login/SignUp
-              </Link>
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center space-x-2 p-4 text-lightGray hover:text-primary transition-colors"
-              >
-                <FaUser />
-                <FaChevronDown
-                  className={`transition-transform ${
-                    isDropdownOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {isDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute right-0 mt-2 w-48 bg-dark/95 backdrop-blur-md rounded-lg shadow-lg py-2"
-                  >
-                    {userMenuItems.map((item, index) => (
-                      <div key={index}>
-                        {item.path ? (
-                          <Link
-                            to={item.path}
-                            className="block px-4 py-2 text-lightGray hover:bg-primary/10 hover:text-primary transition-colors"
-                          >
-                            {item.label}
-                          </Link>
-                        ) : (
-                          <button
-                            onClick={item.action}
-                            className="w-full text-left px-4 py-2 text-lightGray hover:bg-primary/10 hover:text-primary transition-colors"
-                          >
-                            {item.label}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute right-0 mt-2 w-48 bg-dark/95 backdrop-blur-md rounded-lg shadow-lg py-2"
+                    >
+                      {userMenuItems.map((item, index) => (
+                        <div key={index}>
+                          {item.path ? (
+                            <Link
+                              to={item.path}
+                              className="block px-4 py-2 text-lightGray hover:bg-primary/10 hover:text-primary transition-colors"
+                            >
+                              {item.label}
+                            </Link>
+                          ) : (
+                            <button
+                              onClick={item.action}
+                              className="w-full text-left px-4 py-2 text-lightGray hover:bg-primary/10 hover:text-primary transition-colors"
+                            >
+                              {item.label}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
