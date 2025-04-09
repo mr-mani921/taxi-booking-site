@@ -1,67 +1,49 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import {
-  FaCar,
-  FaClock,
-  FaExclamationCircle,
-  FaMoneyBillWave,
-  FaStar,
-  FaUserTie,
-} from "react-icons/fa";
-import { format } from "date-fns";
+import { FaExclamationCircle, FaStar } from "react-icons/fa";
 import { setSelectedQuote } from "../store/quoteSlice";
-
-// Mock data - replace with actual API integration
-const mockQuotes = [
-  {
-    id: 1,
-    driverName: "John Smith",
-    rating: 4.8,
-    price: 25.5,
-    vehicleType: "Sedan",
-    vehicleModel: "Toyota Camry",
-    estimatedArrival: new Date(Date.now() + 10 * 60000),
-    paymentPoints: ["TimeOfBooking", "Prepay"],
-    driverImage:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100",
-  },
-  {
-    id: 2,
-    driverName: "Sarah Johnson",
-    rating: 4.9,
-    price: 28.75,
-    vehicleType: "SUV",
-    vehicleModel: "Honda CR-V",
-    estimatedArrival: new Date(Date.now() + 15 * 60000),
-    paymentPoints: ["Postpay"],
-    driverImage:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100",
-  },
-  {
-    id: 3,
-    driverName: "Michael Chen",
-    rating: 4.7,
-    price: 23.0,
-    vehicleType: "Compact",
-    vehicleModel: "Toyota Prius",
-    estimatedArrival: new Date(Date.now() + 8 * 60000),
-    paymentPoints: ["TimeOfBooking", "Prepay", "Postpay"],
-    driverImage:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100",
-  },
-];
 
 function Quotes() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { userLocation } = useSelector((state) => state.booking);
   const { quotes, loading, error } = useSelector((state) => state.quote);
+
+  // Helper function to convert rating string to numeric value
+  const getRatingValue = (rating) => {
+    if (!rating) return 0;
+
+    // Handle numeric ratings that might be stored as strings
+    if (!isNaN(parseFloat(rating))) {
+      return parseFloat(rating);
+    }
+
+    // Handle rating strings
+    switch (rating) {
+      case "FiveStars":
+      case "FiveStar":
+        return 5;
+      case "FourStars":
+      case "FourStar":
+        return 4;
+      case "ThreeStars":
+      case "ThreeStar":
+        return 3;
+      case "TwoStars":
+      case "TwoStar":
+        return 2;
+      case "OneStar":
+        return 1;
+      default:
+        return 0;
+    }
+  };
+
+  console.log("the quotes are", quotes);
 
   const handleQuoteSelect = (quote) => {
     dispatch(setSelectedQuote(quote));
-    if (quote.paymentPoints.includes("Prepay")) {
+    if (quote.paymentPoints?.includes("Prepay")) {
       navigate("/payment");
     } else {
       // Handle postpay booking confirmation
@@ -117,9 +99,9 @@ function Quotes() {
       <section className="py-16 bg-charcoal">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {mockQuotes.map((quote, index) => (
+            {quotes.map((quote, index) => (
               <motion.div
-                key={quote.id}
+                key={quote.id || index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
@@ -127,66 +109,54 @@ function Quotes() {
               >
                 {/* Driver Info */}
                 <div className="p-6 border-b border-gray-700">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-4">
                     <img
-                      src={quote.driverImage}
-                      alt={quote.driverName}
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        quote.vendorName
+                      )}&background=random`}
+                      alt={quote.vendorName}
                       className="w-16 h-16 rounded-full object-cover"
                     />
-                    <div>
-                      <h3 className="text-xl font-semibold text-white">
-                        {quote.driverName}
-                      </h3>
-                      <div className="flex items-center gap-2 text-primary">
-                        <FaStar />
-                        <span>{quote.rating}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                    <h3 className="text-xl font-semibold text-white">
+                      {quote.vendorName}
+                    </h3>
 
-                {/* Ride Details */}
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-lightGray">
-                      <FaCar className="text-primary" />
-                      <span>{quote.vehicleType}</span>
-                    </div>
-                    <span className="text-white font-semibold">
-                      {quote.vehicleModel}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-lightGray">
-                      <FaClock className="text-primary" />
-                      <span>Arrival</span>
-                    </div>
-                    <span className="text-white font-semibold">
-                      {format(quote.estimatedArrival, "HH:mm")}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-lightGray">
-                      <FaMoneyBillWave className="text-primary" />
-                      <span>Price</span>
-                    </div>
-                    <span className="text-white font-semibold">
-                      ${quote.price.toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* Payment Options */}
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {quote.paymentPoints.map((point, i) => (
-                      <span
-                        key={i}
-                        className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full"
-                      >
-                        {point}
+                    <div className="flex items-center gap-2 text-primary">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <div key={i}>
+                          {i < getRatingValue(quote.rating) ? (
+                            <FaStar className="text-primary" />
+                          ) : (
+                            <FaStar className="text-gray-500" />
+                          )}
+                        </div>
+                      ))}
+                      <span className="text-sm text-gray-400">
+                        ({getRatingValue(quote.rating) || 0})
                       </span>
-                    ))}
+                    </div>
+
+                    <span>{quote.vehicleType}</span>
+
+                    <span>
+                      {quote.etaInMinutes
+                        ? new Date(
+                            Date.now() + quote.etaInMinutes * 60000
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "Unknown"}
+                    </span>
+
+                    <span>
+                      {quote.pricing?.currency || "GBP"}{" "}
+                      {parseFloat(quote.pricing?.price || 0)?.toFixed(2)}
+                    </span>
+
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                      Card Payment
+                    </span>
                   </div>
 
                   {/* Select Button */}

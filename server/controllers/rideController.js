@@ -1058,7 +1058,6 @@ export const requestVendorBids = async (req, res) => {
           return value;
         }
       }
-      console.warn("Unknown vehicle type received:", type);
       return igoConfig.vehicleTypes.STANDARD;
     };
 
@@ -1087,7 +1086,7 @@ export const requestVendorBids = async (req, res) => {
         vendorCity: vendor.City || "",
         vendorCountry: vendor.Country || "",
         vendorPhone: vendor.TelephoneNumber || "",
-        rating: bid.Rating || null,
+        rating: vendor.Rating || null,
         numberOfRatings: parseInt(bid.NumberOfRatings || "0", 10),
         vehicleType: normalizeVehicleType(bid.VehicleType),
         etaInMinutes: parseInt(bid.AverageEta || "0", 10),
@@ -1134,6 +1133,8 @@ export const requestVendorBids = async (req, res) => {
     });
 
     await newBid.save();
+
+    console.log("formatted bids", formattedBids)
 
     return res.status(200).json({
       success: true,

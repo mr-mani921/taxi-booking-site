@@ -125,11 +125,11 @@ export const getBids = createAsyncThunk(
 
       if (vendorBidsResponse && vendorBidsResponse.data) {
         // Save quotes to redux store
-        dispatch(setQuotes(vendorBidsResponse.data.quotes || []));
+        dispatch(setQuotes(vendorBidsResponse.data.bids || []));
 
         // Return the quotes data
         return {
-          quotes: vendorBidsResponse.data.quotes || [],
+          quotes: vendorBidsResponse.data.bids || [],
           rideData,
         };
       } else {
