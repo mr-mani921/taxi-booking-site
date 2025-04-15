@@ -51,6 +51,13 @@ const endpoints = {
   getSavedPaymentMethods: () => API.get("/api/payments/saved-methods"),
   deletePaymentMethod: (id) => API.delete(`/api/payments/saved-methods/${id}`),
   processPayment: (data) => API.post("/api/payments/process", data),
+  createPaymentIntent: (data) => API.post("/api/payments/create-intent", data),
+
+  // Stripe Payments - used specifically for Stripe integration
+  createStripePaymentIntent: (data) =>
+    API.post("/api/payment/payment-intent", data),
+  confirmStripePayment: (paymentIntentId, data) =>
+    API.post(`/api/payment/confirm-payment/${paymentIntentId}`, data),
 
   // Rides
   getRides: () => API.get("/api/rides/history"),
@@ -63,6 +70,8 @@ const endpoints = {
   getPriceEstimate: (data) => API.post("/api/rides/quotes/estimate", data),
   getVendorBids: (data) => API.post("/api/rides/request-bids", data),
   selectBid: (data) => API.post("/api/bids/select", data),
+  checkAvailability: (data) => API.post("/api/rides/select-bid", data),
+  authorizeBid: (data) => API.post("/api/rides/authorize", data),
 };
 
 export default endpoints;

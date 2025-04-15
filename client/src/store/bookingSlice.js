@@ -1,15 +1,16 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  userLocation: null,
-  currentBooking: null,
-  bookingHistory: [],
-  activeRide: null,
-  rideStatus: null,
-  bookingStep: 1, // 1: Location, 2: Vehicle, 3: Payment
+  selectedQuote: null,
+  estimatedPrice: null,
+  selectedVehicleType: null,
+  bookingStep: "location",
+  isLoading: false,
+  error: null,
   bookingData: {
     pickupLocation: null,
     dropoffLocation: null,
+    availabilityReference: null,
     pickupTime: null,
     vehicleType: null,
     passengers: 1,
@@ -50,6 +51,9 @@ const bookingSlice = createSlice({
     resetBookingData: (state) => {
       state.bookingData = initialState.bookingData;
     },
+    setAvailabilityReference: (state, action) => {
+      state.bookingData.availabilityReference = action.payload;
+    },
     resetBookingState: () => initialState,
   },
 });
@@ -64,6 +68,7 @@ export const {
   updateBookingData,
   resetBookingData,
   resetBookingState,
+  setAvailabilityReference,
 } = bookingSlice.actions;
 
 export default bookingSlice.reducer;

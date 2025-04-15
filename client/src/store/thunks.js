@@ -2,6 +2,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../api/api";
 import { setIsAuthenticated } from "./userSlice";
 import { setLoading } from "./apiSlice";
+import { setAvailabilityReference } from "./bookingSlice";
 
 // Auth thunks
 export const loginUser = createAsyncThunk(
@@ -17,7 +18,7 @@ export const loginUser = createAsyncThunk(
       return response.data;
     } catch (error) {
       dispatch(setLoading({ entity: "user", isLoading: false }));
-      console.log(error)
+      console.log(error);
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
@@ -39,7 +40,7 @@ export const registerUser = createAsyncThunk(
       return response.data;
     } catch (error) {
       dispatch(setLoading({ entity: "user", isLoading: false }));
-      console.log(error.response.data.message)
+      console.log(error.response.data.message);
 
       return rejectWithValue(
         error.response?.data || { message: error.message }
@@ -198,15 +199,14 @@ export const rateRide = createAsyncThunk(
 // Quotes and bids thunks
 export const getPriceEstimate = createAsyncThunk(
   "quotes/getEstimate",
-  async (quoteData, { dispatch, rejectWithValue }) => {
+  async (estimateData, { dispatch, rejectWithValue }) => {
     try {
       dispatch(setLoading({ entity: "quotes", isLoading: true }));
-      const response = await api.getPriceEstimate(quoteData);
+      const response = await api.getPriceEstimate(estimateData);
       dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return response.data;
     } catch (error) {
       dispatch(setLoading({ entity: "quotes", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
@@ -214,17 +214,16 @@ export const getPriceEstimate = createAsyncThunk(
   }
 );
 
-export const requestVendorBids = createAsyncThunk(
-  "bids/request",
-  async (bidRequestData, { dispatch, rejectWithValue }) => {
+export const getVendorBids = createAsyncThunk(
+  "quotes/getVendorBids",
+  async (bidData, { dispatch, rejectWithValue }) => {
     try {
-      dispatch(setLoading({ entity: "bids", isLoading: true }));
-      const response = await api.getVendorBids(bidRequestData);
-      dispatch(setLoading({ entity: "bids", isLoading: false }));
+      dispatch(setLoading({ entity: "quotes", isLoading: true }));
+      const response = await api.getVendorBids(bidData);
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "bids", isLoading: false }));
-
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
@@ -233,18 +232,64 @@ export const requestVendorBids = createAsyncThunk(
 );
 
 export const selectBid = createAsyncThunk(
-  "bids/select",
+  "quotes/selectBid",
   async (bidData, { dispatch, rejectWithValue }) => {
     try {
-      dispatch(setLoading({ entity: "bids", isLoading: true }));
+      dispatch(setLoading({ entity: "quotes", isLoading: true }));
       const response = await api.selectBid(bidData);
-      dispatch(setLoading({ entity: "bids", isLoading: false }));
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "bids", isLoading: false }));
-
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return rejectWithValue(
         error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+export const checkBidAvailability = createAsyncThunk(
+  "quotes/checkAvailability",
+  async (bidData, { dispatch, rejectWithValue }) => {
+    try {
+      dispatch(setLoading({ entity: "quotes", isLoading: true }));
+
+      const { bidReference, vendorId } = bidData;
+
+      console.log("bidData", bidData);
+      // Build the request data for the API call
+      const requestData = {
+        vendorId,
+        bidReference,
+      };
+
+      // Make the API call to check availability
+      const response = await api.checkAvailability(requestData);
+      console.log(
+        "the availabiltiy referernce is ",
+        response.data.availabilityReference
+      );
+
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+
+      // If availability check is successful, navigate to payment or confirmation page
+      dispatch(setAvailabilityReference(response.data.availabilityReference));
+      if (response.data.success) {
+        return {
+          ...response.data,
+          availabilityReference: response.data.availabilityReference,
+        };
+      } else {
+        return rejectWithValue({
+          message: response.data.message || "The ride is no longer available",
+        });
+      }
+    } catch (error) {
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+      return rejectWithValue(
+        error.response?.data || {
+          message: error.message || "Failed to check ride availability",
+        }
       );
     }
   }
@@ -262,6 +307,29 @@ export const processPayment = createAsyncThunk(
     } catch (error) {
       dispatch(setLoading({ entity: "payments", isLoading: false }));
 
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+export const createStripePaymentIntent = createAsyncThunk(
+  "payments/createStripeIntent",
+  async (paymentData, { dispatch, rejectWithValue }) => {
+    try {
+      console.log("in the cratePaymentIntent Thunk");
+
+      dispatch(setLoading({ entity: "payments", isLoading: true }));
+      // Uncomment the API call when the backend is ready
+      const response = await api.createStripePaymentIntent(paymentData);
+
+      dispatch(setLoading({ entity: "payments", isLoading: false }));
+      console.log("and the secret is ", response.data.clientSecret);
+
+      return response.data.clientSecret;
+    } catch (error) {
+      dispatch(setLoading({ entity: "payments", isLoading: false }));
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );

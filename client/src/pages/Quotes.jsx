@@ -3,11 +3,17 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { FaExclamationCircle, FaStar } from "react-icons/fa";
 import { setSelectedQuote } from "../store/quoteSlice";
+import { checkBidAvailability } from "../store/thunks";
+import { useState } from "react";
 
 function Quotes() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { quotes, loading, error } = useSelector((state) => state.quote);
+  const { quotes, loading, error, selectedQuote } = useSelector((state) => state.quote);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const { pickupLocation, dropoffLocation, pickupTime } = useSelector(
+    (state) => state.booking
+  );
 
   // Helper function to convert rating string to numeric value
   const getRatingValue = (rating) => {
@@ -41,22 +47,76 @@ function Quotes() {
 
   console.log("the quotes are", quotes);
 
-  const handleQuoteSelect = (quote) => {
-    dispatch(setSelectedQuote(quote));
-    if (quote.paymentPoints?.includes("Prepay")) {
-      navigate("/payment");
-    } else {
-      // Handle postpay booking confirmation
-      console.log("Booking confirmed for postpay");
+  const handleQuoteSelect = async (quote) => {
+    try {
+      // Save the selected quote in Redux
+      dispatch(setSelectedQuote(quote));
+
+      // Set loading state for availability check
+      setCheckingAvailability(true);
+
+      // Extract the bid reference from the quote
+      const bidReference = quote.bidReference || quotes[0]?.bidReference;
+      console.log("bidReference", bidReference);
+      console.log("vendor id", quote.vendorId);
+
+      if (!bidReference) {
+        console.error("Couldn't find bid reference for this ride");
+        setCheckingAvailability(false);
+        return;
+      }
+
+      console.log("before updating selected bid is ", selectedQuote)      
+
+
+      // Check ride availability using the thunk
+      const resultAction = await dispatch(
+        checkBidAvailability({
+          bidReference,
+          vendorId: quote.vendorId,
+        })
+      );
+
+      setCheckingAvailability(false);
+
+      if (checkBidAvailability.fulfilled.match(resultAction)) {
+        // Availability check was successful
+        const availabilityReference =
+          resultAction.payload.availabilityReference;
+
+        // Add availability reference to the selected quote
+        dispatch(
+          setSelectedQuote({
+            ...quote,
+            availabilityReference: availabilityReference,
+          })
+        );
+        console.log("after updating selected quote is ", selectedQuote)
+        // Navigate to payment page
+        navigate("/payment"); 
+      } else {
+        // Handle error
+        const errorMessage =
+          resultAction.payload?.message ||
+          "This ride is no longer available. Please try another option.";
+        console.log("errorMessage", errorMessage);
+      }
+    } catch (error) {
+      setCheckingAvailability(false);
+      console.error("Error checking ride availability:", error);
     }
   };
 
-  if (loading) {
+  if (loading || checkingAvailability) {
     return (
       <div className="min-h-screen bg-dark pt-20 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Finding the best rides for you...</p>
+          <p className="text-lg">
+            {checkingAvailability
+              ? "Checking ride availability..."
+              : "Finding the best rides for you..."}
+          </p>
         </div>
       </div>
     );

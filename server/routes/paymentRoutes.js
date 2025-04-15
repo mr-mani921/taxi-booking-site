@@ -1,9 +1,10 @@
 import express from "express";
-// import { createPaymentSession } from "../controllers/paymentController.js";
-import { authenticateUser } from "../middlewares/authMiddleware.js";
+import { capturePayment, cancelPayment, createPaymentIntent } from "../controllers/paymentController.js";
 
 const router = express.Router();
 
-// router.post("/create-session", protect, createPaymentSession);
+router.post("/payment-intent", createPaymentIntent);
+router.post("/capture", capturePayment);
+router.post("/cancel", cancelPayment);
 
 export default router;

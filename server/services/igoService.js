@@ -4,9 +4,6 @@ import Ride from "../models/Ride.js";
 import igoConfig from "../config/igoConfig.js";
 import { sendRideStatusNotification } from "./notificationService.js";
 
-// Mock mode for testing without the real iGo API
-const MOCK_MODE = process.env.MOCK_MODE === "true" || true; // Set to true for testing
-
 // Update to determine if we should use mock mode
 // We'll disable mock mode if we have a webhook URL configured (ngrok)
 const shouldUseMockMode = () => {
@@ -75,7 +72,7 @@ const sendIgoRequestBasic = async (xmlBody) => {
     // Parse XML response to JSON
     const parsedResponse = await parseStringPromise(response.data, {
       explicitArray: false, // Don't create arrays for single elements
-      ignoreAttrs: true, // Ignore XML attributes
+      ignoreAttrs: false, // Ignore XML attributes
       trim: true, // Trim whitespace
     });
 
@@ -177,179 +174,179 @@ export const sendIgoRequest = async (xmlBody, options = {}) => {
 /**
  * Generate mock responses for testing without the real iGo API
  */
-function getMockResponse(xmlBody) {
-  const mockAvailabilityRef = "MOCK_AVAIL_" + Date.now();
-  const mockAuthRef = "MOCK_AUTH_" + Date.now();
+// function getMockResponse(xmlBody) {
+//   const mockAvailabilityRef = "MOCK_AVAIL_" + Date.now();
+//   const mockAuthRef = "MOCK_AUTH_" + Date.now();
 
-  // Extract any existing availability reference from the request
-  let availabilityRef = extractAvailabilityRef(xmlBody);
+//   // Extract any existing availability reference from the request
+//   let availabilityRef = extractAvailabilityRef(xmlBody);
 
-  if (xmlBody.includes("AgentPriceEstimateRequest")) {
-    return {
-      AgentPriceEstimateResponse: {
-        Price: 25.5,
-        Currency: "USD",
-        EstimatedTime: 15,
-      },
-    };
-  } else if (xmlBody.includes("AgentBookingAvailabilityRequest")) {
-    return {
-      AgentBookingAvailabilityResponse: {
-        AvailabilityReference: mockAvailabilityRef,
-        Available: true,
-        EstimatedTime: 10,
-        // Include this so the client can store it for subsequent requests
-        savedAvailabilityReference: mockAvailabilityRef,
-      },
-    };
-  } else if (xmlBody.includes("AgentBookingAuthorizationRequest")) {
-    return {
-      AgentBookingAuthorizationResponse: {
-        AuthorizationReference: mockAuthRef,
-        Status: "Booked",
-        EstimatedTime: 10,
-        AvailabilityReference: availabilityRef || "DefaultAvailRef",
-      },
-    };
-  } else if (xmlBody.includes("AgentBookingStatusRequest")) {
-    return {
-      AgentBookingStatusResponse: {
-        Status: "Dispatched",
-        BookingTime: new Date().toISOString(),
-        EstimatedArrivalTime: new Date(Date.now() + 10 * 60000).toISOString(),
-      },
-    };
-  } else if (xmlBody.includes("AgentBookingCancellationRequest")) {
-    return {
-      AgentBookingCancellationResponse: {
-        Status: "Cancelled",
-        CancellationTime: new Date().toISOString(),
-      },
-    };
-  } else if (xmlBody.includes("AgentBidRequest")) {
-    return {
-      AgentBidResponse: {
-        Status: "OK",
-        BidReference: `BID_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-        Bids: {
-          Bid: [
-            {
-              VendorId: "VENDOR_1",
-              VendorName: "Premium Taxis",
-              PriceBand: {
-                Currency: "GBP",
-                MinimumPrice: "18.00",
-                MaximumPrice: "28.00",
-                EstimatedPrice: "23.00",
-              },
-              ETAInMinutes: "8",
-              VehicleType: igoConfig.vehicleTypes.EXECUTIVE,
-            },
-            {
-              VendorId: "VENDOR_2",
-              VendorName: "Budget Cabs",
-              PriceBand: {
-                Currency: "GBP",
-                MinimumPrice: "12.00",
-                MaximumPrice: "20.00",
-                EstimatedPrice: "16.00",
-              },
-              ETAInMinutes: "15",
-              VehicleType: igoConfig.vehicleTypes.STANDARD,
-            },
-          ],
-        },
-      },
-    };
-  } else if (xmlBody.includes("AgentPaymentRequest")) {
-    return {
-      AgentPaymentResponse: {
-        Status: "Accepted",
-        AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
-        PaymentReference: `PAY_${Date.now()}`,
-        TransactionTime: new Date().toISOString(),
-        ReceiptAvailable: true,
-      },
-    };
-  } else if (xmlBody.includes("AgentBillRequest")) {
-    return {
-      AgentBillResponse: {
-        Status: "OK",
-        AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
-        BillItems: {
-          BillItem: [
-            {
-              Description: "Base fare",
-              Amount: "15.50",
-              Type: "Fare",
-            },
-            {
-              Description: "Waiting time",
-              Amount: "2.50",
-              Type: "Extra",
-            },
-            {
-              Description: "Airport fee",
-              Amount: "3.00",
-              Type: "Fee",
-            },
-          ],
-        },
-        SubTotal: "21.00",
-        Tax: "4.20",
-        Total: "25.20",
-        Currency: "GBP",
-        PaymentStatus: "Pending",
-      },
-    };
-  } else if (xmlBody.includes("AgentReceiptRequest")) {
-    return {
-      AgentReceiptResponse: {
-        Status: "OK",
-        AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
-        VendorName: "Test Taxi Company",
-        ReceiptNumber: `RCPT-${Date.now()}`,
-        BookingReference: `BOOKING_${Date.now()}`,
-        PaymentReference: `PAY_${Date.now() - 1000}`,
-        JourneyDetails: {
-          StartTime: new Date(Date.now() - 3600000).toISOString(),
-          EndTime: new Date(Date.now() - 600000).toISOString(),
-          PickupAddress: "123 Pickup Street, London",
-          DropoffAddress: "456 Dropoff Avenue, London",
-          Distance: "5.2 miles",
-        },
-        BillItems: {
-          BillItem: [
-            {
-              Description: "Base fare",
-              Amount: "15.50",
-              Type: "Fare",
-            },
-            {
-              Description: "Waiting time",
-              Amount: "2.50",
-              Type: "Extra",
-            },
-            {
-              Description: "Airport fee",
-              Amount: "3.00",
-              Type: "Fee",
-            },
-          ],
-        },
-        SubTotal: "21.00",
-        Tax: "4.20",
-        Total: "25.20",
-        Currency: "GBP",
-        PaymentMethod: "Card",
-        PaymentTime: new Date(Date.now() - 500000).toISOString(),
-        ReceiptURL: "https://mock-taxi-company.com/receipts/RCPT-12345.pdf",
-      },
-    };
-  }
+//   if (xmlBody.includes("AgentPriceEstimateRequest")) {
+//     return {
+//       AgentPriceEstimateResponse: {
+//         Price: 25.5,
+//         Currency: "USD",
+//         EstimatedTime: 15,
+//       },
+//     };
+//   } else if (xmlBody.includes("AgentBookingAvailabilityRequest")) {
+//     return {
+//       AgentBookingAvailabilityResponse: {
+//         AvailabilityReference: mockAvailabilityRef,
+//         Available: true,
+//         EstimatedTime: 10,
+//         // Include this so the client can store it for subsequent requests
+//         savedAvailabilityReference: mockAvailabilityRef,
+//       },
+//     };
+//   } else if (xmlBody.includes("AgentBookingAuthorizationRequest")) {
+//     return {
+//       AgentBookingAuthorizationResponse: {
+//         AuthorizationReference: mockAuthRef,
+//         Status: "Booked",
+//         EstimatedTime: 10,
+//         AvailabilityReference: availabilityRef || "DefaultAvailRef",
+//       },
+//     };
+//   } else if (xmlBody.includes("AgentBookingStatusRequest")) {
+//     return {
+//       AgentBookingStatusResponse: {
+//         Status: "Dispatched",
+//         BookingTime: new Date().toISOString(),
+//         EstimatedArrivalTime: new Date(Date.now() + 10 * 60000).toISOString(),
+//       },
+//     };
+//   } else if (xmlBody.includes("AgentBookingCancellationRequest")) {
+//     return {
+//       AgentBookingCancellationResponse: {
+//         Status: "Cancelled",
+//         CancellationTime: new Date().toISOString(),
+//       },
+//     };
+//   } else if (xmlBody.includes("AgentBidRequest")) {
+//     return {
+//       AgentBidResponse: {
+//         Status: "OK",
+//         BidReference: `BID_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+//         Bids: {
+//           Bid: [
+//             {
+//               VendorId: "VENDOR_1",
+//               VendorName: "Premium Taxis",
+//               PriceBand: {
+//                 Currency: "GBP",
+//                 MinimumPrice: "18.00",
+//                 MaximumPrice: "28.00",
+//                 EstimatedPrice: "23.00",
+//               },
+//               ETAInMinutes: "8",
+//               VehicleType: igoConfig.vehicleTypes.EXECUTIVE,
+//             },
+//             {
+//               VendorId: "VENDOR_2",
+//               VendorName: "Budget Cabs",
+//               PriceBand: {
+//                 Currency: "GBP",
+//                 MinimumPrice: "12.00",
+//                 MaximumPrice: "20.00",
+//                 EstimatedPrice: "16.00",
+//               },
+//               ETAInMinutes: "15",
+//               VehicleType: igoConfig.vehicleTypes.STANDARD,
+//             },
+//           ],
+//         },
+//       },
+//     };
+//   } else if (xmlBody.includes("AgentPaymentRequest")) {
+//     return {
+//       AgentPaymentResponse: {
+//         Status: "Accepted",
+//         AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
+//         PaymentReference: `PAY_${Date.now()}`,
+//         TransactionTime: new Date().toISOString(),
+//         ReceiptAvailable: true,
+//       },
+//     };
+//   } else if (xmlBody.includes("AgentBillRequest")) {
+//     return {
+//       AgentBillResponse: {
+//         Status: "OK",
+//         AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
+//         BillItems: {
+//           BillItem: [
+//             {
+//               Description: "Base fare",
+//               Amount: "15.50",
+//               Type: "Fare",
+//             },
+//             {
+//               Description: "Waiting time",
+//               Amount: "2.50",
+//               Type: "Extra",
+//             },
+//             {
+//               Description: "Airport fee",
+//               Amount: "3.00",
+//               Type: "Fee",
+//             },
+//           ],
+//         },
+//         SubTotal: "21.00",
+//         Tax: "4.20",
+//         Total: "25.20",
+//         Currency: "GBP",
+//         PaymentStatus: "Pending",
+//       },
+//     };
+//   } else if (xmlBody.includes("AgentReceiptRequest")) {
+//     return {
+//       AgentReceiptResponse: {
+//         Status: "OK",
+//         AuthorizationReference: extractAuthRef(xmlBody) || "MOCK_AUTH_REF",
+//         VendorName: "Test Taxi Company",
+//         ReceiptNumber: `RCPT-${Date.now()}`,
+//         BookingReference: `BOOKING_${Date.now()}`,
+//         PaymentReference: `PAY_${Date.now() - 1000}`,
+//         JourneyDetails: {
+//           StartTime: new Date(Date.now() - 3600000).toISOString(),
+//           EndTime: new Date(Date.now() - 600000).toISOString(),
+//           PickupAddress: "123 Pickup Street, London",
+//           DropoffAddress: "456 Dropoff Avenue, London",
+//           Distance: "5.2 miles",
+//         },
+//         BillItems: {
+//           BillItem: [
+//             {
+//               Description: "Base fare",
+//               Amount: "15.50",
+//               Type: "Fare",
+//             },
+//             {
+//               Description: "Waiting time",
+//               Amount: "2.50",
+//               Type: "Extra",
+//             },
+//             {
+//               Description: "Airport fee",
+//               Amount: "3.00",
+//               Type: "Fee",
+//             },
+//           ],
+//         },
+//         SubTotal: "21.00",
+//         Tax: "4.20",
+//         Total: "25.20",
+//         Currency: "GBP",
+//         PaymentMethod: "Card",
+//         PaymentTime: new Date(Date.now() - 500000).toISOString(),
+//         ReceiptURL: "https://mock-taxi-company.com/receipts/RCPT-12345.pdf",
+//       },
+//     };
+//   }
 
-  return { MockResponse: "Unknown request type" };
-}
+//   return { MockResponse: "Unknown request type" };
+// }
 
 /**
  * Extract availability reference from XML request body
@@ -608,29 +605,75 @@ export const checkAvailability = async (
   pickupLocation,
   dropoffLocation,
   pickupTime,
+  bidReference,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
-  pricingModel = igoConfig.pricingModels.UP_FRONT,
-  paymentPoint = igoConfig.paymentPoints.TIME_OF_BOOKING
+  passengers = [],
 ) => {
   try {
+    const passengerDetails =
+      passengers.length > 0
+        ? passengers
+        : [
+            {
+              name: "Default Passenger",
+              phone: "",
+              email: "",
+              isLead: true,
+            },
+          ];
+    console.log(
+      "Checking availability with bid reference:",
+      bidReference,
+      "and vehicle type:",
+      vehicleType
+    );
+
+    // Map vehicle type to appropriate category and type enums
+    let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
+    let vehicleTypeEnum = igoConfig.vehicleTypeEnums.SALOON;
+
+    // Map the vehicle type to the appropriate category and type
+    if (vehicleType === igoConfig.vehicleTypes.EXECUTIVE) {
+      vehicleCategory = igoConfig.vehicleCategories.EXECUTIVE;
+    } else if (vehicleType === igoConfig.vehicleTypes.LUXURY) {
+      vehicleCategory = igoConfig.vehicleCategories.LUXURY;
+    } else if (vehicleType === igoConfig.vehicleTypes.MINIBUS) {
+      vehicleTypeEnum = igoConfig.vehicleTypeEnums.MINIBUS;
+    }
+
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAvailabilityRequest: {
         Agent: igoConfig.buildAgentSection(),
         Vendor: igoConfig.buildVendorSection(),
-        Journey: igoConfig.buildJourneySection({
-          pickupLocation,
-          dropoffLocation,
-          pickupTime,
-        }),
-        VehicleType: igoConfig.vehicleTypeEnums.SALOON,
-        VehicleCategory: igoConfig.vehicleCategories.STANDARD,
-        Pricing: igoConfig.buildPricingSection({
-          pricingModel,
-          paymentPoint,
-          price: 0, // Price will be set during booking
-        }),
+        BidReference: bidReference,
+        BookingParameters: {
+          Journey: igoConfig.buildJourneySection({
+            pickup: pickupLocation,
+            dropoff: dropoffLocation,
+            time: pickupTime,
+          }),
+          VehicleCategory: vehicleCategory,
+          Pricing: igoConfig.buildPricingSection({
+            pricingModel: igoConfig.pricingModels.UP_FRONT,
+            paymentPoint: igoConfig.paymentPoints.TIME_OF_BOOKING,
+            flags: [
+              igoConfig.pricingFlags.ALLOW_WAITING_TIME,
+              igoConfig.pricingFlags.ALLOW_EXTRAS,
+              igoConfig.pricingFlags.ALLOW_TOLLS,
+              igoConfig.pricingFlags.ALLOW_PARKING,
+            ],
+          }),
+          Ride: {
+            Type: "Passenger",
+            Count: (passengers.length || 1).toString(),
+            VehicleType: vehicleTypeEnum,
+            VehicleCategory: vehicleCategory,
+          },
+        },
       },
     });
+
+    // console.log("Sending availability request to iGo:", xmlRequest);
 
     const response = await sendIgoRequest(xmlRequest);
     return response;
@@ -643,7 +686,7 @@ export const checkAvailability = async (
 /**
  * Book a ride
  */
-export const bookRide = async ({
+export const authorizeRide = async ({
   pickupLocation,
   dropoffLocation,
   pickupTime,
@@ -665,6 +708,7 @@ export const bookRide = async ({
           availabilityReference || "AvailabilityRef_" + Date.now(),
         AgentBookingReference:
           agentBookingReference || igoConfig.generateBookingReference(),
+        AvailabilityReference: availabilityReference,  
         Journey: igoConfig.buildJourneySection({
           pickupLocation,
           dropoffLocation,
@@ -1045,10 +1089,11 @@ export const requestBids = async (
     };
 
     const xmlString = igoConfig.buildXmlRequest(xmlRequest);
-    console.log("Sending bid request to iGo:", xmlString);
+
+    console.log("the xml string is", xmlString);
 
     const response = await sendIgoRequest(xmlString);
-    console.log("Full offer details:", JSON.stringify(response));
+    console.log("the response is", JSON.stringify(response));
     return response;
   } catch (error) {
     console.error("Bid request error:", error);

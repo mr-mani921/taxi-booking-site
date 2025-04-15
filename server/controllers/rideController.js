@@ -11,6 +11,7 @@ import {
   PRICING_FLAGS,
   requestBids,
   checkAvailability,
+  authorizeRide,
 } from "../services/igoService.js";
 import Ride from "../models/Ride.js";
 import igoConfig from "../config/igoConfig.js";
@@ -326,81 +327,181 @@ export const getPriceEstimate = async (req, res) => {
 /**
  * Check ride availability
  */
-export const checkRideAvailability = async (req, res) => {
-  try {
-    const { pickup, dropoff, time, pricingModel, paymentPoint, vehicleType } =
-      req.body;
+// export const checkRideAvailability = async (req, res) => {
+//   try {
+//     const {
+//       pickup,
+//       dropoff,
+//       time,
+//       pricingModel,
+//       paymentPoint,
+//       vehicleType,
+//       bidReference,
+//     } = req.body;
 
-    // Validate required inputs
-    if (!pickup || !dropoff || !time) {
-      return res.status(400).json({
-        message:
-          "Missing required fields: pickup, dropoff, and time are required",
-      });
-    }
+//     // If we have a bid reference, use that to look up ride details
+//     if (bidReference) {
+//       try {
+//         // Find the bid with the given reference
+//         const bid = await Bid.findOne({ bidReference });
 
-    // Use igoConfig functions for consistent XML structure
-    const response = await sendIgoRequest(
-      igoConfig.buildXmlRequest({
-        AgentBookingAvailabilityRequest: {
-          Agent: igoConfig.buildAgentSection(),
-          Vendor: igoConfig.buildVendorSection(),
-          Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
-          VehicleType: vehicleType || igoConfig.vehicleTypes.STANDARD,
-          Pricing: igoConfig.buildPricingSection({
-            pricingModel: pricingModel || PRICING_MODELS.UP_FRONT,
-            paymentPoint: paymentPoint || PAYMENT_POINTS.TIME_OF_BOOKING,
-            flags: [
-              PRICING_FLAGS.ALLOW_WAITING_TIME,
-              PRICING_FLAGS.ALLOW_EXTRAS,
-            ],
-          }),
-          Notifications: {
-            SMS: true,
-            Email: true,
-          },
-        },
-      })
-    );
+//         if (!bid) {
+//           return res.status(404).json({
+//             success: false,
+//             message: "Bid not found with the provided reference",
+//           });
+//         }
 
-    // Apply 25% markup to the price if available
-    if (
-      response.AgentBookingAvailabilityResponse &&
-      response.AgentBookingAvailabilityResponse.Price
-    ) {
-      const originalPrice = response.AgentBookingAvailabilityResponse.Price;
-      const markedUpPrice = originalPrice * 1.25; // Add 25%
-      response.AgentBookingAvailabilityResponse.Price = parseFloat(
-        markedUpPrice.toFixed(2)
-      );
+//         // Check if bids have expired
+//         if (new Date() > bid.expiresAt) {
+//           bid.status = igoConfig.bidStatuses.UNAVAILABLE;
+//           await bid.save();
+//           return res.status(400).json({
+//             success: false,
+//             message: "Bids have expired",
+//             expiresAt: bid.expiresAt,
+//           });
+//         }
 
-      // Store both original and platform prices for reference
-      response.AgentBookingAvailabilityResponse.originalPrice = originalPrice;
-      response.AgentBookingAvailabilityResponse.platformMarkup = "25%";
-    }
+//         // Use bid information for the availability check
+//         const pickupFromBid = bid.pickup;
+//         const dropoffFromBid = bid.dropoff;
+//         const timeFromBid = bid.requestedTime;
+//         const vehicleTypeFromBid =
+//           vehicleType || igoConfig.vehicleTypes.STANDARD;
 
-    // Store the availability reference in response
-    let availabilityReference = null;
-    if (
-      response.AgentBookingAvailabilityResponse &&
-      response.AgentBookingAvailabilityResponse.AvailabilityReference
-    ) {
-      availabilityReference =
-        response.AgentBookingAvailabilityResponse.AvailabilityReference;
+//         // Use igoConfig functions for consistent XML structure
+//         const response = await sendIgoRequest(
+//           igoConfig.buildXmlRequest({
+//             AgentBookingAvailabilityRequest: {
+//               Agent: igoConfig.buildAgentSection(),
+//               Vendor: igoConfig.buildVendorSection(),
+//               Journey: igoConfig.buildJourneySection({
+//                 pickup: pickupFromBid,
+//                 dropoff: dropoffFromBid,
+//                 time: timeFromBid,
+//               }),
+//               VehicleType: vehicleTypeFromBid,
+//               Pricing: igoConfig.buildPricingSection({
+//                 pricingModel: pricingModel || PRICING_MODELS.UP_FRONT,
+//                 paymentPoint: paymentPoint || PAYMENT_POINTS.TIME_OF_BOOKING,
+//                 flags: [
+//                   PRICING_FLAGS.ALLOW_WAITING_TIME,
+//                   PRICING_FLAGS.ALLOW_EXTRAS,
+//                 ],
+//               }),
+//               Notifications: {
+//                 SMS: true,
+//                 Email: true,
+//               },
+//             },
+//           })
+//         );
 
-      // Add it to the response so client can use it
-      response.savedAvailabilityReference = availabilityReference;
-    }
+//         // Store the availability reference in response
+//         let availabilityReference = null;
+//         if (
+//           response.AgentBookingAvailabilityResponse &&
+//           response.AgentBookingAvailabilityResponse.AvailabilityReference
+//         ) {
+//           availabilityReference =
+//             response.AgentBookingAvailabilityResponse.AvailabilityReference;
 
-    res.json(response);
-  } catch (error) {
-    console.error("Availability check error:", error);
-    res.status(500).json({
-      message: "Error checking ride availability",
-      error: error.message,
-    });
-  }
-};
+//           // Add it to the response so client can use it
+//           response.savedAvailabilityReference = availabilityReference;
+//         }
+
+//         return res.json({
+//           success: true,
+//           ...response,
+//           bidReference,
+//         });
+//       } catch (error) {
+//         console.error("Error checking availability with bid reference:", error);
+//         return res.status(500).json({
+//           success: false,
+//           message: "Error checking availability with bid reference",
+//           error: error.message,
+//         });
+//       }
+//     }
+
+//     // Standard availability check without bid reference
+//     // Validate required inputs
+//     if (!pickup || !dropoff || !time) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "Missing required fields: pickup, dropoff, and time are required",
+//       });
+//     }
+
+//     // Use igoConfig functions for consistent XML structure
+//     const response = await sendIgoRequest(
+//       igoConfig.buildXmlRequest({
+//         AgentBookingAvailabilityRequest: {
+//           Agent: igoConfig.buildAgentSection(),
+//           Vendor: igoConfig.buildVendorSection(),
+//           Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
+//           VehicleType: vehicleType || igoConfig.vehicleTypes.STANDARD,
+//           Pricing: igoConfig.buildPricingSection({
+//             pricingModel: pricingModel || PRICING_MODELS.UP_FRONT,
+//             paymentPoint: paymentPoint || PAYMENT_POINTS.TIME_OF_BOOKING,
+//             flags: [
+//               PRICING_FLAGS.ALLOW_WAITING_TIME,
+//               PRICING_FLAGS.ALLOW_EXTRAS,
+//             ],
+//           }),
+//           Notifications: {
+//             SMS: true,
+//             Email: true,
+//           },
+//         },
+//       })
+//     );
+
+//     // Apply 25% markup to the price if available
+//     if (
+//       response.AgentBookingAvailabilityResponse &&
+//       response.AgentBookingAvailabilityResponse.Price
+//     ) {
+//       const originalPrice = response.AgentBookingAvailabilityResponse.Price;
+//       const markedUpPrice = originalPrice * 1.25; // Add 25%
+//       response.AgentBookingAvailabilityResponse.Price = parseFloat(
+//         markedUpPrice.toFixed(2)
+//       );
+
+//       // Store both original and platform prices for reference
+//       response.AgentBookingAvailabilityResponse.originalPrice = originalPrice;
+//       response.AgentBookingAvailabilityResponse.platformMarkup = "25%";
+//     }
+
+//     // Store the availability reference in response
+//     let availabilityReference = null;
+//     if (
+//       response.AgentBookingAvailabilityResponse &&
+//       response.AgentBookingAvailabilityResponse.AvailabilityReference
+//     ) {
+//       availabilityReference =
+//         response.AgentBookingAvailabilityResponse.AvailabilityReference;
+
+//       // Add it to the response so client can use it
+//       response.savedAvailabilityReference = availabilityReference;
+//     }
+
+//     res.json({
+//       success: true,
+//       ...response,
+//     });
+//   } catch (error) {
+//     console.error("Availability check error:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error checking ride availability",
+//       error: error.message,
+//     });
+//   }
+// };
 
 /**
  * Book a ride
@@ -424,10 +525,22 @@ export const bookRide = async (req, res) => {
 
     // Validate required inputs
     if (!pickupLocation || !dropoffLocation || !pickupTime || !passengers) {
-      console.log("the data is ", req.body);
-
+      console.log("Missing required fields:", req.body);
       return res.status(400).json({
         message: "Missing required fields for booking",
+      });
+    }
+
+    // Validate coordinates
+    if (!pickupLocation.lat || !pickupLocation.lng) {
+      return res.status(400).json({
+        message: "Pickup location must include lat and lng coordinates",
+      });
+    }
+
+    if (!dropoffLocation.lat || !dropoffLocation.lng) {
+      return res.status(400).json({
+        message: "Dropoff location must include lat and lng coordinates",
       });
     }
 
@@ -455,6 +568,11 @@ export const bookRide = async (req, res) => {
       });
     }
 
+    // Format passenger details
+    const passengerDetails = Array.isArray(passengers)
+      ? passengers
+      : [passengers];   
+
     // Ensure at least one passenger is marked as lead
     const hasLeadPassenger = passengerDetails.some((p) => p.isLead === true);
     if (!hasLeadPassenger && passengerDetails.length > 0) {
@@ -475,8 +593,8 @@ export const bookRide = async (req, res) => {
     // Create new ride record in database
     const newRide = new Ride({
       user: userObjectId,
-      pickupLocation: pickup,
-      dropoffLocation: dropoff,
+      pickupLocation,
+      dropoffLocation,
       pickupTime: new Date(time),
       fare: markedUpPrice,
       status: igoConfig.rideStatuses.BOOKED,
@@ -492,37 +610,25 @@ export const bookRide = async (req, res) => {
     // Save ride to get the _id
     await newRide.save();
 
-    // Use igoConfig functions for consistent XML structure
-    const xmlRequest = igoConfig.buildXmlRequest({
-      AgentBookingAuthorizationRequest: {
-        Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
-        AvailabilityReference:
-          availabilityReference || `AvailabilityRef_${Date.now()}`,
-        AgentBookingReference: agentBookingReference,
-        Journey: igoConfig.buildJourneySection({ pickup, dropoff, time }),
-        VehicleType: vehicleType || igoConfig.vehicleTypes.STANDARD,
-        Pricing: igoConfig.buildPricingSection({
-          pricingModel: finalPricingModel,
-          paymentPoint: finalPaymentPoint,
-          price: originalPrice, // Send original price to iGo, not marked up price
-          flags: [PRICING_FLAGS.ALLOW_WAITING_TIME, PRICING_FLAGS.ALLOW_EXTRAS],
-        }),
-        Passengers: igoConfig.buildPassengerSection(passengerDetails),
-        DriverNote: specialInstructions || "",
-        YourReference: `Booking_${newRide._id}`,
-        Notifications: {
-          SMS: true,
-          Email: true,
-        },
-      },
+    // Send authorization request to iGo
+    const authorizationResponse = await authorizeRide({
+      pickupLocation,
+      dropoffLocation,
+      pickupTime,
+      vehicleType: vehicleType || igoConfig.vehicleTypes.STANDARD,
+      pricingModel: finalPricingModel,
+      paymentPoint: finalPaymentPoint,
+      price: markedUpPrice,
+      passengers: passengerDetails,
+      specialInstructions,
+      availabilityReference,
+      agentBookingReference,
     });
 
-    const response = await sendIgoRequest(xmlRequest);
-
     // Update ride with iGo booking response
-    if (response.AgentBookingAuthorizationResponse) {
-      const authResponse = response.AgentBookingAuthorizationResponse;
+    if (authorizationResponse.AgentBookingAuthorizationResponse) {
+      const authResponse =
+        authorizationResponse.AgentBookingAuthorizationResponse;
 
       // Update the booking with the authorization reference
       newRide.igoBookingId = agentBookingReference;
@@ -541,7 +647,7 @@ export const bookRide = async (req, res) => {
       // If booking was not successful, return error
       return res.status(400).json({
         message: "Booking failed",
-        igoResponse: response,
+        igoResponse: authorizationResponse,
       });
     }
 
@@ -587,7 +693,7 @@ export const bookRide = async (req, res) => {
     res.status(201).json({
       message: "Ride booked successfully",
       ride: newRide,
-      igoResponse: response,
+      igoResponse: authorizationResponse,
       paymentResponse: paymentResponse
         ? {
             success: paymentResponse.success,
@@ -1071,16 +1177,22 @@ export const requestVendorBids = async (req, res) => {
       passengers
     );
 
+    // console.log("the bid response are",JSON.stringify(bidsResponse))
+
     const formattedBids = [];
     const rawBids = bidsResponse.AgentBidResponse?.Offers?.Offer;
     const ensureArray = (data) => (Array.isArray(data) ? data : [data]);
+
+    console.log("raw bids", rawBids);
 
     for (const bid of ensureArray(rawBids)) {
       const pricing = bid.Pricing || {};
       const vendor = bid.VendorDetails || {};
       const journey = bid.EstimatedJourney || {};
-
+      console.log("the vendor id is ", bid.Vendor.$.Id);
       formattedBids.push({
+        bidReference: bidsResponse.AgentBidResponse?.BidReference,
+        vendorId: bid.Vendor.$.Id,
         vendorName: vendor.Name || "Unknown Vendor",
         vendorAddress: vendor.Address || "",
         vendorCity: vendor.City || "",
@@ -1104,7 +1216,9 @@ export const requestVendorBids = async (req, res) => {
           serviceCharge: parseFloat(pricing.ServiceCharge || 0),
           VAT: parseFloat(pricing.VAT || 0),
           marketPlaceCommission: parseFloat(pricing.MarketPlaceCommission || 0),
-          marketPlaceCommissionVAT: parseFloat(pricing.MarketPlaceCommissionVAT || 0),
+          marketPlaceCommissionVAT: parseFloat(
+            pricing.MarketPlaceCommissionVAT || 0
+          ),
           serviceChargeVAT: parseFloat(pricing.ServiceChargeVAT || 0),
           agentCommission: parseFloat(pricing.AgentCommission || 0),
           agentCommissionVAT: parseFloat(pricing.AgentCommissionVAT || 0),
@@ -1114,7 +1228,6 @@ export const requestVendorBids = async (req, res) => {
           surgeFactor: parseFloat(pricing.SurgeFactor || 100),
         },
       });
-      
     }
 
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -1133,8 +1246,6 @@ export const requestVendorBids = async (req, res) => {
     });
 
     await newBid.save();
-
-    console.log("formatted bids", formattedBids)
 
     return res.status(200).json({
       success: true,
@@ -1210,6 +1321,8 @@ export const getBidsByReference = async (req, res) => {
  */
 export const selectBid = async (req, res) => {
   try {
+    console.log("request reached to the selectbid controller");
+
     const { bidReference, vendorId } = req.body;
     const userId = req.user?._id;
 
@@ -1221,6 +1334,7 @@ export const selectBid = async (req, res) => {
     if (!vendorId) {
       return res.status(400).json({ message: "Vendor ID is required" });
     }
+    // console.log("The bid reference is: ", bidReference, "\nThe vendor id is: ",vendorId, "\nThe userId is: ", userId);
 
     // Helper function to normalize vehicle type
     const normalizeVehicleType = (type) => {
@@ -1260,6 +1374,8 @@ export const selectBid = async (req, res) => {
       });
     }
 
+    // console.log("the selected bid is :", bid);
+
     // Find selected vendor bid
     const selectedBid = bid.bids.find((b) => b.vendorId === vendorId);
 
@@ -1276,7 +1392,14 @@ export const selectBid = async (req, res) => {
       bid.pickup,
       bid.dropoff,
       bid.requestedTime,
+      bid.bidReference,
       normalizeVehicleType(selectedBid.vehicleType) // Normalize vehicle type for API request
+    );
+
+    console.log(
+      "the availability reference is",
+      availabilityResponse.AgentBookingAvailabilityResponse
+        ?.AvailabilityReference
     );
 
     // Return the availability reference for booking
@@ -1288,11 +1411,11 @@ export const selectBid = async (req, res) => {
       availabilityReference:
         availabilityResponse.AgentBookingAvailabilityResponse
           ?.AvailabilityReference,
-      priceBand: {
-        currency: selectedBid.priceBand.currency,
-        minimumPrice: selectedBid.priceBand.minimumPrice,
-        maximumPrice: selectedBid.priceBand.maximumPrice,
-        estimatedPrice: selectedBid.priceBand.estimatedPrice,
+      pricing: {
+        currency: selectedBid.pricing.currency,
+        minimumPrice: selectedBid.pricing.minimumPrice,
+        maximumPrice: selectedBid.pricing.maximumPrice,
+        estimatedPrice: selectedBid.pricing.estimatedPrice,
       },
       etaInMinutes: selectedBid.etaInMinutes,
     });

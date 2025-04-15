@@ -34,6 +34,7 @@ const pricingSchema = new mongoose.Schema(
 // Schema for individual vendor bids
 const vendorBidSchema = new mongoose.Schema(
   {
+    vendorId: String,
     vendorName: String,
     vendorAddress: String,
     vendorCity: String,

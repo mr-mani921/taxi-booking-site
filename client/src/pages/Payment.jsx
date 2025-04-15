@@ -1,24 +1,17 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { motion } from 'framer-motion';
-import { FaCreditCard, FaLock, FaShieldAlt } from 'react-icons/fa';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import PaymentForm from '../components/PaymentForm.jsx';
-
-// Initialize Stripe
-const stripePromise = loadStripe('your_publishable_key');
-
-
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { motion } from "framer-motion";
+import { FaCreditCard, FaLock, FaShieldAlt } from "react-icons/fa";
+import PaymentForm from "../components/PaymentForm.jsx";
 
 function Payment() {
-  const selectedQuote = useSelector(state => state.quote.selectedQuote);
+  const selectedQuote = useSelector((state) => state.quote.selectedQuote);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!selectedQuote) {
-      navigate('/quotes');
+      navigate("/quotes");
     }
   }, [selectedQuote, navigate]);
 
@@ -59,23 +52,33 @@ function Payment() {
               transition={{ duration: 0.6 }}
               className="glass-effect rounded-xl p-6 mb-8"
             >
-              <h2 className="text-2xl font-bold text-white mb-4">Ride Summary</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">
+                Ride Summary
+              </h2>
               <div className="grid grid-cols-2 gap-4 text-lightGray">
                 <div>
                   <p className="mb-2">Driver</p>
-                  <p className="text-white font-semibold">{selectedQuote.driverName}</p>
+                  <p className="text-white font-semibold">
+                    {selectedQuote.driverName}
+                  </p>
                 </div>
                 <div>
                   <p className="mb-2">Vehicle</p>
-                  <p className="text-white font-semibold">{selectedQuote.vehicleModel}</p>
+                  <p className="text-white font-semibold">
+                    {selectedQuote.vehicleModel}
+                  </p>
                 </div>
                 <div>
                   <p className="mb-2">Type</p>
-                  <p className="text-white font-semibold">{selectedQuote.vehicleType}</p>
+                  <p className="text-white font-semibold">
+                    {selectedQuote.vehicleType}
+                  </p>
                 </div>
                 <div>
                   <p className="mb-2">Total Price</p>
-                  <p className="text-white font-semibold">${selectedQuote.price.toFixed(2)}</p>
+                  <p className="text-white font-semibold">
+                    ${selectedQuote.price?.toFixed(2)}
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -107,9 +110,7 @@ function Payment() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <Elements stripe={stripePromise}>
-                <PaymentForm />
-              </Elements>
+              <PaymentForm />
             </motion.div>
           </div>
         </div>

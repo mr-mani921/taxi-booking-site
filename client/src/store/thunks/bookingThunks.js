@@ -30,14 +30,63 @@ export const getPriceEstimate = createAsyncThunk(
   }
 );
 
+// Select a bid and check availability
+export const selectBid = createAsyncThunk(
+  "booking/selectBid",
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.selectBid(data);
+
+
+      // Store the availability reference in the state
+      if (response.data && response.data.availabilityReference) {
+        // We'll store this in the booking data
+        return {
+          ...response.data,
+          availabilityReference: response.data.availabilityReference,
+        };
+      }
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+export const authorizeBid = createAsyncThunk(
+  "booking/authorizeBid",
+  async (data, { rejectWithValue }) => {
+    const response = await api.authorizeBid(data);
+    return response.data;
+  }
+);
+
 // Book a ride
 export const bookRide = createAsyncThunk(
   "booking/bookRide",
-  async (bookingData, { rejectWithValue }) => {
+  async (bookingData, { rejectWithValue, getState }) => {
     try {
-      console.log("the request has came ot bookRide Thunk");
+      console.log("the request has came to bookRide Thunk");
 
-      const response = await api.bookRide(bookingData);
+      // Get the availability reference from the state
+      const state = getState();
+      const availabilityReference = state.booking.availabilityReference;
+
+      // Add the availability reference to the booking data
+      const bookingDataWithAvailability = {
+        ...bookingData,
+        availabilityReference,
+      };
+
+      console.log(
+        "Booking with availability reference:",
+        availabilityReference
+      );
+
+      const response = await api.bookRide(bookingDataWithAvailability);
       console.log("the response from thunk is ", response);
 
       // Check if response exists before trying to access data
@@ -70,6 +119,8 @@ export const getBookingHistory = createAsyncThunk(
     }
   }
 );
+
+
 
 // Get active ride
 export const getActiveRide = createAsyncThunk(
