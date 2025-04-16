@@ -112,6 +112,9 @@ const bidSchema = new mongoose.Schema(
     igoResponseLog: {
       type: String,
     },
+    authorizationReference : {
+      type: String,
+    },
   },
   {
     timestamps: true,

@@ -607,7 +607,7 @@ export const checkAvailability = async (
   pickupTime,
   bidReference,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
-  passengers = [],
+  passengers = []
 ) => {
   try {
     const passengerDetails =
@@ -686,7 +686,7 @@ export const checkAvailability = async (
 /**
  * Book a ride
  */
-export const authorizeRide = async ({
+export const sendRideAuthorizationRequest = async ({
   pickupLocation,
   dropoffLocation,
   pickupTime,
@@ -700,19 +700,29 @@ export const authorizeRide = async ({
   agentBookingReference,
 }) => {
   try {
+    const passengerDetails =
+      passengers.length > 0
+        ? passengers
+        : [
+            {
+              name: "Default Passenger",
+              phone: "",
+              email: "",
+              isLead: true,
+            },
+          ];
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAuthorizationRequest: {
         Agent: igoConfig.buildAgentSection(),
         Vendor: igoConfig.buildVendorSection(),
-        AvailabilityReference:
-          availabilityReference || "AvailabilityRef_" + Date.now(),
+        AvailabilityReference: availabilityReference,
         AgentBookingReference:
           agentBookingReference || igoConfig.generateBookingReference(),
-        AvailabilityReference: availabilityReference,  
+        AvailabilityReference: availabilityReference,
         Journey: igoConfig.buildJourneySection({
-          pickupLocation,
-          dropoffLocation,
-          pickupTime,
+          pickup: pickupLocation,
+          dropoff: dropoffLocation,
+          time: pickupTime,
         }),
         VehicleType: igoConfig.vehicleTypeEnums.SALOON,
         VehicleCategory: igoConfig.vehicleCategories.STANDARD,
@@ -727,7 +737,7 @@ export const authorizeRide = async ({
             igoConfig.pricingFlags.ALLOW_PARKING,
           ],
         }),
-        Passengers: igoConfig.buildPassengerSection(passengers),
+        Passengers: igoConfig.buildPassengerSection(passengerDetails),
         DriverNote: specialInstructions || "",
         Notifications: {
           SMS: true,

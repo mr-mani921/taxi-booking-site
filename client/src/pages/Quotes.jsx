@@ -3,13 +3,15 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { FaExclamationCircle, FaStar } from "react-icons/fa";
 import { setSelectedQuote } from "../store/quoteSlice";
-import { checkBidAvailability } from "../store/thunks";
+import { authorizeBid, checkBidAvailability } from "../store/thunks";
 import { useState } from "react";
 
 function Quotes() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { quotes, loading, error, selectedQuote } = useSelector((state) => state.quote);
+  const { quotes, loading, error, selectedQuote } = useSelector(
+    (state) => state.quote
+  );
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const { pickupLocation, dropoffLocation, pickupTime } = useSelector(
     (state) => state.booking
@@ -66,8 +68,7 @@ function Quotes() {
         return;
       }
 
-      console.log("before updating selected bid is ", selectedQuote)      
-
+      console.log("before updating selected bid is ", selectedQuote);
 
       // Check ride availability using the thunk
       const resultAction = await dispatch(
@@ -76,8 +77,6 @@ function Quotes() {
           vendorId: quote.vendorId,
         })
       );
-
-      setCheckingAvailability(false);
 
       if (checkBidAvailability.fulfilled.match(resultAction)) {
         // Availability check was successful
@@ -91,9 +90,22 @@ function Quotes() {
             availabilityReference: availabilityReference,
           })
         );
-        console.log("after updating selected quote is ", selectedQuote)
-        // Navigate to payment page
-        navigate("/payment"); 
+
+        console.log("after updating selected quote is ", selectedQuote);
+
+        const bidAuthResponse = await dispatch(authorizeBid({ bidReference }));
+        setCheckingAvailability(false);
+        console.log(
+          "the bid auth response is",
+          bidAuthResponse.payload.success
+        );
+
+        if (bidAuthResponse.payload.success === true) {
+          // Navigate to payment page
+          navigate("/payment");
+        } else {
+          console.log("the auth request failed");
+        }
       } else {
         // Handle error
         const errorMessage =

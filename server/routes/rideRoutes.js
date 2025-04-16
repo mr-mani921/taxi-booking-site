@@ -12,6 +12,7 @@ import {
   processPayment,
   requestBill,
   getReceipt,
+  authorizeBooking,
 } from "../controllers/rideController.js";
 import {
   verifyIgoWebhookSignature,
@@ -42,6 +43,7 @@ router.get("/user/:userId", authenticateUser, getUserRides);
 router.post("/request-bids", authenticateUser, requestVendorBids);
 router.post("/select-bid", authenticateUser, selectBid);
 router.post("/book", authenticateUser, bookRide );
+router.post("/authorize", authenticateUser, authorizeBooking)
 
 
 export default router;

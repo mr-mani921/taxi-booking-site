@@ -187,10 +187,10 @@ const igoConfig = {
 
   buildPassengerSection: (passengers) => ({
     PassengerDetails: passengers.map((passenger) => ({
+      $: { IsLead: passenger.isLead ? "true" : "false" },
       Name: passenger.name,
       TelephoneNumber: passenger.phone,
       EmailAddress: passenger.email,
-      IsLead: passenger.isLead ? "true" : "false",
     })),
   }),
 

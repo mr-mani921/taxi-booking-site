@@ -295,6 +295,81 @@ export const checkBidAvailability = createAsyncThunk(
   }
 );
 
+export const authorizeBid = createAsyncThunk(
+  "quotes/authorizeBid",
+  async ({bidReference}, { dispatch, getState, rejectWithValue }) => {
+    try {
+
+      dispatch(setLoading({ entity: "quotes", isLoading: true }));
+
+      const state = getState();
+      const { bookingData } = state.booking;
+      const selectedQuote = state.quote.selectedQuote;
+
+      if (!selectedQuote) {
+        throw new Error("No quote selected");
+      }
+
+      if (!bookingData.availabilityReference) {
+        throw new Error("Missing availability reference");
+      }
+      
+
+      // Prepare the data for authorization request
+      const requestData = {
+        // Required booking data
+        bidReference,
+        pickupLocation: bookingData.pickupLocation,
+        dropoffLocation: bookingData.dropoffLocation,
+        pickupTime: bookingData.pickupTime,
+        vehicleType: selectedQuote.vehicleType || bookingData.vehicleType,
+        pricingModel: selectedQuote.pricing?.pricingMethod || "fixedPrice",
+        paymentPoint: "TimeOfBooking", // Assuming pre-payment
+        price: selectedQuote.pricing?.priceNET || selectedQuote.price,
+        passengers: bookingData.passengers || 1,
+        specialInstructions: bookingData.specialRequests || "",
+        availabilityReference: selectedQuote.availabilityReference,
+
+        // Additional bid data
+        vendorId: selectedQuote.vendorId,
+        bidReference: selectedQuote.bidReference,
+      };
+
+      console.log("Authorization request data:", requestData);
+
+      // Make the API call to authorize the bid
+      const response = await api.authorizeBid(requestData);
+
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+
+      console.log("the response is,",response.data);
+      
+
+      // Handle successful response
+      if (response.data.success) {
+        return {
+          ...response.data,
+          agentBookingReference: response.data.agentBookingReference,
+          message: response.data.message || "Ride successfully authorized",
+        };
+      } else {
+        return rejectWithValue({
+          message: response.data.message || "Failed to authorize ride",
+        });
+      }
+    } catch (error) {
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+      console.error("Authorize bid error:", error);
+
+      return rejectWithValue(
+        error.response?.data || {
+          message: error.message || "Failed to authorize ride",
+        }
+      );
+    }
+  }
+);
+
 // Payment thunks
 export const processPayment = createAsyncThunk(
   "payments/process",

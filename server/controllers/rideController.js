@@ -11,7 +11,7 @@ import {
   PRICING_FLAGS,
   requestBids,
   checkAvailability,
-  authorizeRide,
+  sendRideAuthorizationRequest,
 } from "../services/igoService.js";
 import Ride from "../models/Ride.js";
 import igoConfig from "../config/igoConfig.js";
@@ -571,7 +571,7 @@ export const bookRide = async (req, res) => {
     // Format passenger details
     const passengerDetails = Array.isArray(passengers)
       ? passengers
-      : [passengers];   
+      : [passengers];
 
     // Ensure at least one passenger is marked as lead
     const hasLeadPassenger = passengerDetails.some((p) => p.isLead === true);
@@ -611,7 +611,7 @@ export const bookRide = async (req, res) => {
     await newRide.save();
 
     // Send authorization request to iGo
-    const authorizationResponse = await authorizeRide({
+    const authorizationResponse = await sendRideAuthorizationRequest({
       pickupLocation,
       dropoffLocation,
       pickupTime,
@@ -1258,6 +1258,68 @@ export const requestVendorBids = async (req, res) => {
     console.error("Error requesting vendor bids:", error);
     return res.status(500).json({
       message: "Error requesting vendor bids",
+      error: error.message,
+    });
+  }
+};
+export const authorizeBooking = async (req, res) => {
+  try {
+    const {
+      bidReference,
+
+      pickupLocation,
+      dropoffLocation,
+      pickupTime,
+      vehicleType,
+      pricingModel,
+      paymentPoint,
+      price,
+      passengers,
+      specialInstructions,
+      availabilityReference,
+      agentBookingReference,
+    } = req.body;
+
+    if (!availabilityReference) {
+      return res
+        .status(400)
+        .json({ error: "Availability reference is required" });
+    }
+    const userId = req.user?._id;
+
+    // Send the XML to iGo
+    const igoResponse = await sendRideAuthorizationRequest({
+      pickupLocation,
+      dropoffLocation,
+      pickupTime,
+      vehicleType,
+      pricingModel,
+      paymentPoint,
+      price,
+      passengers,
+      specialInstructions,
+      availabilityReference,
+      agentBookingReference,
+    });
+
+    const bid = await Bid.findOne({ bidReference, user: userId });
+    
+    if (!bid) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Bid not found" 
+      });
+    }
+    
+    bid.authorizationReference = igoResponse.AuthorizationReference;
+    await bid.save();
+    console.log("the igoResponse is ", igoResponse);
+    res.status(200).json({ success: true, response: igoResponse });
+  } catch (error) {
+    console.error("iGo Authorization Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Authorization request failed",
       error: error.message,
     });
   }
