@@ -78,11 +78,13 @@ function Quotes() {
         })
       );
 
+      
       if (checkBidAvailability.fulfilled.match(resultAction)) {
         // Availability check was successful
         const availabilityReference =
-          resultAction.payload.availabilityReference;
-
+        resultAction.payload.availabilityReference;
+        
+        setCheckingAvailability(false);
         // Add availability reference to the selected quote
         dispatch(
           setSelectedQuote({
@@ -90,22 +92,12 @@ function Quotes() {
             availabilityReference: availabilityReference,
           })
         );
-
+        
         console.log("after updating selected quote is ", selectedQuote);
-
-        const bidAuthResponse = await dispatch(authorizeBid({ bidReference }));
-        setCheckingAvailability(false);
-        console.log(
-          "the bid auth response is",
-          bidAuthResponse.payload.success
-        );
-
-        if (bidAuthResponse.payload.success === true) {
-          // Navigate to payment page
-          navigate("/payment");
-        } else {
-          console.log("the auth request failed");
-        }
+          
+        
+        navigate("/payment");
+       
       } else {
         // Handle error
         const errorMessage =

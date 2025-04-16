@@ -12,6 +12,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/PrivacyPage";
 import Quotes from "./pages/Quotes";
 import Payment from "./pages/Payment";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import RideDetails from "./pages/RideDetails";
 import RideConfirmation from "./pages/RideConfirmation";
 import RideHistory from "./pages/RideHistory";
@@ -49,6 +50,7 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
 
           {/* New routes for the taxi booking application */}
           <Route path="/ride/:rideId" element={<RideDetails />} />
