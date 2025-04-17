@@ -9,6 +9,7 @@ import {
 } from "../store/thunks";
 import { setPaymentIntent } from "../store/paymentSlice";
 import { setSelectedQuote } from "../store/quoteSlice";
+import api from "../api/api.js";
 
 const PaymentForm = () => {
   const navigate = useNavigate();
@@ -23,7 +24,6 @@ const PaymentForm = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
 
-  // Card element options with improved accessibility
   const cardElementOptions = {
     style: {
       base: {
@@ -38,7 +38,6 @@ const PaymentForm = () => {
       },
     },
     hidePostalCode: true,
-    // Options to improve accessibility
     aria: {
       label: "Credit or debit card",
       invalid: "Credit card information is invalid",
@@ -46,34 +45,30 @@ const PaymentForm = () => {
   };
 
   useEffect(() => {
-    // Create PaymentIntent when component mounts
-    const fetchPaymentIntent = async () => {
-      console.log(
-        "the intent is been creating and the selectedQuote price is ",
-        selectedQuote.pricing.priceNET
-      );
+    // Create PaymentIntent only once when quote loads
+    const initializeIntent = async () => {
       if (selectedQuote?.pricing.priceNET) {
         try {
-          const result = await dispatch(
+          const paymentResult = await dispatch(
             createStripePaymentIntent({
-              amount: selectedQuote.pricing.priceNET, // Convert to cents
+              amount: selectedQuote.pricing.priceNET,
               currency: "usd",
               description: `Ride payment: ${selectedQuote.vehicleType} to ${
                 selectedQuote.destination || "destination"
               }`,
             })
           ).unwrap();
-          console.log("the client secret is", result);
-          setClientSecret(result);
+
+          setClientSecret(paymentResult);
         } catch (err) {
-          setError("Failed to initialize payment");
           console.error("Payment intent creation failed:", err);
+          setError("Failed to initialize payment");
         }
       }
     };
 
-    fetchPaymentIntent();
-  }, [selectedQuote, dispatch]);
+    initializeIntent();
+  }, [dispatch, selectedQuote]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,7 +82,24 @@ const PaymentForm = () => {
     }
 
     try {
-      // Confirm the card payment
+      // STEP 1: Get fresh availability before proceeding
+      const availabilityResult = await dispatch(
+        checkBidAvailability({
+          bidReference: selectedQuote.bidReference,
+          vendorId: selectedQuote.vendorId,
+        })
+      ).unwrap();
+
+      const availabilityReference = availabilityResult.availabilityReference;
+
+      dispatch(
+        setSelectedQuote({
+          ...selectedQuote,
+          availabilityReference,
+        })
+      );
+
+      // STEP 2: Confirm payment
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement),
@@ -97,77 +109,44 @@ const PaymentForm = () => {
       if (result.error) {
         throw new Error(result.error.message);
       } else if (
-        result.paymentIntent.status === "requires_capture" ||
-        result.paymentIntent.status === "succeeded"
+        result.paymentIntent.status === "succeeded" ||
+        result.paymentIntent.status === "requires_capture"
       ) {
-        // Store payment intent in Redux
         dispatch(setPaymentIntent(result.paymentIntent));
 
-        // first send the availabilty request then authorization API
-        try {
-          const thebidReference = selectedQuote.bidReference;
-
-          console.log("the extracted bid refference is", thebidReference);
-
-          console.log("checking the availabilty again...");
-
-          const resultAction = await dispatch(
-            checkBidAvailability({
-              bidReference: thebidReference,
-              vendorId: selectedQuote.vendorId,
-            })
-          );
-
-          console.log(
-            "The response for the availability check is ",
-            resultAction
-          );
-
-          if (checkBidAvailability.fulfilled.match(resultAction)) {
-            // Availability check was successful
-            const availabilityReference =
-              resultAction.payload.availabilityReference;
-            console.log("THE AVAILABILTY REFFERENCE IS", availabilityReference);
-
-            // setCheckingAvailability(false);
-            // Add availability reference to the selected quote
-            dispatch(
-              setSelectedQuote({
-                ...selectedQuote,
-                availabilityReference: availabilityReference,
-              })
-            );
-          } else {
-            throw new Error("Ride availability check failed.");
+        // STEP 3: Authorize bid
+        const bidAuthResponse = await dispatch(
+          authorizeBid({ bidReference: selectedQuote.bidReference })
+        );
+        let captureResponse;
+        console.log("the bid auth response is", bidAuthResponse);
+        console.log(
+          "the bid auth response is",
+          bidAuthResponse.payload.success
+        );
+        const isAuthorized =
+          bidAuthResponse?.payload?.success === true ||
+          bidAuthResponse?.meta?.requestStatus === "fulfilled";
+        if (isAuthorized) {
+          // STEP 4: Capture payment if needed
+          if (result.paymentIntent.status === "requires_capture") {
+            captureResponse = api.captureStripePayment(result.paymentIntent.Id);
           }
-          // const authResult = await dispatch(authorizeBid()).unwrap();
-          // console.log("Ride authorization successful:", authResult);
-          console.log("sending auth request after checking availability");
-          const bidAuthResponse = await dispatch(
-            authorizeBid({ bidReference: thebidReference })
-          );
-          if (bidAuthResponse.payload.success === true) {
-            // Navigate to success page with all the relevant data
-            navigate("/payment-success", {
-              state: {
-                paymentData: {
-                  paymentIntentId: result.paymentIntent.id,
-                  paymentStatus: result.paymentIntent.status,
-                  bookingReference:
-                    bidAuthResponse?.agentBookingReference || null,
-                },
-                selectedQuote,
-                bookingData,
+
+          navigate("/payment-success", {
+            state: {
+              paymentData: {
+                paymentIntentId: result.paymentIntent.id,
+                paymentStatus: result.paymentIntent.status,
+                bookingReference:
+                  bidAuthResponse?.agentBookingReference || null,
               },
-            });
-          } else {
-            throw new Error("bid authorization failed");
-          }
-        } catch (authError) {
-          console.error("Ride authorization failed:", authError);
-          setError(
-            "Payment was successful but ride booking failed. Please contact customer support."
-          );
+              selectedQuote,
+              bookingData,
+            },
+          });
+        } else {
+          throw new Error("Bid authorization failed");
         }
       } else {
         throw new Error(

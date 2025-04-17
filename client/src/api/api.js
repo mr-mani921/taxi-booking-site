@@ -56,8 +56,8 @@ const endpoints = {
   // Stripe Payments - used specifically for Stripe integration
   createStripePaymentIntent: (data) =>
     API.post("/api/payment/payment-intent", data),
-  confirmStripePayment: (paymentIntentId, data) =>
-    API.post(`/api/payment/confirm-payment/${paymentIntentId}`, data),
+  captureStripePayment: (paymentIntentId) =>
+    API.post(`/api/payment/capture/`, paymentIntentId),
 
   // Rides
   getRides: () => API.get("/api/rides/history"),

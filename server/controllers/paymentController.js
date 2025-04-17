@@ -23,7 +23,7 @@ export const createPaymentIntent = async (req, res) => {
     console.error("Stripe PaymentIntent creation failed:", error.message);
     res.status(500).json({
       success: false,
-      message: "Failed to create payment intent",
+      message: error.message,
       error: error.message,
     });
   }

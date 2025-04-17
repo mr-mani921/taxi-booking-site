@@ -403,7 +403,7 @@ export const createStripePaymentIntent = createAsyncThunk(
       console.log("and the secret is ", response.data.clientSecret);
 
       return response.data.clientSecret;
-    } catch (error) {
+    } catch (error) { 
       dispatch(setLoading({ entity: "payments", isLoading: false }));
       return rejectWithValue(
         error.response?.data || { message: error.message }

@@ -1266,7 +1266,6 @@ export const authorizeBooking = async (req, res) => {
   try {
     const {
       bidReference,
-
       pickupLocation,
       dropoffLocation,
       pickupTime,
@@ -1303,18 +1302,27 @@ export const authorizeBooking = async (req, res) => {
     });
 
     const bid = await Bid.findOne({ bidReference, user: userId });
-    
+
     if (!bid) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Bid not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Bid not found",
       });
     }
-    
-    bid.authorizationReference = igoResponse.AuthorizationReference;
+
+    bid.authorizationReference =
+      igoResponse.AgentBookingAuthorizationResponse.AuthorizationReference;
     await bid.save();
-    console.log("the igoResponse is ", igoResponse);
-    res.status(200).json({ success: true, response: igoResponse });
+    console.log(
+      "the igoResponse is ",
+      igoResponse.AgentBookingAuthorizationResponse
+    );
+    res
+      .status(200)
+      .json({
+        success: igoResponse.AgentBookingAuthorizationResponse.Result.Success,
+        response: igoResponse,
+      });
   } catch (error) {
     console.error("iGo Authorization Error:", error);
     res.status(500).json({
@@ -1383,11 +1391,13 @@ export const getBidsByReference = async (req, res) => {
  */
 export const selectBid = async (req, res) => {
   try {
-    console.log("request reached to the selectbid controller");
-
     const { bidReference, vendorId } = req.body;
     const userId = req.user?._id;
 
+    console.log(
+      "request reached to the selectbid controller and the bid refference is",
+      bidReference
+    );
     // Validate inputs
     if (!bidReference) {
       return res.status(400).json({ message: "Bid reference is required" });
