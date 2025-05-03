@@ -28,13 +28,17 @@ const PaymentForm = () => {
     style: {
       base: {
         fontSize: "16px",
-        color: "#424770",
+        color: "#E0E0E0",
+        fontFamily: "'Poppins', sans-serif",
+        fontWeight: "400",
         "::placeholder": {
-          color: "#aab7c4",
+          color: "rgba(224, 224, 224, 0.6)",
         },
+        iconColor: "#FFC107",
       },
       invalid: {
-        color: "#9e2146",
+        color: "#f44336",
+        iconColor: "#f44336",
       },
     },
     hidePostalCode: true,
@@ -129,8 +133,12 @@ const PaymentForm = () => {
           bidAuthResponse?.meta?.requestStatus === "fulfilled";
         if (isAuthorized) {
           // STEP 4: Capture payment if needed
+          console.log("the payment intent is", result.paymentIntent);
           if (result.paymentIntent.status === "requires_capture") {
-            captureResponse = api.captureStripePayment(result.paymentIntent.Id);
+            captureResponse = await api.captureStripePayment({
+              paymentIntentId: result.paymentIntent.id,
+            });
+            dispatch(setPaymentIntent(captureResponse.data));
           }
 
           navigate("/payment-success", {
@@ -162,36 +170,61 @@ const PaymentForm = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6">Payment Details</h2>
+    <div className="max-w-lg mx-auto p-8 glass-effect rounded-xl shadow-lg transform transition-all hover-glow">
+      <h2 className="text-2xl font-bold mb-6 text-primary text-center">
+        Payment Details
+      </h2>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
+        <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 text-red-400 rounded-lg">
+          <p className="font-medium">{error}</p>
+        </div>
       )}
 
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <p className="text-lightGray text-lg">Total Amount:</p>
+          <p className="text-primary text-xl font-bold">
+            ${selectedQuote?.pricing?.priceNET?.toFixed(2) || "0.00"}
+          </p>
+        </div>
+        <div className="mt-2 h-[1px] bg-white/10"></div>
+      </div>
+
       <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Card Details
+        <div className="mb-6">
+          <label className="block text-lightGray text-sm font-medium mb-3">
+            Card Information
           </label>
-          <div className="p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <div className="p-4 bg-charcoal border border-white/10 rounded-lg focus-within:border-primary/50 transition-all">
             <CardElement options={cardElementOptions} />
           </div>
+          <p className="mt-2 text-xs text-lightGray/60">
+            Your card information is encrypted and secure.
+          </p>
         </div>
 
         <button
           type="submit"
           disabled={isProcessing || !stripe || !elements || !clientSecret}
-          className={`w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+          className={`w-full bg-primary text-dark font-semibold py-3 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-opacity-50 transition-all transform active:scale-95 ${
             isProcessing || !clientSecret ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
           {isProcessing
             ? "Processing..."
             : clientSecret
-            ? "Pay Now"
+            ? "Complete Payment"
             : "Initializing..."}
         </button>
+
+        <p className="mt-4 text-center text-xs text-lightGray/60">
+          By completing this payment, you agree to our{" "}
+          <a href="/terms" className="text-primary hover:underline">
+            Terms of Service
+          </a>
+          .
+        </p>
       </form>
     </div>
   );

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { setRideStatus } from "../store/bookingSlice";
 import { fetchRideById, cancelRide } from "../store/thunks";
 import {
   FaCar,
@@ -10,10 +9,15 @@ import {
   FaUserAlt,
   FaStar,
   FaRegClock,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 import { MdOutlineLocationOn } from "react-icons/md";
 import { BiCurrentLocation } from "react-icons/bi";
 import io from "socket.io-client";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "react-toastify";
+import RideMap from "../components/RideMap";
+import PaymentModal from "../components/PaymentModal";
 
 const RideDetails = () => {
   const { rideId } = useParams();
@@ -24,6 +28,8 @@ const RideDetails = () => {
   const [eta, setEta] = useState("--");
   const [driverLocation, setDriverLocation] = useState(null);
   const [rideStatus, setCurrentRideStatus] = useState("");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(0);
 
   // Get loading and error states from Redux
   const loading = useSelector((state) => state.api.loading.rides);
@@ -41,293 +47,243 @@ const RideDetails = () => {
 
     socket.on("rideUpdate", (updatedRide) => {
       console.log("Ride update received:", updatedRide);
-      setRide(updatedRide);
+      setRide((prevRide) => ({
+        ...prevRide,
+        ...updatedRide,
+      }));
       setCurrentRideStatus(updatedRide.status);
 
-      if (updatedRide.estimatedTimeOfArrival) {
-        setEta(updatedRide.estimatedTimeOfArrival);
+      // Show appropriate notifications based on status
+      switch (updatedRide.status) {
+        case "DRIVER_ASSIGNED":
+          toast.info(
+            `Driver ${updatedRide.driverDetails.name} has been assigned to your ride`
+          );
+          break;
+        case "DRIVER_ARRIVED":
+          toast.success("Your driver has arrived!");
+          break;
+        case "IN_PROGRESS":
+          toast.info("Your journey has started");
+          break;
+        case "COMPLETED":
+          toast.success("Your journey has been completed");
+          break;
+        case "CANCELLED":
+          toast.error(`Ride cancelled: ${updatedRide.cancellationReason}`);
+          break;
+        case "FAILED":
+          toast.error(`Ride failed: ${updatedRide.failureReason}`);
+          break;
       }
 
-      if (updatedRide.driverLocation) {
-        setDriverLocation(updatedRide.driverLocation);
+      if (updatedRide.estimatedArrivalTime) {
+        const etaDate = new Date(updatedRide.estimatedArrivalTime);
+        setEta(formatDistanceToNow(etaDate, { addSuffix: true }));
       }
     });
 
     socket.on("driverLocationUpdate", (location) => {
+      console.log("Driver location update:", location);
       setDriverLocation(location);
     });
 
+    socket.on("paymentUpdate", (paymentData) => {
+      console.log("Payment update:", paymentData);
+      if (paymentData.required) {
+        setPaymentAmount(paymentData.amount);
+        setShowPaymentModal(true);
+      }
+    });
+
+    // Cleanup on unmount
     return () => {
       socket.emit("leaveRideRoom", rideId);
       socket.disconnect();
     };
   }, [rideId]);
 
-  // Fetch ride details
+  // Fetch initial ride details
   useEffect(() => {
-    dispatch(fetchRideById(rideId))
-      .unwrap()
-      .then((data) => {
-        setRide(data);
-        setCurrentRideStatus(data.status);
+    const loadRideDetails = async () => {
+      try {
+        const result = await dispatch(fetchRideById(rideId)).unwrap();
+        setRide(result);
+        setCurrentRideStatus(result.status);
 
-        if (data.estimatedTimeOfArrival) {
-          setEta(data.estimatedTimeOfArrival);
+        if (result.estimatedArrivalTime) {
+          const etaDate = new Date(result.estimatedArrivalTime);
+          setEta(formatDistanceToNow(etaDate, { addSuffix: true }));
         }
 
-        if (data.driverLocation) {
-          setDriverLocation(data.driverLocation);
+        if (result.driverLocation) {
+          setDriverLocation(result.driverLocation);
         }
-      })
-      .catch((err) => {
-        console.error("Error fetching ride details:", err);
-      });
+      } catch (error) {
+        console.error("Error fetching ride details:", error);
+        toast.error("Failed to load ride details");
+      }
+    };
+
+    loadRideDetails();
   }, [dispatch, rideId]);
 
-  // Handle cancelling ride
   const handleCancelRide = async () => {
-    if (window.confirm("Are you sure you want to cancel this ride?")) {
-      dispatch(cancelRide(rideId))
-        .unwrap()
-        .then(() => {
-          dispatch(setRideStatus("cancelled"));
-          navigate("/");
-        })
-        .catch((err) => {
-          console.error("Error cancelling ride:", err);
-        });
+    try {
+      await dispatch(cancelRide(rideId)).unwrap();
+      toast.success("Ride cancelled successfully");
+    } catch (error) {
+      console.error("Error cancelling ride:", error);
+      toast.error("Failed to cancel ride");
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "assigned":
-        return "bg-yellow-500";
-      case "in_progress":
-        return "bg-blue-500";
-      case "completed":
-        return "bg-green-500";
-      case "cancelled":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case "booked":
-        return "Booked";
-      case "assigned":
-        return "Driver Assigned";
-      case "driver_arrived":
-        return "Driver Arrived";
-      case "in_progress":
-        return "In Progress";
-      case "completed":
-        return "Completed";
-      case "cancelled":
-        return "Cancelled";
-      default:
-        return "Unknown Status";
-    }
+  const handlePaymentComplete = () => {
+    setShowPaymentModal(false);
+    toast.success("Payment processed successfully");
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex justify-center items-center h-screen">
+        Loading...
       </div>
     );
   }
 
   if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md">
-          <p>{error}</p>
-          <button
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
-            onClick={() => navigate("/")}
-          >
-            Return Home
-          </button>
-        </div>
-      </div>
-    );
+    return <div className="text-red-500 text-center">{error}</div>;
   }
 
   if (!ride) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-md">
-          <p>No ride details found.</p>
-          <button
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
-            onClick={() => navigate("/")}
-          >
-            Return Home
-          </button>
-        </div>
-      </div>
-    );
+    return <div>No ride found</div>;
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="container mx-auto px-4 py-8"
-    >
-      <div className="bg-dark-lighter rounded-lg shadow-xl overflow-hidden">
-        {/* Status Header */}
-        <div className="p-6 pb-2">
-          <h1 className="text-3xl font-bold text-white">Ride Details</h1>
-          <div className="mt-2 flex items-center">
-            <div
-              className={`h-3 w-3 rounded-full ${getStatusColor(
-                rideStatus
-              )} mr-2`}
-            ></div>
-            <span className="text-white text-lg">
-              {getStatusText(rideStatus)}
-            </span>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-lg p-6"
+      >
+        <h1 className="text-2xl font-bold mb-6">Ride Details</h1>
+
+        {/* Status Badge */}
+        <div className="mb-6">
+          <span
+            className={`px-4 py-2 rounded-full text-sm font-semibold
+            ${
+              rideStatus === "COMPLETED"
+                ? "bg-green-100 text-green-800"
+                : rideStatus === "IN_PROGRESS"
+                ? "bg-blue-100 text-blue-800"
+                : rideStatus === "CANCELLED"
+                ? "bg-red-100 text-red-800"
+                : "bg-yellow-100 text-yellow-800"
+            }`}
+          >
+            {rideStatus}
+          </span>
         </div>
 
-        {/* Map Placeholder - In a real app, this would be a map component showing driver/user location */}
-        <div className="bg-gray-700 h-64 relative mx-6 rounded-lg overflow-hidden">
-          <div className="absolute inset-0 flex justify-center items-center">
-            <span className="text-white">Map View (Location Tracking)</span>
+        {/* Locations */}
+        <div className="mb-6">
+          <div className="flex items-center mb-3">
+            <BiCurrentLocation className="text-green-500 mr-2" />
+            <span>{ride.pickupLocation?.address}</span>
           </div>
-          {driverLocation && (
-            <div className="absolute bottom-4 left-4 bg-dark-lighter p-2 rounded-md text-white text-xs">
-              <p>Driver is nearby</p>
-            </div>
-          )}
+          <div className="flex items-center">
+            <MdOutlineLocationOn className="text-red-500 mr-2" />
+            <span>{ride.dropoffLocation?.address}</span>
+          </div>
         </div>
 
         {/* Driver Details */}
-        {ride.driver && (
-          <div className="p-6 border-b border-gray-700">
-            <h2 className="text-xl font-semibold text-white mb-4">
-              Driver Details
-            </h2>
-            <div className="flex items-center">
-              <div className="bg-gray-700 h-16 w-16 rounded-full flex items-center justify-center">
-                <FaUserAlt className="text-gray-400 text-xl" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-white">
-                  {ride.driver.name}
-                </h3>
-                <div className="flex items-center mt-1">
-                  <FaStar className="text-yellow-400 mr-1" />
-                  <span className="text-white">
-                    {ride.driver.rating || "4.8"}
-                  </span>
-                </div>
-              </div>
-              <div className="ml-auto">
-                <a
-                  href={`tel:${ride.driver.phone}`}
-                  className="flex items-center justify-center h-12 w-12 rounded-full bg-primary hover:bg-primary-dark transition-colors"
-                >
-                  <FaPhoneAlt className="text-white" />
-                </a>
-              </div>
+        {ride.driverDetails && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h2 className="text-lg font-semibold mb-3">Driver Details</h2>
+            <div className="flex items-center mb-2">
+              <FaUserAlt className="mr-2" />
+              <span>{ride.driverDetails.name}</span>
             </div>
-
-            <div className="mt-4">
-              <div className="flex items-center mb-2">
-                <FaCar className="text-gray-400 mr-2" />
-                <span className="text-white">
-                  {ride.driver.carModel || "Toyota Camry"} -{" "}
-                  {ride.driver.carColor || "Silver"}
-                </span>
-              </div>
+            <div className="flex items-center mb-2">
+              <FaPhoneAlt className="mr-2" />
+              <span>{ride.driverDetails.phone}</span>
+            </div>
+            <div className="flex items-center mb-2">
+              <FaCar className="mr-2" />
+              <span>{ride.driverDetails.vehicleDetails}</span>
+            </div>
+            {ride.driverDetails.rating && (
               <div className="flex items-center">
-                <span className="bg-gray-700 px-3 py-1 rounded-full text-white text-sm">
-                  {ride.driver.licensePlate || "ABC 123"}
-                </span>
+                <FaStar className="text-yellow-400 mr-2" />
+                <span>{ride.driverDetails.rating}</span>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ETA */}
+        {eta !== "--" && (
+          <div className="mb-6">
+            <div className="flex items-center">
+              <FaRegClock className="mr-2" />
+              <span>Estimated arrival: {eta}</span>
             </div>
           </div>
         )}
 
-        {/* Ride Details */}
-        <div className="p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
-            Ride Information
-          </h2>
+        {/* Map */}
+        {driverLocation && (
+          <div className="mb-6 h-64">
+            <RideMap
+              pickupLocation={ride.pickupLocation}
+              dropoffLocation={ride.dropoffLocation}
+              driverLocation={driverLocation}
+            />
+          </div>
+        )}
 
-          {/* Pickup & Destination */}
+        {/* Fare Details */}
+        {ride.finalFare && (
           <div className="mb-6">
-            <div className="flex items-start mb-4">
-              <div className="mt-1">
-                <BiCurrentLocation className="text-green-500 text-xl" />
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-400 text-sm">Pickup</p>
-                <p className="text-white">
-                  {ride.pickupLocation?.address || "Loading address..."}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start">
-              <div className="mt-1">
-                <MdOutlineLocationOn className="text-red-500 text-xl" />
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-400 text-sm">Destination</p>
-                <p className="text-white">
-                  {ride.dropoffLocation?.address || "Loading address..."}
-                </p>
-              </div>
+            <div className="flex items-center">
+              <FaMoneyBillWave className="mr-2" />
+              <span>Final Fare: £{ride.finalFare.toFixed(2)}</span>
             </div>
           </div>
+        )}
 
-          {/* Time & Price Details */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-dark-lightest p-4 rounded-lg">
-              <div className="flex items-center mb-2">
-                <FaRegClock className="text-gray-400 mr-2" />
-                <p className="text-gray-400 text-sm">ETA</p>
-              </div>
-              <p className="text-white text-lg font-semibold">{eta || "--"}</p>
-            </div>
-
-            <div className="bg-dark-lightest p-4 rounded-lg">
-              <p className="text-gray-400 text-sm mb-2">Fare</p>
-              <p className="text-white text-lg font-semibold">
-                ${ride.fare?.total || "--"}
-              </p>
-            </div>
-          </div>
-
-          {/* Action Button */}
-          {["booked", "assigned", "driver_arrived"].includes(rideStatus) && (
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-4">
+          {rideStatus === "PENDING" && (
             <button
               onClick={handleCancelRide}
-              className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
             >
               Cancel Ride
             </button>
           )}
-
-          {rideStatus === "completed" && (
-            <button
-              onClick={() => navigate("/rate-ride/" + rideId)}
-              className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-            >
-              Rate Your Ride
-            </button>
-          )}
+          <button
+            onClick={() => navigate("/rides")}
+            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            Back to Rides
+          </button>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          show={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          amount={paymentAmount}
+          onPaymentComplete={handlePaymentComplete}
+          rideId={rideId}
+        />
+      )}
+    </div>
   );
 };
 

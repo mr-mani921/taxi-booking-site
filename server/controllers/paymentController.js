@@ -10,7 +10,7 @@ export const createPaymentIntent = async (req, res) => {
       amount,
       currency,
       description,
-      capture_method: "automatic",
+      capture_method: "manual",
     });
 
     console.log("payment intent created...", paymentIntent.client_secret);
@@ -36,7 +36,9 @@ export const capturePayment = async (req, res) => {
   const { paymentIntentId } = req.body;
 
   try {
+    console.log("the payment intent id is", paymentIntentId);
     const intent = await stripe.paymentIntents.capture(paymentIntentId);
+    console.log("the response intent is", intent);
     res.status(200).json({ success: true, data: intent });
   } catch (error) {
     console.error("Error capturing payment:", error.message);

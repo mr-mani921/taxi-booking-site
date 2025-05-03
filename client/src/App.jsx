@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
+import Loader from "./components/Loader";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Booking from "./pages/Booking";
@@ -37,6 +38,7 @@ function App() {
   return (
     <Router>
       <Navbar />
+      <Loader />
       <div className="min-h-screen bg-dark text-lightGray">
         <Routes>
           <Route path="/auth" element={<Auth />} />

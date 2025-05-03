@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../api/api";
 import { setIsAuthenticated } from "./userSlice";
-import { setLoading } from "./apiSlice";
+import { setLoading, setGlobalLoading } from "./apiSlice";
 import { setAvailabilityReference } from "./bookingSlice";
 
 // Auth thunks
@@ -9,6 +9,7 @@ export const loginUser = createAsyncThunk(
   "auth/login",
   async (credentials, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       console.log(credentials);
       dispatch(setLoading({ entity: "user", isLoading: true }));
       const response = await api.login(credentials);
@@ -24,6 +25,7 @@ export const loginUser = createAsyncThunk(
       );
     } finally {
       dispatch(setLoading({ entity: "user", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -32,19 +34,20 @@ export const registerUser = createAsyncThunk(
   "auth/register",
   async (userData, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "user", isLoading: true }));
       const response = await api.register(userData);
       localStorage.setItem("token", response.data.token);
       dispatch(setIsAuthenticated(true));
-      dispatch(setLoading({ entity: "user", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "user", isLoading: false }));
       console.log(error.response.data.message);
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "user", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -53,6 +56,7 @@ export const logoutUser = createAsyncThunk(
   "auth/logout",
   async (_, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       console.log("request is in the frontend logging out");
       await api.logout();
       localStorage.removeItem("token");
@@ -64,6 +68,8 @@ export const logoutUser = createAsyncThunk(
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -73,16 +79,17 @@ export const fetchUserProfile = createAsyncThunk(
   "user/fetchProfile",
   async (_, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "user", isLoading: true }));
       const response = await api.getUserProfile();
-      dispatch(setLoading({ entity: "user", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "user", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "user", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -91,16 +98,17 @@ export const updateUserProfile = createAsyncThunk(
   "user/updateProfile",
   async (profileData, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "user", isLoading: true }));
       const response = await api.updateUserProfile(profileData);
-      dispatch(setLoading({ entity: "user", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "user", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "user", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -110,16 +118,17 @@ export const fetchRides = createAsyncThunk(
   "rides/fetchAll",
   async (_, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "rides", isLoading: true }));
       const response = await api.getRides();
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "rides", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -128,16 +137,17 @@ export const fetchRideById = createAsyncThunk(
   "rides/fetchById",
   async (rideId, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "rides", isLoading: true }));
       const response = await api.getRideById(rideId);
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "rides", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -146,16 +156,17 @@ export const bookRide = createAsyncThunk(
   "rides/book",
   async (bookingData, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "rides", isLoading: true }));
       const response = await api.bookRide(bookingData);
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "rides", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -164,16 +175,17 @@ export const cancelRide = createAsyncThunk(
   "rides/cancel",
   async (rideId, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "rides", isLoading: true }));
       const response = await api.cancelRide(rideId);
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "rides", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -182,16 +194,17 @@ export const rateRide = createAsyncThunk(
   "rides/rate",
   async ({ rideId, ratingData }, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "rides", isLoading: true }));
       const response = await api.rateRide(rideId, ratingData);
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "rides", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "rides", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -201,15 +214,17 @@ export const getPriceEstimate = createAsyncThunk(
   "quotes/getEstimate",
   async (estimateData, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "quotes", isLoading: true }));
       const response = await api.getPriceEstimate(estimateData);
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -218,15 +233,17 @@ export const getVendorBids = createAsyncThunk(
   "quotes/getVendorBids",
   async (bidData, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "quotes", isLoading: true }));
       const response = await api.getVendorBids(bidData);
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -235,15 +252,17 @@ export const selectBid = createAsyncThunk(
   "quotes/selectBid",
   async (bidData, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "quotes", isLoading: true }));
       const response = await api.selectBid(bidData);
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -252,6 +271,7 @@ export const checkBidAvailability = createAsyncThunk(
   "quotes/checkAvailability",
   async (bidData, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "quotes", isLoading: true }));
 
       const { bidReference, vendorId } = bidData;
@@ -270,8 +290,6 @@ export const checkBidAvailability = createAsyncThunk(
         response.data.availabilityReference
       );
 
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
-
       // If availability check is successful, navigate to payment or confirmation page
       dispatch(setAvailabilityReference(response.data.availabilityReference));
       if (response.data.success) {
@@ -285,21 +303,23 @@ export const checkBidAvailability = createAsyncThunk(
         });
       }
     } catch (error) {
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       return rejectWithValue(
         error.response?.data || {
           message: error.message || "Failed to check ride availability",
         }
       );
+    } finally {
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
 
 export const authorizeBid = createAsyncThunk(
   "quotes/authorizeBid",
-  async ({bidReference}, { dispatch, getState, rejectWithValue }) => {
+  async ({ bidReference }, { dispatch, getState, rejectWithValue }) => {
     try {
-
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "quotes", isLoading: true }));
 
       const state = getState();
@@ -313,7 +333,6 @@ export const authorizeBid = createAsyncThunk(
       if (!bookingData.availabilityReference) {
         throw new Error("Missing availability reference");
       }
-      
 
       // Prepare the data for authorization request
       const requestData = {
@@ -323,7 +342,7 @@ export const authorizeBid = createAsyncThunk(
         dropoffLocation: bookingData.dropoffLocation,
         pickupTime: bookingData.pickupTime,
         vehicleType: selectedQuote.vehicleType || bookingData.vehicleType,
-        pricingModel: selectedQuote.pricing?.pricingMethod || "fixedPrice",
+        pricingModel: selectedQuote.pricing?.pricingMethod || "FixedPrice",
         paymentPoint: "TimeOfBooking", // Assuming pre-payment
         price: selectedQuote.pricing?.priceNET || selectedQuote.price,
         passengers: bookingData.passengers || 1,
@@ -332,7 +351,6 @@ export const authorizeBid = createAsyncThunk(
 
         // Additional bid data
         vendorId: selectedQuote.vendorId,
-        bidReference: selectedQuote.bidReference,
       };
 
       console.log("Authorization request data:", requestData);
@@ -340,16 +358,14 @@ export const authorizeBid = createAsyncThunk(
       // Make the API call to authorize the bid
       const response = await api.authorizeBid(requestData);
 
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
-
-      console.log("the response is,",response.data);
-      
+      console.log("the response is,", response.data);
 
       // Handle successful response
       if (response.data.success) {
         return {
           ...response.data,
           agentBookingReference: response.data.agentBookingReference,
+          rideId: response.data.rideId,
           message: response.data.message || "Ride successfully authorized",
         };
       } else {
@@ -358,7 +374,6 @@ export const authorizeBid = createAsyncThunk(
         });
       }
     } catch (error) {
-      dispatch(setLoading({ entity: "quotes", isLoading: false }));
       console.error("Authorize bid error:", error);
 
       return rejectWithValue(
@@ -366,6 +381,9 @@ export const authorizeBid = createAsyncThunk(
           message: error.message || "Failed to authorize ride",
         }
       );
+    } finally {
+      dispatch(setLoading({ entity: "quotes", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -375,16 +393,17 @@ export const processPayment = createAsyncThunk(
   "payments/process",
   async (paymentData, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "payments", isLoading: true }));
       const response = await api.processPayment(paymentData);
-      dispatch(setLoading({ entity: "payments", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "payments", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "payments", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -394,20 +413,19 @@ export const createStripePaymentIntent = createAsyncThunk(
   async (paymentData, { dispatch, rejectWithValue }) => {
     try {
       console.log("in the cratePaymentIntent Thunk");
-
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "payments", isLoading: true }));
       // Uncomment the API call when the backend is ready
       const response = await api.createStripePaymentIntent(paymentData);
-
-      dispatch(setLoading({ entity: "payments", isLoading: false }));
       console.log("and the secret is ", response.data.clientSecret);
-
       return response.data.clientSecret;
-    } catch (error) { 
-      dispatch(setLoading({ entity: "payments", isLoading: false }));
+    } catch (error) {
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "payments", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -416,16 +434,17 @@ export const fetchSavedPaymentMethods = createAsyncThunk(
   "payments/fetchSavedMethods",
   async (_, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "payments", isLoading: true }));
       const response = await api.getSavedPaymentMethods();
-      dispatch(setLoading({ entity: "payments", isLoading: false }));
       return response.data;
     } catch (error) {
-      dispatch(setLoading({ entity: "payments", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "payments", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );
@@ -434,16 +453,17 @@ export const deletePaymentMethod = createAsyncThunk(
   "payments/deleteMethod",
   async (methodId, { dispatch, rejectWithValue }) => {
     try {
+      dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "payments", isLoading: true }));
       const response = await api.deletePaymentMethod(methodId);
-      dispatch(setLoading({ entity: "payments", isLoading: false }));
       return { id: methodId, ...response.data };
     } catch (error) {
-      dispatch(setLoading({ entity: "payments", isLoading: false }));
-
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );
+    } finally {
+      dispatch(setLoading({ entity: "payments", isLoading: false }));
+      dispatch(setGlobalLoading(false));
     }
   }
 );

@@ -17,6 +17,7 @@ import Ride from "../models/Ride.js";
 import igoConfig from "../config/igoConfig.js";
 import Bid from "../models/Bid.js";
 import Stripe from "stripe";
+import User from "../models/User.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -1177,7 +1178,7 @@ export const requestVendorBids = async (req, res) => {
       passengers
     );
 
-    // console.log("the bid response are",JSON.stringify(bidsResponse))
+    console.log("the bid response are", JSON.stringify(bidsResponse));
 
     const formattedBids = [];
     const rawBids = bidsResponse.AgentBidResponse?.Offers?.Offer;
@@ -1262,6 +1263,7 @@ export const requestVendorBids = async (req, res) => {
     });
   }
 };
+
 export const authorizeBooking = async (req, res) => {
   try {
     const {
@@ -1313,16 +1315,106 @@ export const authorizeBooking = async (req, res) => {
     bid.authorizationReference =
       igoResponse.AgentBookingAuthorizationResponse.AuthorizationReference;
     await bid.save();
+
+    // Create a new ride record from the bid and authorization data
+    if (
+      igoResponse.AgentBookingAuthorizationResponse.Result.Success === "true"
+    ) {
+      // Get the selected bid information
+      const selectedBid = bid.selectedBid;
+      if (!selectedBid) {
+        console.error("No selected bid found in the bid document");
+      }
+
+      // Format locations to match Ride schema
+      const formattedPickupLocation = {
+        address: pickupLocation.address,
+        latitude: pickupLocation.lat,
+        longitude: pickupLocation.lng,
+      };
+
+      const formattedDropoffLocation = {
+        address: dropoffLocation.address,
+        latitude: dropoffLocation.lat,
+        longitude: dropoffLocation.lng,
+      };
+
+      // Calculate price with markup if available
+      const originalPrice = price || selectedBid?.pricing?.priceNET || 0;
+      const markedUpPrice = parseFloat((originalPrice * 1.25).toFixed(2));
+
+      // Create passenger information
+      let passengerDetails = [];
+      if (Array.isArray(passengers) && passengers.length > 0) {
+        passengerDetails = passengers;
+      } else if (passengers && typeof passengers === "number") {
+        // If passengers is just a number, create a default passenger
+        const user = await User.findById(userId);
+        if (user) {
+          passengerDetails.push({
+            name: user.name || "Unknown",
+            phone: user.phone || "Unknown",
+            email: user.email || "Unknown",
+            isLead: true,
+          });
+        }
+      } else {
+        // Default passenger from user data
+        const user = await User.findById(userId);
+        if (user) {
+          passengerDetails.push({
+            name: user.name || "Unknown",
+            phone: user.phone || "Unknown",
+            email: user.email || "Unknown",
+            isLead: true,
+          });
+        }
+      }
+
+      // Create new ride
+      const newRide = new Ride({
+        user: userId,
+        pickupLocation: formattedPickupLocation,
+        dropoffLocation: formattedDropoffLocation,
+        pickupTime: new Date(pickupTime),
+        fare: markedUpPrice,
+        originalFare: originalPrice,
+        status: igoConfig.rideStatuses.BOOKED,
+        pricingModel: pricingModel || "FixedPrice",
+        paymentPoint: paymentPoint || "TimeOfBooking",
+        passengers: passengerDetails,
+        specialInstructions: specialInstructions || "",
+        vehicleType: vehicleType || igoConfig.vehicleTypes.STANDARD,
+        igoAvailabilityReference: availabilityReference,
+        igoAuthorizationReference:
+          igoResponse.AgentBookingAuthorizationResponse.AuthorizationReference,
+        igoBookingId: agentBookingReference,
+        bookedAt: new Date(),
+        // Store the response logs
+        igoResponseLogs: [
+          {
+            timestamp: new Date(),
+            requestType: "authorization",
+            response: igoResponse.AgentBookingAuthorizationResponse,
+          },
+        ],
+      });
+
+      // Save the ride
+      await newRide.save();
+
+      console.log("Created new ride record with ID:", newRide._id);
+    }
+
     console.log(
       "the igoResponse is ",
       igoResponse.AgentBookingAuthorizationResponse
     );
-    res
-      .status(200)
-      .json({
-        success: igoResponse.AgentBookingAuthorizationResponse.Result.Success,
-        response: igoResponse,
-      });
+    res.status(200).json({
+      success: igoResponse.AgentBookingAuthorizationResponse.Result.Success,
+      response: igoResponse,
+      agentBookingReference: agentBookingReference,
+    });
   } catch (error) {
     console.error("iGo Authorization Error:", error);
     res.status(500).json({

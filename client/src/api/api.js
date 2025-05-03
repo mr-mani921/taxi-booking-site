@@ -65,7 +65,8 @@ const endpoints = {
   bookRide: (data) => API.post("/api/rides/book", data),
   cancelRide: (id) => API.post(`/api/rides/${id}/cancel`),
   rateRide: (id, data) => API.post(`/api/rides/${id}/rate`, data),
-
+  getRideHistory: () => API.get("/api/rides/history"),
+  getActiveRides: () => API.get("/api/rides/active"),
   // Quotes
   getPriceEstimate: (data) => API.post("/api/rides/quotes/estimate", data),
   getVendorBids: (data) => API.post("/api/rides/request-bids", data),

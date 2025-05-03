@@ -8,6 +8,7 @@ const initialState = {
     payments: false,
     bids: false,
   },
+  globalLoading: false,
   errors: {
     user: null,
     rides: null,
@@ -26,6 +27,9 @@ const apiSlice = createSlice({
     setLoading: (state, action) => {
       const { entity, isLoading } = action.payload;
       state.loading[entity] = isLoading;
+    },
+    setGlobalLoading: (state, action) => {
+      state.globalLoading = action.payload;
     },
     setError: (state, action) => {
       const { entity, error } = action.payload;
@@ -53,6 +57,7 @@ const apiSlice = createSlice({
 
 export const {
   setLoading,
+  setGlobalLoading,
   setError,
   clearError,
   clearAllErrors,

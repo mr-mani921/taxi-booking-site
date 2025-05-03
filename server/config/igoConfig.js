@@ -44,8 +44,7 @@ const igoConfig = {
   // Pricing models (as per iGo Protocol V1.41)
   pricingModels: {
     UP_FRONT: "UpFront",
-    ESTIMATED: "Estimated",
-    AGENT_SET: "AgentSet",
+    Fixed: "FixedPrice"
   },
 
   // Payment points (as per iGo Protocol V1.41)

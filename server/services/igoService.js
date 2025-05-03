@@ -3,6 +3,11 @@ import { parseStringPromise, Builder } from "xml2js";
 import Ride from "../models/Ride.js";
 import igoConfig from "../config/igoConfig.js";
 import { sendRideStatusNotification } from "./notificationService.js";
+import {
+  emitRideUpdate,
+  emitDriverLocation,
+  emitPaymentUpdate,
+} from "./socketService.js";
 
 // Update to determine if we should use mock mode
 // We'll disable mock mode if we have a webhook URL configured (ngrok)
@@ -434,29 +439,34 @@ export const buildPricingSection = ({
  */
 export const handleIgoEvent = async (eventType, eventData) => {
   try {
-    // Log the event for debugging
-    console.log(`Received iGo event: ${eventType}`, eventData);
+    const eventRoot = eventData[eventType]; // Access the root element
+    const authRef = eventRoot.AuthorizationReference;
+
+    console.log(
+      `Received iGo event: ${eventType} \n`,
+      eventRoot.AuthorizationReference
+    );
 
     // Parse booking reference from the event data
     let bookingId;
 
     // Extract the booking reference based on event type
     if (eventType === igoConfig.eventTypes.DISPATCHED) {
-      bookingId = eventData.AuthorizationReference;
+      bookingId = eventRoot.AuthorizationReference;
     } else if (eventType === igoConfig.eventTypes.COMPLETED) {
-      bookingId = eventData.AuthorizationReference;
+      bookingId = eventRoot.AuthorizationReference;
     } else if (eventType === igoConfig.eventTypes.CANCELLED) {
-      bookingId = eventData.AuthorizationReference;
+      bookingId = eventRoot.AuthorizationReference;
     } else if (eventType === igoConfig.eventTypes.FAILED) {
-      bookingId = eventData.AuthorizationReference;
+      bookingId = eventRoot.AuthorizationReference;
     } else if (eventType === igoConfig.eventTypes.DRIVER_ASSIGNED) {
-      bookingId = eventData.AuthorizationReference;
+      bookingId = eventRoot.AuthorizationReference;
     } else if (eventType === igoConfig.eventTypes.DRIVER_ARRIVED) {
-      bookingId = eventData.AuthorizationReference;
+      bookingId = eventRoot.AuthorizationReference;
     } else if (eventType === igoConfig.eventTypes.JOURNEY_STARTED) {
-      bookingId = eventData.AuthorizationReference;
+      bookingId = eventRoot.AuthorizationReference;
     } else if (eventType === igoConfig.eventTypes.JOURNEY_COMPLETED) {
-      bookingId = eventData.AuthorizationReference;
+      bookingId = eventRoot.AuthorizationReference;
     } else {
       console.warn(`Unhandled event type: ${eventType}`);
       return { status: "ignored", message: "Unhandled event type" };
@@ -803,6 +813,9 @@ export const cancelRide = async (
 // Event handlers
 const handleBookingDispatched = async (ride, eventData) => {
   try {
+    console.log(
+      "in the specified event handler" + " which is handleBookingDispatched"
+    );
     // Update ride with dispatch information
     ride.status = igoConfig.rideStatuses.DISPATCHED;
     ride.dispatchedAt = new Date();
@@ -810,9 +823,9 @@ const handleBookingDispatched = async (ride, eventData) => {
     // Extract driver and vehicle information if available
     if (eventData.Driver) {
       ride.driverDetails = {
-        name: eventData.Driver.Name,
-        phone: eventData.Driver.TelephoneNumber,
-        vehicleDetails: eventData.Driver.VehicleDetails,
+        name: eventData.Driver.ForeName + " " + eventData.Driver.Surname,
+        phone: eventData.Driver.MobileNumber,
+        vehicleDetails: eventData.Driver.Vehicle,
       };
     }
 
@@ -820,6 +833,13 @@ const handleBookingDispatched = async (ride, eventData) => {
 
     // Send notification to user about dispatch
     await sendRideStatusNotification(ride, "booking.dispatched", eventData);
+
+    // Emit socket event
+    emitRideUpdate(ride._id, {
+      status: ride.status,
+      dispatchedAt: ride.dispatchedAt,
+      driverDetails: ride.driverDetails,
+    });
 
     return {
       status: "processed",
@@ -834,6 +854,9 @@ const handleBookingDispatched = async (ride, eventData) => {
 
 const handleBookingCompleted = async (ride, eventData) => {
   try {
+    console.log(
+      "in the specified event handler" + " which is handleBookingCompleted"
+    );
     // Update ride with completion information
     ride.status = igoConfig.rideStatuses.COMPLETED;
     ride.completedAt = new Date();
@@ -861,6 +884,9 @@ const handleBookingCompleted = async (ride, eventData) => {
 
 const handleBookingCancelled = async (ride, eventData) => {
   try {
+    console.log(
+      "in the specified event handler" + " which is handleBookingCancelled"
+    );
     // Update ride with cancellation information
     ride.status = igoConfig.rideStatuses.CANCELLED;
     ride.cancelledAt = new Date();
@@ -870,6 +896,13 @@ const handleBookingCancelled = async (ride, eventData) => {
 
     // Send notification to user about cancellation
     await sendRideStatusNotification(ride, "booking.cancelled", eventData);
+
+    // Emit socket event
+    emitRideUpdate(ride._id, {
+      status: ride.status,
+      cancelledAt: ride.cancelledAt,
+      cancellationReason: ride.cancellationReason,
+    });
 
     return {
       status: "processed",
@@ -884,6 +917,9 @@ const handleBookingCancelled = async (ride, eventData) => {
 
 const handleBookingFailed = async (ride, eventData) => {
   try {
+    console.log(
+      "in the specified event handler" + " which is handleBookingFailed"
+    );
     // Update ride with failure information
     ride.status = igoConfig.rideStatuses.FAILED;
     ride.failedAt = new Date();
@@ -893,6 +929,13 @@ const handleBookingFailed = async (ride, eventData) => {
 
     // Send notification to user about failure
     await sendRideStatusNotification(ride, "booking.failed", eventData);
+
+    // Emit socket event
+    emitRideUpdate(ride._id, {
+      status: ride.status,
+      failedAt: ride.failedAt,
+      failureReason: ride.failureReason,
+    });
 
     return {
       status: "processed",
@@ -907,28 +950,40 @@ const handleBookingFailed = async (ride, eventData) => {
 
 const handleDriverAssigned = async (ride, eventData) => {
   try {
+    console.log(
+      "in the specified event handler" + " which is handleDriverAssigned"
+    );
     // Update ride with driver information
     ride.status = igoConfig.rideStatuses.DRIVER_ASSIGNED;
     ride.driverAssignedAt = new Date();
-
-    // Extract driver information
-    if (eventData.Driver) {
-      ride.driverDetails = {
-        name: eventData.Driver.Name,
-        phone: eventData.Driver.TelephoneNumber,
-        vehicleDetails: eventData.Driver.VehicleDetails,
-        licensePlate: eventData.Driver.LicensePlate,
-      };
-    }
+    ride.driverDetails = {
+      name: eventData.Driver?.Name,
+      phone: eventData.Driver?.TelephoneNumber,
+      vehicleDetails: eventData.Driver?.VehicleDetails,
+      licenseNumber: eventData.Driver?.LicenseNumber,
+      photo: eventData.Driver?.Photo,
+      rating: eventData.Driver?.Rating,
+    };
+    ride.estimatedArrivalTime = eventData.EstimatedArrivalTime
+      ? new Date(eventData.EstimatedArrivalTime)
+      : null;
 
     await ride.save();
 
-    // Send notification to user about driver assignment
+    // Send notification
     await sendRideStatusNotification(
       ride,
       "booking.driver_assigned",
       eventData
     );
+
+    // Emit socket event
+    emitRideUpdate(ride._id, {
+      status: ride.status,
+      driverAssignedAt: ride.driverAssignedAt,
+      driverDetails: ride.driverDetails,
+      estimatedArrivalTime: ride.estimatedArrivalTime,
+    });
 
     return {
       status: "processed",
@@ -943,6 +998,9 @@ const handleDriverAssigned = async (ride, eventData) => {
 
 const handleDriverArrived = async (ride, eventData) => {
   try {
+    console.log(
+      "in the specified event handler" + " which is handleDriverArrived"
+    );
     // Update ride with arrival information
     ride.status = igoConfig.rideStatuses.DRIVER_ARRIVED;
     ride.driverArrivedAt = new Date();
@@ -951,6 +1009,12 @@ const handleDriverArrived = async (ride, eventData) => {
 
     // Send notification to user about driver arrival
     await sendRideStatusNotification(ride, "booking.driver_arrived", eventData);
+
+    // Emit socket event
+    emitRideUpdate(ride._id, {
+      status: ride.status,
+      driverArrivedAt: ride.driverArrivedAt,
+    });
 
     return {
       status: "processed",
@@ -965,18 +1029,36 @@ const handleDriverArrived = async (ride, eventData) => {
 
 const handleJourneyStarted = async (ride, eventData) => {
   try {
+    console.log(
+      "in the specified event handler" + " which is handleJourneyStarted"
+    );
     // Update ride with journey start information
-    ride.status = igoConfig.rideStatuses.JOURNEY_STARTED;
+    ride.status = igoConfig.rideStatuses.IN_PROGRESS;
     ride.journeyStartedAt = new Date();
+
+    // Update driver location if provided
+    if (eventData.Location) {
+      ride.currentLocation = eventData.Location;
+    }
 
     await ride.save();
 
-    // Send notification to user about journey start
+    // Send notification
     await sendRideStatusNotification(
       ride,
       "booking.journey_started",
       eventData
     );
+
+    // Emit socket events
+    emitRideUpdate(ride._id, {
+      status: ride.status,
+      journeyStartedAt: ride.journeyStartedAt,
+    });
+
+    if (eventData.Location) {
+      emitDriverLocation(ride._id, eventData.Location);
+    }
 
     return {
       status: "processed",
@@ -991,6 +1073,9 @@ const handleJourneyStarted = async (ride, eventData) => {
 
 const handleJourneyCompleted = async (ride, eventData) => {
   try {
+    console.log(
+      "in the specified event handler" + " which is handleJourneyCompleted"
+    );
     // Update ride with journey completion information
     ride.status = igoConfig.rideStatuses.JOURNEY_COMPLETED;
     ride.journeyCompletedAt = new Date();
@@ -1013,6 +1098,23 @@ const handleJourneyCompleted = async (ride, eventData) => {
       "booking.journey_completed",
       eventData
     );
+
+    // Emit socket events
+    emitRideUpdate(ride._id, {
+      status: ride.status,
+      journeyCompletedAt: ride.journeyCompletedAt,
+      finalFare: ride.finalFare,
+      originalFare: ride.originalFare,
+    });
+
+    // If payment is required at end of journey, emit payment update
+    if (ride.paymentPoint === "END_OF_JOURNEY") {
+      emitPaymentUpdate(ride._id, {
+        required: true,
+        amount: ride.finalFare,
+        currency: ride.currency || "GBP",
+      });
+    }
 
     return {
       status: "processed",
