@@ -55,25 +55,20 @@ const RideDetails = () => {
 
       // Show appropriate notifications based on status
       switch (updatedRide.status) {
-        case "DRIVER_ASSIGNED":
-          toast.info(
-            `Driver ${updatedRide.driverDetails.name} has been assigned to your ride`
-          );
+        case "DISPATCHED":
+          toast.info("Your ride has been dispatched");
           break;
-        case "DRIVER_ARRIVED":
-          toast.success("Your driver has arrived!");
+        case "VEHICLE_ARRIVED":
+          toast.success("Your vehicle has arrived!");
           break;
-        case "IN_PROGRESS":
-          toast.info("Your journey has started");
+        case "PASSENGER_ON_BOARD":
+          toast.info("You are now on board");
           break;
         case "COMPLETED":
           toast.success("Your journey has been completed");
           break;
         case "CANCELLED":
           toast.error(`Ride cancelled: ${updatedRide.cancellationReason}`);
-          break;
-        case "FAILED":
-          toast.error(`Ride failed: ${updatedRide.failureReason}`);
           break;
       }
 
@@ -175,8 +170,10 @@ const RideDetails = () => {
             ${
               rideStatus === "COMPLETED"
                 ? "bg-green-100 text-green-800"
-                : rideStatus === "IN_PROGRESS"
+                : rideStatus === "PASSENGER_ON_BOARD"
                 ? "bg-blue-100 text-blue-800"
+                : rideStatus === "VEHICLE_ARRIVED"
+                ? "bg-purple-100 text-purple-800"
                 : rideStatus === "CANCELLED"
                 ? "bg-red-100 text-red-800"
                 : "bg-yellow-100 text-yellow-800"

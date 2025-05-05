@@ -41,23 +41,17 @@ const RideTracking = ({
     const statusEvents = eventList.filter(
       (event) =>
         event.eventType.includes("Dispatched") ||
-        event.eventType.includes("DriverAssigned") ||
-        event.eventType.includes("DriverArrived") ||
-        event.eventType.includes("JourneyStarted") ||
-        event.eventType.includes("JourneyCompleted") ||
+        event.eventType.includes("VehicleArrived") ||
+        event.eventType.includes("PassengerOnBoard") ||
         event.eventType.includes("Completed") ||
-        event.eventType.includes("Cancelled") ||
-        event.eventType.includes("Failed")
+        event.eventType.includes("Cancelled")
     );
 
     if (statusEvents.length > 0) {
       const latestEvent = statusEvents[statusEvents.length - 1];
 
       // Extract driver details if available
-      if (
-        latestEvent.eventType.includes("DriverAssigned") &&
-        latestEvent.eventData
-      ) {
+      if (latestEvent.eventData && latestEvent.eventData.Driver) {
         try {
           const eventData = latestEvent.eventData;
           if (eventData && eventData.Driver) {
@@ -78,22 +72,15 @@ const RideTracking = ({
       // Update status based on event type
       if (latestEvent.eventType.includes("Dispatched")) {
         setRideStatus("DISPATCHED");
-      } else if (latestEvent.eventType.includes("DriverAssigned")) {
-        setRideStatus("DRIVER_ASSIGNED");
-      } else if (latestEvent.eventType.includes("DriverArrived")) {
-        setRideStatus("DRIVER_ARRIVED");
-      } else if (latestEvent.eventType.includes("JourneyStarted")) {
-        setRideStatus("IN_PROGRESS");
-      } else if (
-        latestEvent.eventType.includes("JourneyCompleted") ||
-        latestEvent.eventType.includes("Completed")
-      ) {
+      } else if (latestEvent.eventType.includes("VehicleArrived")) {
+        setRideStatus("VEHICLE_ARRIVED");
+      } else if (latestEvent.eventType.includes("PassengerOnBoard")) {
+        setRideStatus("PASSENGERONBOARD");
+      } else if (latestEvent.eventType.includes("Completed")) {
         setRideStatus("COMPLETED");
         if (onRideComplete) onRideComplete();
       } else if (latestEvent.eventType.includes("Cancelled")) {
         setRideStatus("CANCELLED");
-      } else if (latestEvent.eventType.includes("Failed")) {
-        setRideStatus("FAILED");
       }
     }
   };
@@ -101,7 +88,7 @@ const RideTracking = ({
   // Fetch ride events - defined before any useEffect that uses it
   const fetchEvents = useCallback(async () => {
     if (!bookingReference || loading) return;
-    console.log("from ride tracking the selected quote is", selectedQuote)
+    console.log("from ride tracking the selected quote is", selectedQuote);
 
     try {
       setLoading(true);
@@ -164,7 +151,7 @@ const RideTracking = ({
     // Listen for ride updates
     newSocket.on("rideUpdate", (data) => {
       console.log("got ride update from socket with data", data);
-      if (data.status) setRideStatus(data.status);
+      if (data.status) setRideStatus(data.status.toUpperCase());
       if (data.driverDetails) setDriverDetails(data.driverDetails);
 
       // Fetch latest events when we get an update
@@ -240,33 +227,29 @@ const RideTracking = ({
     const statusMap = {
       BOOKED: <FaCheck className="text-blue-400" />,
       DISPATCHED: <FaCheck className="text-blue-400" />,
-      DRIVER_ASSIGNED: <FaCheck className="text-blue-400" />,
-      DRIVER_ARRIVED: <FaCheck className="text-blue-400" />,
-      IN_PROGRESS: <FaCheck className="text-blue-400" />,
+      VEHICLE_ARRIVED: <FaCheck className="text-blue-400" />,
+      PASSENGERONBOARD: <FaCheck className="text-blue-400" />,
       COMPLETED: <FaCheck className="text-green-400" />,
       CANCELLED: <FaExclamationTriangle className="text-red-400" />,
-      FAILED: <FaExclamationTriangle className="text-red-400" />,
     };
 
     const currentStepIndex = [
       "BOOKED",
       "DISPATCHED",
-      "DRIVER_ASSIGNED",
-      "DRIVER_ARRIVED",
-      "IN_PROGRESS",
+      "VEHICLEARRIVED",
+      "PASSENGERONBOARD",
       "COMPLETED",
     ].indexOf(rideStatus);
 
     const stepIndex = [
       "BOOKED",
       "DISPATCHED",
-      "DRIVER_ASSIGNED",
-      "DRIVER_ARRIVED",
-      "IN_PROGRESS",
+      "VEHICLEARRIVED",
+      "PASSENGERONBOARD",
       "COMPLETED",
     ].indexOf(step);
 
-    if (rideStatus === "CANCELLED" || rideStatus === "FAILED") {
+    if (rideStatus === "CANCELLED") {
       return step === rideStatus ? (
         statusMap[step]
       ) : (
@@ -274,9 +257,9 @@ const RideTracking = ({
       );
     }
 
-    if (stepIndex < currentStepIndex) {
+    if (stepIndex < currentStepIndex +1) {
       return <FaCheck className="text-green-400" />;
-    } else if (stepIndex === currentStepIndex) {
+    } else if (stepIndex === currentStepIndex + 1) {
       return loading ? (
         <FaSpinner className="text-blue-400 animate-spin" />
       ) : (
@@ -306,7 +289,7 @@ const RideTracking = ({
         className={`p-4 ${
           rideStatus === "COMPLETED"
             ? "bg-green-500/20"
-            : rideStatus === "CANCELLED" || rideStatus === "FAILED"
+            : rideStatus === "CANCELLED"
             ? "bg-red-500/20"
             : "bg-blue-500/20"
         }`}
@@ -339,9 +322,7 @@ const RideTracking = ({
       {/* Driver Information (if available) */}
       <AnimatePresence>
         {driverDetails &&
-          ["DRIVER_ASSIGNED", "DRIVER_ARRIVED", "IN_PROGRESS"].includes(
-            rideStatus
-          ) && (
+          ["VEHICLE_ARRIVED", "PASSENGERONBOARD"].includes(rideStatus) && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -437,43 +418,30 @@ const RideTracking = ({
               </p>
             </div>
 
-            {/* Driver Assigned */}
+            {/* Vehicle Arrived */}
             <div className="relative pl-10">
               <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
-                {getStatusIcon("DRIVER_ASSIGNED")}
+                {getStatusIcon("VEHICLEARRIVED")}
               </div>
-              <h4 className="text-white font-medium">Driver Assigned</h4>
+              <h4 className="text-white font-medium">Vehicle Arrived</h4>
               <p className="text-sm text-gray-400">
-                {driverDetails
-                  ? `${driverDetails.name} has been assigned to your ride`
-                  : "A driver will be assigned to your ride soon"}
+                Your vehicle has arrived at the pickup location
               </p>
             </div>
 
-            {/* Driver Arrived */}
+            {/* Passenger On Board */}
             <div className="relative pl-10">
               <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
-                {getStatusIcon("DRIVER_ARRIVED")}
+                {getStatusIcon("PASSENGERONBOARD")}
               </div>
-              <h4 className="text-white font-medium">Driver Arrived</h4>
+              <h4 className="text-white font-medium">Passenger On Board</h4>
               <p className="text-sm text-gray-400">
-                Your driver has arrived at the pickup location
-              </p>
-            </div>
-
-            {/* Journey Started */}
-            <div className="relative pl-10">
-              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
-                {getStatusIcon("IN_PROGRESS")}
-              </div>
-              <h4 className="text-white font-medium">Journey Started</h4>
-              <p className="text-sm text-gray-400">
-                You're on your way to the destination
+                Your passenger has boarded the vehicle
               </p>
             </div>
 
             {/* Ride Completed */}
-            {rideStatus !== "CANCELLED" && rideStatus !== "FAILED" && (
+            {rideStatus !== "CANCELLED" && (
               <div className="relative pl-10">
                 <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
                   {getStatusIcon("COMPLETED")}
@@ -485,21 +453,15 @@ const RideTracking = ({
               </div>
             )}
 
-            {/* Cancelled/Failed Status (only shown if ride is cancelled/failed) */}
-            {(rideStatus === "CANCELLED" || rideStatus === "FAILED") && (
+            {/* Cancelled Status (only shown if ride is cancelled) */}
+            {rideStatus === "CANCELLED" && (
               <div className="relative pl-10">
                 <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-red-500">
                   {getStatusIcon(rideStatus)}
                 </div>
-                <h4 className="text-red-400 font-medium">
-                  {rideStatus === "CANCELLED"
-                    ? "Ride Cancelled"
-                    : "Booking Failed"}
-                </h4>
+                <h4 className="text-red-400 font-medium">Ride Cancelled</h4>
                 <p className="text-sm text-gray-400">
-                  {rideStatus === "CANCELLED"
-                    ? "This ride has been cancelled"
-                    : "There was an issue with this booking"}
+                  This ride has been cancelled
                 </p>
               </div>
             )}

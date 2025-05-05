@@ -72,6 +72,11 @@ const rideSchema = new mongoose.Schema(
     pickupTime: { type: Date, required: true },
     estimatedArrivalTime: { type: Date },
     actualArrivalTime: { type: Date },
+    vehicleArrivedAt: { type: Date },
+    passengerOnBoardAt: { type: Date },
+    completedAt: { type: Date },
+    cancelledAt: { type: Date },
+    cancellationReason: { type: String },
     journeyStartTime: { type: Date },
     journeyEndTime: { type: Date },
     fare: { type: Number, required: true },
@@ -201,54 +206,39 @@ rideSchema.methods.updateFromIgoEvent = function (eventType, eventData) {
 
   // Update status and related fields based on event type
   switch (eventType) {
-    case igoConfig.eventTypes.DRIVER_ASSIGNED:
-      this.driver = {
-        name: eventData.Driver?.Name,
-        phone: eventData.Driver?.TelephoneNumber,
-        vehicleDetails: eventData.Driver?.VehicleDetails,
-        licenseNumber: eventData.Driver?.LicenseNumber,
-        estimatedArrivalTime: eventData.EstimatedArrivalTime
-          ? new Date(eventData.EstimatedArrivalTime)
-          : null,
-      };
-      break;
-
-    case igoConfig.eventTypes.DRIVER_ARRIVED:
-      this.driver.actualArrivalTime = new Date();
-      break;
-
-    case igoConfig.eventTypes.JOURNEY_STARTED:
-      this.status = igoConfig.rideStatuses.IN_PROGRESS;
-      this.journeyStartTime = new Date();
-      break;
-
-    case igoConfig.eventTypes.JOURNEY_COMPLETED:
-      this.status = igoConfig.rideStatuses.COMPLETED;
-      this.journeyEndTime = new Date();
-      if (eventData.FinalPrice) {
-        this.finalFare = parseFloat(eventData.FinalPrice);
+    case igoConfig.eventTypes.DISPATCHED:
+      this.status = igoConfig.rideStatuses.DISPATCHED;
+      if (eventData.Driver) {
+        this.driver = {
+          name: eventData.Driver.ForeName + " " + eventData.Driver.Surname,
+          phone: eventData.Driver.MobileNumber,
+          vehicleDetails: eventData.Driver.Vehicle,
+        };
       }
       break;
 
-    case igoConfig.eventTypes.DISPATCHED:
-      this.status = igoConfig.rideStatuses.DISPATCHED;
+    case igoConfig.eventTypes.VEHICLE_ARRIVED:
+      this.status = igoConfig.rideStatuses.VEHICLE_ARRIVED;
+      this.vehicleArrivedAt = new Date();
+      break;
+
+    case igoConfig.eventTypes.PASSENGER_ON_BOARD:
+      this.status = igoConfig.rideStatuses.PASSENGER_ON_BOARD;
+      this.passengerOnBoardAt = new Date();
       break;
 
     case igoConfig.eventTypes.COMPLETED:
       this.status = igoConfig.rideStatuses.COMPLETED;
       this.completedAt = new Date();
+      if (eventData.FinalPrice) {
+        this.finalFare = parseFloat(eventData.FinalPrice);
+      }
       break;
 
     case igoConfig.eventTypes.CANCELLED:
       this.status = igoConfig.rideStatuses.CANCELLED;
       this.cancellationReason =
         eventData.CancellationReason || "Cancelled by dispatch system";
-      this.cancelledAt = new Date();
-      break;
-
-    case igoConfig.eventTypes.FAILED:
-      this.status = igoConfig.rideStatuses.FAILED;
-      this.cancellationReason = eventData.FailureReason || "Booking failed";
       this.cancelledAt = new Date();
       break;
   }

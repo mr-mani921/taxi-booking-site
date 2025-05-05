@@ -44,7 +44,7 @@ const igoConfig = {
   // Pricing models (as per iGo Protocol V1.41)
   pricingModels: {
     UP_FRONT: "UpFront",
-    Fixed: "FixedPrice"
+    Fixed: "FixedPrice",
   },
 
   // Payment points (as per iGo Protocol V1.41)
@@ -94,22 +94,19 @@ const igoConfig = {
     PENDING: "Pending",
     BOOKED: "Booked",
     DISPATCHED: "Dispatched",
-    IN_PROGRESS: "InProgress",
+    VEHICLE_ARRIVED: "VehicleArrived",
+    PASSENGER_ON_BOARD: "PassengerOnBoard",
     COMPLETED: "Completed",
     CANCELLED: "Cancelled",
-    FAILED: "Failed",
   },
 
   // Event types (as per iGo Protocol V1.41)
   eventTypes: {
     DISPATCHED: "AgentBookingDispatchedEventRequest",
+    VEHICLE_ARRIVED: "AgentVehicleArrivedEventRequest",
+    PASSENGER_ON_BOARD: "AgentPassengerOnBoardEventRequest",
     COMPLETED: "AgentBookingCompletedEventRequest",
     CANCELLED: "AgentBookingCancelledEventRequest",
-    FAILED: "AgentBookingFailedEventRequest",
-    DRIVER_ASSIGNED: "AgentBookingDriverAssignedEventRequest",
-    DRIVER_ARRIVED: "AgentBookingDriverArrivedEventRequest",
-    JOURNEY_STARTED: "AgentBookingJourneyStartedEventRequest",
-    JOURNEY_COMPLETED: "AgentBookingJourneyCompletedEventRequest",
   },
 
   // Validation
