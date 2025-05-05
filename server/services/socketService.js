@@ -5,26 +5,37 @@ let io;
 export const initSocketIO = (server) => {
   io = new Server(server, {
     cors: {
-      origin:
-        process.env.NODE_ENV === "production" ? process.env.FRONTEND_URL : "*",
+      origin: "*",
       methods: ["GET", "POST"],
       credentials: true,
+      allowedHeaders: ["Content-Type", "Authorization"],
     },
+    transports: ["websocket", "polling"],
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    cookie: false,
+    allowEIO3: true,
   });
 
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
     // Join a ride room
-    socket.on("joinRideRoom", (rideId) => {
-      socket.join(`ride_${rideId}`);
-      console.log(`Client ${socket.id} joined ride room: ${rideId}`);
+    socket.on("joinRideRoom", (identifier) => {
+      const roomId = `ride_${identifier}`;
+      socket.join(roomId);
+      console.log(
+        `Client ${socket.id} joined ride room with identifier: ${identifier}, room: ${roomId}`
+      );
     });
 
     // Leave a ride room
-    socket.on("leaveRideRoom", (rideId) => {
-      socket.leave(`ride_${rideId}`);
-      console.log(`Client ${socket.id} left ride room: ${rideId}`);
+    socket.on("leaveRideRoom", (identifier) => {
+      const roomId = `ride_${identifier}`;
+      socket.leave(roomId);
+      console.log(
+        `Client ${socket.id} left ride room with identifier: ${identifier}, room: ${roomId}`
+      );
     });
 
     socket.on("disconnect", () => {
@@ -41,7 +52,9 @@ export const emitRideUpdate = (rideId, data) => {
     console.warn("Socket.IO not initialized");
     return;
   }
-  io.to(`ride_${rideId}`).emit("rideUpdate", data);
+  const roomId = `ride_${rideId}`;
+  console.log(`Emitting ride update for room ${roomId}:`, data);
+  io.to(roomId).emit("rideUpdate", data);
 };
 
 // Emit driver location update to all clients in the ride room
@@ -50,7 +63,8 @@ export const emitDriverLocation = (rideId, location) => {
     console.warn("Socket.IO not initialized");
     return;
   }
-  io.to(`ride_${rideId}`).emit("driverLocationUpdate", location);
+  const roomId = `ride_${rideId}`;
+  io.to(roomId).emit("driverLocationUpdate", location);
 };
 
 // Emit payment status update to all clients in the ride room
@@ -59,7 +73,8 @@ export const emitPaymentUpdate = (rideId, paymentData) => {
     console.warn("Socket.IO not initialized");
     return;
   }
-  io.to(`ride_${rideId}`).emit("paymentUpdate", paymentData);
+  const roomId = `ride_${rideId}`;
+  io.to(roomId).emit("paymentUpdate", paymentData);
 };
 
 // Emit notification to specific client

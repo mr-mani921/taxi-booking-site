@@ -34,7 +34,7 @@ function Navbar() {
   ];
 
   const userMenuItems = [
-    { label: "My Rides", path: "/my-rides" },
+    { label: "My Rides", path: "/ride-history" },
     { label: "Settings", path: "/settings" },
     {
       label: "Logout",

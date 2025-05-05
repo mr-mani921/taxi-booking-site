@@ -17,6 +17,7 @@ const CHANNELS = {
 // Notification types
 const NOTIFICATION_TYPES = {
   BOOKING_CONFIRMED: "booking_confirmed",
+  BOOKING_DISPATCHED: "booking_dispatched",
   DRIVER_ASSIGNED: "driver_assigned",
   DRIVER_ARRIVED: "driver_arrived",
   JOURNEY_STARTED: "journey_started",
@@ -131,6 +132,7 @@ export const sendRideStatusNotification = async (
 const mapEventToNotificationType = (eventType) => {
   const mapping = {
     "booking.confirmed": NOTIFICATION_TYPES.BOOKING_CONFIRMED,
+    "booking.dispatched": NOTIFICATION_TYPES.BOOKING_DISPATCHED,
     "booking.driver_assigned": NOTIFICATION_TYPES.DRIVER_ASSIGNED,
     "booking.driver_arrived": NOTIFICATION_TYPES.DRIVER_ARRIVED,
     "booking.journey_started": NOTIFICATION_TYPES.JOURNEY_STARTED,
@@ -154,6 +156,22 @@ const prepareNotificationData = (ride, eventType, eventData) => {
   };
 
   switch (eventType) {
+    case "booking.dispatched":
+      return {
+        ...baseData,
+        driverName:
+          eventData.Driver?.ForeName + " " + eventData.Driver?.Surname ||
+          eventData.Driver?.Name ||
+          ride.driverDetails?.name ||
+          "Your driver",
+        vehicleDetails:
+          eventData.Driver?.Vehicle ||
+          eventData.Driver?.VehicleDetails ||
+          ride.driverDetails?.vehicleDetails ||
+          "Vehicle information will be provided soon",
+        message: "Your booking has been dispatched and a driver is on the way",
+      };
+
     case "booking.driver_assigned":
       return {
         ...baseData,

@@ -15,8 +15,8 @@ import { handleIgoEvent as processIgoEvent } from "../services/igoService.js";
 export const handleIgoEvent = async (req, res) => {
   try {
     const { eventName } = req.params;
-    const authRef = req.headers["x-authorization-reference"];
-    const bookingRef = req.headers["x-agent-booking-reference"];
+    let authRef = req.headers["x-authorization-reference"];
+    let bookingRef = req.headers["x-agent-booking-reference"];
 
     // console.log("the event body is ", req.body);
 
@@ -46,6 +46,26 @@ export const handleIgoEvent = async (req, res) => {
           .status(400)
           .send(buildErrorResponse(eventName, "Invalid XML format"));
       }
+    }
+
+    // Extract booking reference from the event data - handle all event types
+    try {
+      // The root element usually matches the event name
+      const rootElement = eventData[eventName];
+      if (rootElement && rootElement.BookingReference) {
+        bookingRef = rootElement.BookingReference;
+        authRef = rootElement.AuthorizationReference;
+        console.log(
+          `Extracted booking reference: ${bookingRef} from ${eventName}`
+        );
+      } else {
+        console.log(
+          `Could not extract booking reference from event data:`,
+          eventData
+        );
+      }
+    } catch (error) {
+      console.error(`Error extracting booking reference:`, error);
     }
 
     // Store event in history
@@ -126,9 +146,18 @@ export const getEventHistory = async (req, res) => {
   try {
     const { bookingReference } = req.params;
 
+    console.log("in the getEventHistory controller for:", bookingReference);
+
+    // Look for events using both the booking reference and as a potential ride ID
     const events = await EventHistory.find({
-      $or: [{ bookingReference }, { authorizationReference: bookingReference }],
+      $or: [
+        { bookingReference },
+        { authorizationReference: bookingReference },
+        { rideId: bookingReference },
+      ],
     }).sort({ timestamp: 1 });
+
+    console.log("Found events:", events.length);
 
     return res.json({
       success: true,
@@ -149,6 +178,20 @@ export const getEventHistory = async (req, res) => {
  */
 const storeEventHistory = async (eventType, authRef, bookingRef, eventData) => {
   try {
+    console.log(
+      `Storing event history: ${eventType}, bookingRef: ${
+        bookingRef || "N/A"
+      }, authRef: ${authRef || "N/A"}`
+    );
+
+    // Don't proceed if we don't have any reference at all
+    if (!bookingRef && !authRef) {
+      console.warn(
+        "Cannot store event history: missing both bookingReference and authorizationReference"
+      );
+      return null;
+    }
+
     // Create event history record
     const event = new EventHistory({
       eventType,
@@ -158,8 +201,9 @@ const storeEventHistory = async (eventType, authRef, bookingRef, eventData) => {
       timestamp: new Date(),
     });
 
-    await event.save();
-    return event;
+    const savedEvent = await event.save();
+    console.log(`Event history saved with ID: ${savedEvent._id}`);
+    return savedEvent;
   } catch (error) {
     console.error(`Error storing event history:`, error);
     // Don't throw error, just log it

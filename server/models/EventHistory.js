@@ -15,6 +15,10 @@ const eventHistorySchema = new mongoose.Schema(
       type: String,
       index: true,
     },
+    rideId: {
+      type: String,
+      index: true,
+    },
     eventData: {
       type: mongoose.Schema.Types.Mixed,
       default: {},

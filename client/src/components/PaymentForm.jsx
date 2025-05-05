@@ -123,7 +123,6 @@ const PaymentForm = () => {
           authorizeBid({ bidReference: selectedQuote.bidReference })
         );
         let captureResponse;
-        console.log("the bid auth response is", bidAuthResponse);
         console.log(
           "the bid auth response is",
           bidAuthResponse.payload.success
@@ -140,6 +139,16 @@ const PaymentForm = () => {
             });
             dispatch(setPaymentIntent(captureResponse.data));
           }
+          console.log("the bref is ",bidAuthResponse.payload.response.AgentBookingAuthorizationResponse.BookingReference);
+          
+
+          setSelectedQuote({
+            ...selectedQuote,
+            bookingReference:
+            bidAuthResponse?.payload.response.AgentBookingAuthorizationResponse.BookingReference,
+          });
+
+          console.log("after adding the booking refference to the selected quote", selectedQuote);
 
           navigate("/payment-success", {
             state: {
@@ -147,7 +156,7 @@ const PaymentForm = () => {
                 paymentIntentId: result.paymentIntent.id,
                 paymentStatus: result.paymentIntent.status,
                 bookingReference:
-                  bidAuthResponse?.agentBookingReference || null,
+                  bidAuthResponse?.payload.response.AgentBookingAuthorizationResponse.BookingReference || null,
               },
               selectedQuote,
               bookingData,

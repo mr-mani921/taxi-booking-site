@@ -67,12 +67,14 @@ const endpoints = {
   rateRide: (id, data) => API.post(`/api/rides/${id}/rate`, data),
   getRideHistory: () => API.get("/api/rides/history"),
   getActiveRides: () => API.get("/api/rides/active"),
-  // Quotes
+  // Quotes/Bids
   getPriceEstimate: (data) => API.post("/api/rides/quotes/estimate", data),
   getVendorBids: (data) => API.post("/api/rides/request-bids", data),
   selectBid: (data) => API.post("/api/bids/select", data),
   checkAvailability: (data) => API.post("/api/rides/select-bid", data),
   authorizeBid: (data) => API.post("/api/rides/authorize", data),
+  //Events
+  getEventsHistory: (bookingReference) => API.get(`/api/events/history/${bookingReference}`),
 };
 
 export default endpoints;

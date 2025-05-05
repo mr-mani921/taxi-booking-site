@@ -1,0 +1,549 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+import io from "socket.io-client";
+import {
+  FaUser,
+  FaCarSide,
+  FaMapMarkerAlt,
+  FaCheck,
+  FaSpinner,
+  FaClock,
+  FaExclamationTriangle,
+  FaLocationArrow,
+  FaInfoCircle,
+} from "react-icons/fa";
+import { useSelector } from "react-redux";
+import api from "../api/api";
+
+const RideTracking = ({
+  rideId,
+  bookingReference,
+  authorizationReference,
+  onRideComplete,
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [rideStatus, setRideStatus] = useState("BOOKED");
+  const [driverDetails, setDriverDetails] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [socket, setSocket] = useState(null);
+  const lastFetchRef = useRef(0);
+  const isMountedRef = useRef(true);
+  const { selectedQuote } = useSelector((state) => state.quote);
+
+  useEffect(() => {
+    console.log("the booking Refference is", bookingReference);
+  }, []);
+  // Define updateRideStatusFromEvents first since it's used by fetchEvents
+  const updateRideStatusFromEvents = (eventList) => {
+    // Find the most recent status-changing event
+    const statusEvents = eventList.filter(
+      (event) =>
+        event.eventType.includes("Dispatched") ||
+        event.eventType.includes("DriverAssigned") ||
+        event.eventType.includes("DriverArrived") ||
+        event.eventType.includes("JourneyStarted") ||
+        event.eventType.includes("JourneyCompleted") ||
+        event.eventType.includes("Completed") ||
+        event.eventType.includes("Cancelled") ||
+        event.eventType.includes("Failed")
+    );
+
+    if (statusEvents.length > 0) {
+      const latestEvent = statusEvents[statusEvents.length - 1];
+
+      // Extract driver details if available
+      if (
+        latestEvent.eventType.includes("DriverAssigned") &&
+        latestEvent.eventData
+      ) {
+        try {
+          const eventData = latestEvent.eventData;
+          if (eventData && eventData.Driver) {
+            setDriverDetails({
+              name: eventData.Driver.Name,
+              phone: eventData.Driver.TelephoneNumber,
+              vehicleDetails: eventData.Driver.VehicleDetails,
+              photoUrl: eventData.Driver.PhotoUrl || null,
+              licensePlate: eventData.Driver.VehicleDetails?.RegistrationNumber,
+              estimatedArrival: eventData.EstimatedArrivalTime,
+            });
+          }
+        } catch (err) {
+          console.error("Error parsing driver details:", err);
+        }
+      }
+
+      // Update status based on event type
+      if (latestEvent.eventType.includes("Dispatched")) {
+        setRideStatus("DISPATCHED");
+      } else if (latestEvent.eventType.includes("DriverAssigned")) {
+        setRideStatus("DRIVER_ASSIGNED");
+      } else if (latestEvent.eventType.includes("DriverArrived")) {
+        setRideStatus("DRIVER_ARRIVED");
+      } else if (latestEvent.eventType.includes("JourneyStarted")) {
+        setRideStatus("IN_PROGRESS");
+      } else if (
+        latestEvent.eventType.includes("JourneyCompleted") ||
+        latestEvent.eventType.includes("Completed")
+      ) {
+        setRideStatus("COMPLETED");
+        if (onRideComplete) onRideComplete();
+      } else if (latestEvent.eventType.includes("Cancelled")) {
+        setRideStatus("CANCELLED");
+      } else if (latestEvent.eventType.includes("Failed")) {
+        setRideStatus("FAILED");
+      }
+    }
+  };
+
+  // Fetch ride events - defined before any useEffect that uses it
+  const fetchEvents = useCallback(async () => {
+    if (!bookingReference || loading) return;
+    console.log("from ride tracking the selected quote is", selectedQuote)
+
+    try {
+      setLoading(true);
+      setError(null);
+      console.log("Fetching Event History...");
+      const response = await api.getEventsHistory(bookingReference);
+      console.log("Fetched Events", response.data.events);
+
+      if (isMountedRef.current) {
+        if (response.data.success) {
+          const sortedEvents = response.data.events.sort(
+            (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+          );
+          setEvents(sortedEvents);
+
+          // Update ride status based on the most recent event
+          if (sortedEvents.length > 0) {
+            updateRideStatusFromEvents(sortedEvents);
+          }
+        }
+        console.log("Fetched Events", events);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("Error fetching ride events:", err);
+      if (isMountedRef.current) {
+        setError("Failed to fetch ride updates");
+        setLoading(false);
+      }
+    }
+  }, [bookingReference, loading, onRideComplete]);
+
+  // Connect to socket.io on component mount
+  useEffect(() => {
+    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    console.log("Connecting to socket server at:", socketUrl);
+
+    const newSocket = io(socketUrl, {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+    });
+
+    // Add connection event handlers
+    newSocket.on("connect", () => {
+      console.log("Socket connected successfully with ID:", newSocket.id);
+      setSocket(newSocket);
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
+    newSocket.on("reconnect_attempt", (attemptNumber) => {
+      console.log(`Socket reconnection attempt ${attemptNumber}`);
+    });
+
+    // Listen for ride updates
+    newSocket.on("rideUpdate", (data) => {
+      console.log("got ride update from socket with data", data);
+      if (data.status) setRideStatus(data.status);
+      if (data.driverDetails) setDriverDetails(data.driverDetails);
+
+      // Fetch latest events when we get an update
+      fetchEvents();
+    });
+
+    // Listen for driver location updates if we implement that feature
+    newSocket.on("driverLocationUpdate", (locationData) => {
+      // Update driver location on map if we had a map component
+      console.log("Driver location update:", locationData);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      console.log("Disconnecting socket");
+      isMountedRef.current = false;
+      newSocket.disconnect();
+    };
+  }, [fetchEvents]);
+
+  // Fetch events on initial mount as soon as bookingReference is available
+  useEffect(() => {
+    if (bookingReference && isMountedRef.current) {
+      fetchEvents();
+    }
+  }, [bookingReference, fetchEvents]);
+
+  // Join ride room when we have a booking reference
+  useEffect(() => {
+    if (socket && bookingReference) {
+      // Use rideId if available, otherwise use bookingReference
+      const roomIdentifier = rideId || bookingReference;
+      socket.emit("joinRideRoom", roomIdentifier);
+      console.log(`Joining ride room with identifier: ${roomIdentifier}`);
+
+      return () => {
+        socket.emit("leaveRideRoom", roomIdentifier);
+      };
+    }
+  }, [socket, bookingReference, rideId]);
+
+  // Format time relative to now
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return "";
+
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) {
+      return "just now";
+    } else if (diffInSeconds < 3600) {
+      const mins = Math.floor(diffInSeconds / 60);
+      return `${mins} minute${mins > 1 ? "s" : ""} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} day${days > 1 ? "s" : ""} ago`;
+    }
+  };
+
+  // Format actual time
+  const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // Get the status icon based on current step
+  const getStatusIcon = (step) => {
+    const statusMap = {
+      BOOKED: <FaCheck className="text-blue-400" />,
+      DISPATCHED: <FaCheck className="text-blue-400" />,
+      DRIVER_ASSIGNED: <FaCheck className="text-blue-400" />,
+      DRIVER_ARRIVED: <FaCheck className="text-blue-400" />,
+      IN_PROGRESS: <FaCheck className="text-blue-400" />,
+      COMPLETED: <FaCheck className="text-green-400" />,
+      CANCELLED: <FaExclamationTriangle className="text-red-400" />,
+      FAILED: <FaExclamationTriangle className="text-red-400" />,
+    };
+
+    const currentStepIndex = [
+      "BOOKED",
+      "DISPATCHED",
+      "DRIVER_ASSIGNED",
+      "DRIVER_ARRIVED",
+      "IN_PROGRESS",
+      "COMPLETED",
+    ].indexOf(rideStatus);
+
+    const stepIndex = [
+      "BOOKED",
+      "DISPATCHED",
+      "DRIVER_ASSIGNED",
+      "DRIVER_ARRIVED",
+      "IN_PROGRESS",
+      "COMPLETED",
+    ].indexOf(step);
+
+    if (rideStatus === "CANCELLED" || rideStatus === "FAILED") {
+      return step === rideStatus ? (
+        statusMap[step]
+      ) : (
+        <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+      );
+    }
+
+    if (stepIndex < currentStepIndex) {
+      return <FaCheck className="text-green-400" />;
+    } else if (stepIndex === currentStepIndex) {
+      return loading ? (
+        <FaSpinner className="text-blue-400 animate-spin" />
+      ) : (
+        statusMap[step]
+      );
+    } else {
+      return <div className="w-3 h-3 rounded-full bg-gray-500"></div>;
+    }
+  };
+
+  // Return estimated arrival information
+  const getEstimatedArrival = () => {
+    if (!driverDetails || !driverDetails.estimatedArrival) return null;
+
+    const eta = new Date(driverDetails.estimatedArrival);
+    const now = new Date();
+    const diffInMinutes = Math.round((eta - now) / 60000);
+
+    if (diffInMinutes <= 0) return "Arriving now";
+    return `Arriving in ${diffInMinutes} min`;
+  };
+
+  return (
+    <div className="ride-tracking-container bg-dark-800 rounded-lg overflow-hidden">
+      {/* Status Header */}
+      <div
+        className={`p-4 ${
+          rideStatus === "COMPLETED"
+            ? "bg-green-500/20"
+            : rideStatus === "CANCELLED" || rideStatus === "FAILED"
+            ? "bg-red-500/20"
+            : "bg-blue-500/20"
+        }`}
+      >
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-white">
+            Ride Status: {rideStatus.replace(/_/g, " ")}
+          </h3>
+          <div className="flex items-center">
+            {loading && <FaSpinner className="animate-spin text-white mr-2" />}
+            <button
+              onClick={fetchEvents}
+              className="bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+              disabled={loading}
+            >
+              <FaSpinner
+                className={`text-white ${loading ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mt-2 p-2 bg-red-500/20 text-red-300 text-sm rounded">
+            {error}
+          </div>
+        )}
+      </div>
+
+      {/* Driver Information (if available) */}
+      <AnimatePresence>
+        {driverDetails &&
+          ["DRIVER_ASSIGNED", "DRIVER_ARRIVED", "IN_PROGRESS"].includes(
+            rideStatus
+          ) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="p-4 border-b border-gray-700"
+            >
+              <div className="flex items-center">
+                <div className="flex-shrink-0 w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                  {driverDetails.photoUrl ? (
+                    <img
+                      src={driverDetails.photoUrl}
+                      alt={driverDetails.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <FaUser className="text-2xl text-gray-400" />
+                  )}
+                </div>
+
+                <div className="ml-4 flex-1">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold text-white">
+                        {driverDetails.name}
+                      </h4>
+                      <p className="text-sm text-gray-400">
+                        {driverDetails.phone}
+                      </p>
+                    </div>
+                    {driverDetails.estimatedArrival && (
+                      <div className="bg-blue-500/20 py-1 px-3 rounded-full text-blue-300 text-sm">
+                        {getEstimatedArrival()}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-2 flex items-center text-sm">
+                    <FaCarSide className="text-gray-400 mr-1" />
+                    <span className="text-gray-300">
+                      {driverDetails.vehicleDetails?.Make}{" "}
+                      {driverDetails.vehicleDetails?.Model},{" "}
+                      {driverDetails.vehicleDetails?.Color}
+                      {driverDetails.licensePlate &&
+                        ` • ${driverDetails.licensePlate}`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mt-4 flex space-x-2">
+                <button className="flex-1 py-2 rounded bg-blue-500/20 text-blue-300 flex items-center justify-center">
+                  <FaLocationArrow className="mr-2" /> Live Location
+                </button>
+                <a
+                  href={`tel:${driverDetails.phone}`}
+                  className="flex-1 py-2 rounded bg-green-500/20 text-green-300 flex items-center justify-center"
+                >
+                  Call Driver
+                </a>
+              </div>
+            </motion.div>
+          )}
+      </AnimatePresence>
+
+      {/* Status Timeline */}
+      <div className="p-4">
+        <div className="relative">
+          {/* Vertical Line */}
+          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-700" />
+
+          {/* Timeline Steps */}
+          <div className="space-y-6">
+            {/* Booking Confirmed */}
+            <div className="relative pl-10">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+                {getStatusIcon("BOOKED")}
+              </div>
+              <h4 className="text-white font-medium">Booking Confirmed</h4>
+              <p className="text-sm text-gray-400">
+                Your ride has been booked and payment confirmed
+              </p>
+            </div>
+
+            {/* Ride Dispatched */}
+            <div className="relative pl-10">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+                {getStatusIcon("DISPATCHED")}
+              </div>
+              <h4 className="text-white font-medium">Ride Dispatched</h4>
+              <p className="text-sm text-gray-400">
+                Your ride request has been sent to nearby drivers
+              </p>
+            </div>
+
+            {/* Driver Assigned */}
+            <div className="relative pl-10">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+                {getStatusIcon("DRIVER_ASSIGNED")}
+              </div>
+              <h4 className="text-white font-medium">Driver Assigned</h4>
+              <p className="text-sm text-gray-400">
+                {driverDetails
+                  ? `${driverDetails.name} has been assigned to your ride`
+                  : "A driver will be assigned to your ride soon"}
+              </p>
+            </div>
+
+            {/* Driver Arrived */}
+            <div className="relative pl-10">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+                {getStatusIcon("DRIVER_ARRIVED")}
+              </div>
+              <h4 className="text-white font-medium">Driver Arrived</h4>
+              <p className="text-sm text-gray-400">
+                Your driver has arrived at the pickup location
+              </p>
+            </div>
+
+            {/* Journey Started */}
+            <div className="relative pl-10">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+                {getStatusIcon("IN_PROGRESS")}
+              </div>
+              <h4 className="text-white font-medium">Journey Started</h4>
+              <p className="text-sm text-gray-400">
+                You're on your way to the destination
+              </p>
+            </div>
+
+            {/* Ride Completed */}
+            {rideStatus !== "CANCELLED" && rideStatus !== "FAILED" && (
+              <div className="relative pl-10">
+                <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+                  {getStatusIcon("COMPLETED")}
+                </div>
+                <h4 className="text-white font-medium">Ride Completed</h4>
+                <p className="text-sm text-gray-400">
+                  You've arrived at your destination
+                </p>
+              </div>
+            )}
+
+            {/* Cancelled/Failed Status (only shown if ride is cancelled/failed) */}
+            {(rideStatus === "CANCELLED" || rideStatus === "FAILED") && (
+              <div className="relative pl-10">
+                <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-red-500">
+                  {getStatusIcon(rideStatus)}
+                </div>
+                <h4 className="text-red-400 font-medium">
+                  {rideStatus === "CANCELLED"
+                    ? "Ride Cancelled"
+                    : "Booking Failed"}
+                </h4>
+                <p className="text-sm text-gray-400">
+                  {rideStatus === "CANCELLED"
+                    ? "This ride has been cancelled"
+                    : "There was an issue with this booking"}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Events */}
+      {events.length > 0 && (
+        <div className="p-4 border-t border-gray-700">
+          <h4 className="text-white font-medium mb-3">Recent Updates</h4>
+          <div className="space-y-3 max-h-40 overflow-y-auto">
+            {events
+              .slice(-5)
+              .reverse()
+              .map((event, index) => (
+                <div key={index} className="flex items-start">
+                  <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-400 mr-2"></div>
+                  <div>
+                    <p className="text-sm text-white">
+                      {event.eventType
+                        .replace(/Agent|Booking|Event|Request/g, "")
+                        .replace(/([A-Z])/g, " $1")
+                        .trim()}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {formatRelativeTime(event.timestamp)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Help Info */}
+      <div className="p-4 border-t border-gray-700 bg-gray-800/50 flex items-center">
+        <FaInfoCircle className="text-gray-400 mr-2" />
+        <span className="text-sm text-gray-400">
+          Need help with your ride? Call our support at +1-800-TAXI-HELP
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default RideTracking;

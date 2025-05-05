@@ -8,6 +8,7 @@ import {
   emitDriverLocation,
   emitPaymentUpdate,
 } from "./socketService.js";
+import EventHistory from "../models/EventHistory.js";
 
 // Update to determine if we should use mock mode
 // We'll disable mock mode if we have a webhook URL configured (ngrok)
@@ -828,18 +829,26 @@ const handleBookingDispatched = async (ride, eventData) => {
         vehicleDetails: eventData.Driver.Vehicle,
       };
     }
+    console.log("and the event data is", eventData.AgentBookingDispatchedEventRequest.BookingReference);
 
     await ride.save();
 
     // Send notification to user about dispatch
     await sendRideStatusNotification(ride, "booking.dispatched", eventData);
 
+    // store the booking refference for emiting the event.
+
+    const bookingRef = eventData.AgentBookingDispatchedEventRequest.BookingReference;
+
     // Emit socket event
-    emitRideUpdate(ride._id, {
+    emitRideUpdate(bookingRef, {
       status: ride.status,
       dispatchedAt: ride.dispatchedAt,
       driverDetails: ride.driverDetails,
     });
+
+    // Store event in history
+    await storeEventInHistory(igoConfig.eventTypes.DISPATCHED, eventData, ride);
 
     return {
       status: "processed",
@@ -870,6 +879,9 @@ const handleBookingCompleted = async (ride, eventData) => {
 
     // Send notification to user about completion
     await sendRideStatusNotification(ride, "booking.completed", eventData);
+
+    // Store event in history
+    await storeEventInHistory(igoConfig.eventTypes.COMPLETED, eventData, ride);
 
     return {
       status: "processed",
@@ -904,6 +916,9 @@ const handleBookingCancelled = async (ride, eventData) => {
       cancellationReason: ride.cancellationReason,
     });
 
+    // Store event in history
+    await storeEventInHistory(igoConfig.eventTypes.CANCELLED, eventData, ride);
+
     return {
       status: "processed",
       message: "Booking cancelled",
@@ -936,6 +951,9 @@ const handleBookingFailed = async (ride, eventData) => {
       failedAt: ride.failedAt,
       failureReason: ride.failureReason,
     });
+
+    // Store event in history
+    await storeEventInHistory(igoConfig.eventTypes.FAILED, eventData, ride);
 
     return {
       status: "processed",
@@ -985,6 +1003,13 @@ const handleDriverAssigned = async (ride, eventData) => {
       estimatedArrivalTime: ride.estimatedArrivalTime,
     });
 
+    // Store event in history
+    await storeEventInHistory(
+      igoConfig.eventTypes.DRIVER_ASSIGNED,
+      eventData,
+      ride
+    );
+
     return {
       status: "processed",
       message: "Driver assigned",
@@ -1015,6 +1040,13 @@ const handleDriverArrived = async (ride, eventData) => {
       status: ride.status,
       driverArrivedAt: ride.driverArrivedAt,
     });
+
+    // Store event in history
+    await storeEventInHistory(
+      igoConfig.eventTypes.DRIVER_ARRIVED,
+      eventData,
+      ride
+    );
 
     return {
       status: "processed",
@@ -1059,6 +1091,13 @@ const handleJourneyStarted = async (ride, eventData) => {
     if (eventData.Location) {
       emitDriverLocation(ride._id, eventData.Location);
     }
+
+    // Store event in history
+    await storeEventInHistory(
+      igoConfig.eventTypes.JOURNEY_STARTED,
+      eventData,
+      ride
+    );
 
     return {
       status: "processed",
@@ -1115,6 +1154,13 @@ const handleJourneyCompleted = async (ride, eventData) => {
         currency: ride.currency || "GBP",
       });
     }
+
+    // Store event in history
+    await storeEventInHistory(
+      igoConfig.eventTypes.JOURNEY_COMPLETED,
+      eventData,
+      ride
+    );
 
     return {
       status: "processed",
@@ -1307,5 +1353,29 @@ export const getReceipt = async (authorizationReference) => {
   } catch (error) {
     console.error("Error getting receipt:", error);
     throw error;
+  }
+};
+
+/**
+ * Store event in history
+ * @param {string} eventType - The type of event
+ * @param {object} eventData - The data associated with the event
+ * @param {object} ride - The ride associated with the event
+ * @returns {Promise<void>}
+ */
+const storeEventInHistory = async (eventType, eventData, ride) => {
+  try {
+    // Create a new event history record
+    await EventHistory.create({
+      eventType,
+      eventData,
+      timestamp: new Date(),
+      authorizationReference:
+        eventData.AuthorizationReference || ride?.igoAuthorizationReference,
+      bookingReference: eventData.BookingReference || ride?.bookingReference,
+      rideId: ride?._id?.toString(), // Add the ride ID to match with on client side
+    });
+  } catch (error) {
+    console.error("Error storing event in history:", error);
   }
 };
