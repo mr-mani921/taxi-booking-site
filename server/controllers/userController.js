@@ -1,80 +1,98 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
+import {
+  generateVerificationCode,
+  sendVerificationEmail,
+} from "../utils/emailVerification.js";
 
-// @desc    Register a new user
+// Store temporary user data with OTP (in memory - for production, use Redis or a database)
+const pendingUsers = new Map();
+const pendingLogins = new Map();
+
+// @desc    Register a new user (without immediate authentication)
 // @route   POST /api/users/register
 // @access  Public
 export const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
 
-  console.log(`the user info in the body is ${name}`);
-
   // Check if user exists
   const userExists = await User.findOne({ email });
 
   if (userExists) {
-    res.status(400);
-    throw new Error("User already exists");
+    return res.status(400).json({
+      success: false,
+      message: "User already exists",
+    });
   }
 
-  // Create new user
-  const user = await User.create({
+  // Generate OTP
+  const verificationCode = generateVerificationCode();
+  const verificationCodeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+  // Store pending user data temporarily
+  pendingUsers.set(email, {
     name,
     email,
     password,
+    verificationCode,
+    verificationCodeExpires,
   });
 
-  if (user) {
-    // Get token and cookie info from generateToken
-    const { token, cookieName, cookieOptions, message, statusCode } =
-      generateToken(user, "User Registered successfully", 201);
+  // Send OTP to user's email
+  const emailSent = await sendVerificationEmail(email, verificationCode);
 
-    // Set the cookie
-    res.cookie(cookieName, token, cookieOptions);
-
-    // Send the response
-    res.status(statusCode).json({
-      success: true,
-      message,
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-      token,
+  if (!emailSent) {
+    pendingUsers.delete(email);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send verification email",
     });
-  } else {
-    res.status(400).json({ message: "Invalid user data" });
-    throw new Error("Invalid user data");
   }
+
+  res.status(200).json({
+    success: true,
+    message: "Verification code sent to your email",
+    email,
+  });
 });
 
-// @desc    Authenticate user & get token
+// @desc    Authenticate user (without immediate token generation)
 // @route   POST /api/users/login
 // @access  Public
 export const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  console.log("got login request");
 
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
-    // Get token and cookie info from generateToken
-    const { token, cookieName, cookieOptions, message, statusCode } =
-      generateToken(user, "User logged in successfully", 200);
+    // Generate OTP
+    const verificationCode = generateVerificationCode();
+    const verificationCodeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Set the cookie
-    res.cookie(cookieName, token, cookieOptions);
+    // Store pending login with OTP
+    pendingLogins.set(email, {
+      userId: user._id,
+      verificationCode,
+      verificationCodeExpires,
+      attempts: 0,
+    });
 
-    // Send the response
-    res.status(statusCode).json({
+    // Send OTP to user's email
+    const emailSent = await sendVerificationEmail(email, verificationCode);
+
+    if (!emailSent) {
+      pendingLogins.delete(email);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email",
+      });
+    }
+
+    res.status(200).json({
       success: true,
-      message: "User Logged In Successfully",
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-      token,
+      message: "Verification code sent to your email",
+      email,
     });
   } else {
     res.status(401).json({
@@ -84,9 +102,224 @@ export const authUser = asyncHandler(async (req, res) => {
   }
 });
 
-export const logoutUser = asyncHandler(async (req, res) => {
-  console.log("request is in the backend logging out");
+// @desc    Verify OTP and complete authentication
+// @route   POST /api/users/verify-otp
+// @access  Public
+export const verifyOTP = asyncHandler(async (req, res) => {
+  const { email, otp, isRegistration } = req.body;
 
+  if (!email || !otp) {
+    return res.status(400).json({
+      success: false,
+      message: "Email and verification code are required",
+    });
+  }
+
+  // Handle signup verification
+  if (isRegistration) {
+    const pendingUser = pendingUsers.get(email);
+
+    if (!pendingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "No pending registration found or OTP expired",
+      });
+    }
+
+    if (pendingUser.verificationCode !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification code",
+      });
+    }
+
+    if (pendingUser.verificationCodeExpires < new Date()) {
+      pendingUsers.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: "Verification code has expired",
+      });
+    }
+
+    // Create the user
+    const user = await User.create({
+      name: pendingUser.name,
+      email: pendingUser.email,
+      password: pendingUser.password,
+      isEmailVerified: true, // User is verified since they confirmed their email
+    });
+
+    // Clean up pending registration
+    pendingUsers.delete(email);
+
+    // Get token and cookie info from generateToken
+    const { token, cookieName, cookieOptions } = generateToken(
+      user,
+      "User registered and verified successfully",
+      201
+    );
+
+    // Set the cookie
+    res.cookie(cookieName, token, cookieOptions);
+
+    // Send response with token
+    return res.status(201).json({
+      success: true,
+      message: "Registration successful! Your email has been verified.",
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      token,
+    });
+  }
+  // Handle login verification
+  else {
+    const pendingLogin = pendingLogins.get(email);
+
+    if (!pendingLogin) {
+      return res.status(400).json({
+        success: false,
+        message: "No pending login found or OTP expired",
+      });
+    }
+
+    // Increment attempts
+    pendingLogin.attempts += 1;
+
+    // Check if max attempts reached (3 attempts)
+    if (pendingLogin.attempts > 3) {
+      pendingLogins.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: "Maximum verification attempts exceeded. Please login again.",
+      });
+    }
+
+    if (pendingLogin.verificationCode !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid verification code. Attempts remaining: ${
+          3 - pendingLogin.attempts
+        }`,
+      });
+    }
+
+    if (pendingLogin.verificationCodeExpires < new Date()) {
+      pendingLogins.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: "Verification code has expired",
+      });
+    }
+
+    // Get the user
+    const user = await User.findById(pendingLogin.userId);
+    if (!user) {
+      pendingLogins.delete(email);
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Clean up pending login
+    pendingLogins.delete(email);
+
+    // Set user as email verified if not already
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+      await user.save();
+    }
+
+    // Get token and cookie info from generateToken
+    const { token, cookieName, cookieOptions } = generateToken(
+      user,
+      "Login successful",
+      200
+    );
+
+    // Set the cookie
+    res.cookie(cookieName, token, cookieOptions);
+
+    // Send response with token
+    return res.status(200).json({
+      success: true,
+      message: "Login successful!",
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      token,
+    });
+  }
+});
+
+// @desc    Resend OTP
+// @route   POST /api/users/resend-otp
+// @access  Public
+export const resendOTP = asyncHandler(async (req, res) => {
+  const { email, isRegistration } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email is required",
+    });
+  }
+
+  // Generate new OTP
+  const verificationCode = generateVerificationCode();
+  const verificationCodeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+  if (isRegistration) {
+    // Check if there's a pending registration
+    const pendingUser = pendingUsers.get(email);
+    if (!pendingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "No pending registration found",
+      });
+    }
+
+    // Update verification code
+    pendingUser.verificationCode = verificationCode;
+    pendingUser.verificationCodeExpires = verificationCodeExpires;
+    pendingUsers.set(email, pendingUser);
+  } else {
+    // Check if there's a pending login
+    const pendingLogin = pendingLogins.get(email);
+    if (!pendingLogin) {
+      return res.status(400).json({
+        success: false,
+        message: "No pending login found",
+      });
+    }
+
+    // Reset attempts and update verification code
+    pendingLogin.attempts = 0;
+    pendingLogin.verificationCode = verificationCode;
+    pendingLogin.verificationCodeExpires = verificationCodeExpires;
+    pendingLogins.set(email, pendingLogin);
+  }
+
+  // Send OTP to user's email
+  const emailSent = await sendVerificationEmail(email, verificationCode);
+
+  if (!emailSent) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send verification email",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "New verification code sent to your email",
+  });
+});
+
+export const logoutUser = asyncHandler(async (req, res) => {
   // Clear the user token cookie
   res.cookie("userToken", "", {
     httpOnly: true,
@@ -124,6 +357,7 @@ export const getUserProfile = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      isEmailVerified: user.isEmailVerified,
     });
   } else {
     res.status(404);

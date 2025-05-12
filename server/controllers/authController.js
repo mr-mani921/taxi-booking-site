@@ -1,69 +1,360 @@
-const User = require("../models/User");
-const jwt = require("jsonwebtoken");
+import User from "../models/User.js";
+import generateToken from "../utils/generateToken.js";
+import {
+  generateVerificationCode,
+  sendVerificationEmail,
+} from "../utils/emailVerification.js";
 
-// Generate JWT Token
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
-};
+// Store temporary user data with OTP (in memory - for production, use Redis or a database)
+const pendingUsers = new Map();
+const pendingLogins = new Map();
 
-// @desc Register new user
-// @route POST /api/auth/register
-const registerUser = async (req, res) => {
+// @desc    Register new user (without immediate authentication)
+// @route   POST /api/auth/register
+// @access  Public
+export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    console.log("Registering user:", { name, email, password });
     // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
     }
 
-    // Create new user
-    user = await User.create({ name, email, password });
+    // Generate OTP
+    const verificationCode = generateVerificationCode();
+    const verificationCodeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    res.status(201).json({
-      message: "User registered successfully",
-      token: generateToken(user._id),
-      user: { id: user._id, name: user.name, email: user.email },
+    // Store pending user data temporarily
+    pendingUsers.set(email, {
+      name,
+      email,
+      password,
+      verificationCode,
+      verificationCodeExpires,
+    });
+
+    // Send OTP to user's email
+    const emailSent = await sendVerificationEmail(email, verificationCode);
+
+    if (!emailSent) {
+      pendingUsers.delete(email);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Verification code sent to your email",
+      email,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error in registerUser:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
 
-// @desc Login user
-// @route POST /api/auth/login
-const loginUser = async (req, res) => {
+// @desc    Login user (without immediate authentication)
+// @route   POST /api/auth/login
+// @access  Public
+export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials",
+      });
     }
 
     // Check password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    // Generate OTP
+    const verificationCode = generateVerificationCode();
+    const verificationCodeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Store pending login with OTP
+    pendingLogins.set(email, {
+      userId: user._id,
+      verificationCode,
+      verificationCodeExpires,
+      attempts: 0,
+    });
+
+    // Send OTP to user's email
+    const emailSent = await sendVerificationEmail(email, verificationCode);
+
+    if (!emailSent) {
+      pendingLogins.delete(email);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email",
+      });
     }
 
     res.status(200).json({
-      message: "Login successful",
-      token: generateToken(user._id),
-      user: { id: user._id, name: user.name, email: user.email },
+      success: true,
+      message: "Verification code sent to your email",
+      email,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error in loginUser:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
 
-// @desc Logout user
-// @route POST /api/auth/logout
-const logoutUser = (req, res) => {
-  res.status(200).json({ message: "Logged out successfully" });
+// @desc    Verify OTP and complete authentication
+// @route   POST /api/auth/verify-otp
+// @access  Public
+export const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp, isRegistration } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and verification code are required",
+      });
+    }
+
+    // Handle signup verification
+    if (isRegistration) {
+      const pendingUser = pendingUsers.get(email);
+
+      if (!pendingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "No pending registration found or OTP expired",
+        });
+      }
+
+      if (pendingUser.verificationCode !== otp) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid verification code",
+        });
+      }
+
+      if (pendingUser.verificationCodeExpires < new Date()) {
+        pendingUsers.delete(email);
+        return res.status(400).json({
+          success: false,
+          message: "Verification code has expired",
+        });
+      }
+
+      // Create the user
+      const user = await User.create({
+        name: pendingUser.name,
+        email: pendingUser.email,
+        password: pendingUser.password,
+        isEmailVerified: true, // User is verified since they confirmed their email
+      });
+
+      // Clean up pending registration
+      pendingUsers.delete(email);
+
+      // Get token and cookie info from generateToken
+      const { token, cookieName, cookieOptions } = generateToken(
+        user,
+        "User registered and verified successfully",
+        201
+      );
+
+      // Set the cookie
+      res.cookie(cookieName, token, cookieOptions);
+
+      // Send response with token
+      return res.status(201).json({
+        success: true,
+        message: "Registration successful! Your email has been verified.",
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        token,
+      });
+    }
+    // Handle login verification
+    else {
+      const pendingLogin = pendingLogins.get(email);
+
+      if (!pendingLogin) {
+        return res.status(400).json({
+          success: false,
+          message: "No pending login found or OTP expired",
+        });
+      }
+
+      // Increment attempts
+      pendingLogin.attempts += 1;
+
+      // Check if max attempts reached (3 attempts)
+      if (pendingLogin.attempts > 3) {
+        pendingLogins.delete(email);
+        return res.status(400).json({
+          success: false,
+          message:
+            "Maximum verification attempts exceeded. Please login again.",
+        });
+      }
+
+      if (pendingLogin.verificationCode !== otp) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid verification code. Attempts remaining: ${
+            3 - pendingLogin.attempts
+          }`,
+        });
+      }
+
+      if (pendingLogin.verificationCodeExpires < new Date()) {
+        pendingLogins.delete(email);
+        return res.status(400).json({
+          success: false,
+          message: "Verification code has expired",
+        });
+      }
+
+      // Get the user
+      const user = await User.findById(pendingLogin.userId);
+      if (!user) {
+        pendingLogins.delete(email);
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // Clean up pending login
+      pendingLogins.delete(email);
+
+      // Set user as email verified if not already
+      if (!user.isEmailVerified) {
+        user.isEmailVerified = true;
+        await user.save();
+      }
+
+      // Get token and cookie info from generateToken
+      const { token, cookieName, cookieOptions } = generateToken(
+        user,
+        "Login successful",
+        200
+      );
+
+      // Set the cookie
+      res.cookie(cookieName, token, cookieOptions);
+
+      // Send response with token
+      return res.status(200).json({
+        success: true,
+        message: "Login successful!",
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        token,
+      });
+    }
+  } catch (error) {
+    console.error("Error in verifyOTP:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
 };
 
-module.exports = { registerUser, loginUser, logoutUser };
+// @desc    Resend OTP
+// @route   POST /api/auth/resend-otp
+// @access  Public
+export const resendOTP = async (req, res) => {
+  try {
+    const { email, isRegistration } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // Generate new OTP
+    const verificationCode = generateVerificationCode();
+    const verificationCodeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    if (isRegistration) {
+      // Check if there's a pending registration
+      const pendingUser = pendingUsers.get(email);
+      if (!pendingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "No pending registration found",
+        });
+      }
+
+      // Update verification code
+      pendingUser.verificationCode = verificationCode;
+      pendingUser.verificationCodeExpires = verificationCodeExpires;
+      pendingUsers.set(email, pendingUser);
+    } else {
+      // Check if there's a pending login
+      const pendingLogin = pendingLogins.get(email);
+      if (!pendingLogin) {
+        return res.status(400).json({
+          success: false,
+          message: "No pending login found",
+        });
+      }
+
+      // Reset attempts and update verification code
+      pendingLogin.attempts = 0;
+      pendingLogin.verificationCode = verificationCode;
+      pendingLogin.verificationCodeExpires = verificationCodeExpires;
+      pendingLogins.set(email, pendingLogin);
+    }
+
+    // Send OTP to user's email
+    const emailSent = await sendVerificationEmail(email, verificationCode);
+
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "New verification code sent to your email",
+    });
+  } catch (error) {
+    console.error("Error in resendOTP:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};

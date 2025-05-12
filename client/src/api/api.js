@@ -15,6 +15,8 @@ const endpoints = {
   // User
   login: (data) => API.post("/api/user/login", data),
   register: (data) => API.post("/api/user/register", data),
+  verifyOTP: (data) => API.post("/api/user/verify-otp", data),
+  resendOTP: (data) => API.post("/api/user/resend-otp", data),
   logout: () => API.get("/api/user/logout"),
   refreshToken: () => API.post("/api/user/refresh-token"),
 

@@ -5,6 +5,7 @@ const initialState = {
   isAuthenticated: false,
   isEmailVerified: false,
   emailVerificationStatus: null, // 'pending', 'success', 'failed'
+  pendingAuth: null, // { email, isRegistration }
   preferences: {
     defaultPaymentMethod: null,
     notifications: {
@@ -72,6 +73,12 @@ const userSlice = createSlice({
     setIsEmailVerified: (state, action) => {
       state.isEmailVerified = action.payload;
     },
+    setPendingAuth: (state, action) => {
+      state.pendingAuth = action.payload;
+    },
+    clearPendingAuth: (state) => {
+      state.pendingAuth = null;
+    },
     resetUserState: () => initialState,
   },
 });
@@ -89,6 +96,8 @@ export const {
   removePaymentMethod,
   setEmailVerificationStatus,
   setIsEmailVerified,
+  setPendingAuth,
+  clearPendingAuth,
   resetUserState,
 } = userSlice.actions;
 

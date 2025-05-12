@@ -4,6 +4,8 @@ import {
   setIsAuthenticated,
   setEmailVerificationStatus,
   setIsEmailVerified,
+  setPendingAuth,
+  clearPendingAuth,
 } from "./userSlice";
 import { setLoading, setGlobalLoading } from "./apiSlice";
 import { setAvailabilityReference } from "./bookingSlice";
@@ -16,30 +18,44 @@ export const loginUser = createAsyncThunk(
       dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "user", isLoading: true }));
       const response = await api.login(credentials);
-      localStorage.setItem("token", response.data.token);
-      console.log("the success is ", response.data.success);
-      console.log("the type of success is ", typeof response.data.success);
-      console.log("complete response data: ", response.data);
 
-      // Only set authenticated if success is explicitly true
-      if (response.data.success === true) {
+      // If we receive a success response but no token, it means OTP is required
+      if (response.data.success && !response.data.token) {
+        // Store the email for the OTP verification step
+        dispatch(
+          setPendingAuth({
+            email: credentials.email,
+            isRegistration: false,
+          })
+        );
+
+        return {
+          message:
+            response.data.message ||
+            "Please check your email for the verification code.",
+          requireOTP: true,
+        };
+      }
+
+      // This should not happen with the new flow, but keeping it for compatibility
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
         dispatch(setIsAuthenticated(true));
-      } else {
-        dispatch(setIsAuthenticated(false));
+
+        return {
+          message: "Welcome back! You've successfully logged in.",
+        };
       }
 
       return {
-        ...response.data.message,
-        message: "Welcome back! You've successfully logged in.",
+        message: response.data.message,
       };
     } catch (error) {
-      dispatch(setLoading({ entity: "user", isLoading: false }));
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
         "Login failed. Please check your credentials and try again.";
-      console.log("the error message", errorMessage);
       return rejectWithValue({ message: errorMessage });
     } finally {
       dispatch(setLoading({ entity: "user", isLoading: false }));
@@ -55,17 +71,111 @@ export const registerUser = createAsyncThunk(
       dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "user", isLoading: true }));
       const response = await api.register(userData);
-      localStorage.setItem("token", response.data.token);
-      dispatch(setIsAuthenticated(true));
-      return response.data;
+
+      // If we receive a success response but no token, it means OTP is required
+      if (response.data.success && !response.data.token) {
+        // Store the email for the OTP verification step
+        dispatch(
+          setPendingAuth({
+            email: userData.email,
+            isRegistration: true,
+          })
+        );
+
+        return {
+          message:
+            response.data.message ||
+            "Please check your email for the verification code.",
+          requireOTP: true,
+        };
+      }
+
+      // This should not happen with the new flow, but keeping it for compatibility
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        dispatch(setIsAuthenticated(true));
+        dispatch(setIsEmailVerified(true));
+
+        return {
+          message: "Your account has been created successfully!",
+        };
+      }
+
+      return {
+        message: response.data.message,
+      };
     } catch (error) {
-      console.log(error.response.data.message);
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Registration failed. Please try again.";
+      return rejectWithValue({ message: errorMessage });
     } finally {
       dispatch(setLoading({ entity: "user", isLoading: false }));
       dispatch(setGlobalLoading(false));
+    }
+  }
+);
+
+export const verifyOTP = createAsyncThunk(
+  "auth/verifyOTP",
+  async ({ email, otp, isRegistration }, { dispatch, rejectWithValue }) => {
+    try {
+      dispatch(setGlobalLoading(true));
+      dispatch(setLoading({ entity: "user", isLoading: true }));
+
+      const response = await api.verifyOTP({ email, otp, isRegistration });
+
+      if (response.data.success && response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        dispatch(setIsAuthenticated(true));
+        dispatch(setIsEmailVerified(true));
+        dispatch(clearPendingAuth());
+
+        return {
+          message: response.data.message || "Authentication successful!",
+        };
+      }
+
+      return {
+        message: response.data.message,
+      };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Verification failed. Please try again.";
+      return rejectWithValue({ message: errorMessage });
+    } finally {
+      dispatch(setLoading({ entity: "user", isLoading: false }));
+      dispatch(setGlobalLoading(false));
+    }
+  }
+);
+
+export const resendOTP = createAsyncThunk(
+  "auth/resendOTP",
+  async ({ email, isRegistration }, { dispatch, rejectWithValue }) => {
+    try {
+      dispatch(setLoading({ entity: "user", isLoading: true }));
+
+      const response = await api.resendOTP({ email, isRegistration });
+
+      return {
+        message:
+          response.data.message || "Verification code resent successfully!",
+      };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to resend verification code. Please try again.";
+      return rejectWithValue({ message: errorMessage });
+    } finally {
+      dispatch(setLoading({ entity: "user", isLoading: false }));
     }
   }
 );
