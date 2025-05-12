@@ -696,3 +696,33 @@ export const verifyEmail = createAsyncThunk(
     }
   }
 );
+
+// Google OAuth success thunk
+export const handleGoogleAuthSuccess = createAsyncThunk(
+  "auth/googleSuccess",
+  async (token, { dispatch, rejectWithValue }) => {
+    try {
+      dispatch(setGlobalLoading(true));
+      dispatch(setLoading({ entity: "user", isLoading: true }));
+
+      // Store the token
+      localStorage.setItem("token", token);
+
+      // Set authentication state
+      dispatch(setIsAuthenticated(true));
+      dispatch(setIsEmailVerified(true)); // Google users are always email verified
+
+      return {
+        message: "Google authentication successful!",
+      };
+    } catch (error) {
+      const errorMessage =
+        error.message ||
+        "Failed to process Google authentication. Please try again.";
+      return rejectWithValue({ message: errorMessage });
+    } finally {
+      dispatch(setLoading({ entity: "user", isLoading: false }));
+      dispatch(setGlobalLoading(false));
+    }
+  }
+);

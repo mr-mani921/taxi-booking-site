@@ -35,7 +35,6 @@ function Navbar() {
 
   const userMenuItems = [
     { label: "My Rides", path: "/ride-history" },
-    { label: "Settings", path: "/settings" },
     {
       label: "Logout",
       action: () => {

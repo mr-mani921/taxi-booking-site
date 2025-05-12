@@ -236,7 +236,7 @@ const RideHistory = () => {
                         {ride.status}
                       </div>
                       <div className="text-white font-medium mr-4">
-                        ${ride.fare?.toFixed(2) || "0.00"}
+                        £{ride.fare?.toFixed(2) || "0.00"}
                       </div>
                       {/* <div className="text-gray-400">
                         {expandedRide === ride._id ? (

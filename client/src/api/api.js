@@ -20,6 +20,10 @@ const endpoints = {
   logout: () => API.get("/api/user/logout"),
   refreshToken: () => API.post("/api/user/refresh-token"),
 
+  // Google OAuth
+  googleAuthSuccess: (token) =>
+    API.get(`/api/auth/google/mobile-callback?token=${token}`),
+
   getUserProfile: () => API.get("/api/users/profile"),
   updateUserProfile: (data) => API.put("/api/users/profile", data),
 

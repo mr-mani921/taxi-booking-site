@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  FaGoogle,
-  FaFacebook,
-  FaEnvelope,
-  FaLock,
-  FaUser,
-} from "react-icons/fa";
+import { FaGoogle, FaEnvelope, FaLock, FaUser } from "react-icons/fa";
 import BackroundImage from "../assets/authBgImage.jpeg";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser, registerUser } from "../store/thunks.js";
 import { useNavigate } from "react-router-dom";
 import OTPVerification from "../components/OTPVerification";
+
+// Function to handle Google login
+const handleGoogleLogin = () => {
+  // Redirect to Google OAuth endpoint on the backend
+  window.location.href = `${
+    import.meta.env.VITE_API_URL || "http://localhost:5000"
+  }/api/auth/google`;
+};
 
 function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -125,22 +127,21 @@ function Auth() {
         </div>
       </div>
 
-      {/* Error and Success Messages */}
-      {error && (
-        <div className="bg-red-900/30 border border-red-500 text-red-300 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="bg-green-900/30 border border-green-500 text-green-300 px-4 py-3 rounded-lg">
-          {success}
-        </div>
-      )}
-
       {/* Right Side - Auth Form */}
       <div className="w-full md:w-1/2 bg-dark flex items-center justify-center p-8">
         <div className="w-full max-w-md">
+          {/* Error and Success Messages */}
+          {error && (
+            <div className="bg-red-900/30 border border-red-500 text-red-300 px-4 py-3 mb-4 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-900/30 border border-green-500 text-green-300 px-4 py-3 mb-4 rounded-lg">
+              {success}
+            </div>
+          )}
           {/* Toggle Buttons */}
           {!showOTPVerification && (
             <div className="flex mb-8 bg-charcoal rounded-lg p-1">
@@ -267,20 +268,14 @@ function Auth() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <button
                     type="button"
+                    onClick={handleGoogleLogin}
                     className="flex items-center justify-center py-2 px-4 bg-charcoal rounded-lg text-white hover:bg-charcoal/70 transition-colors"
                   >
                     <FaGoogle className="mr-2 text-red-500" />
-                    Google
-                  </button>
-                  <button
-                    type="button"
-                    className="flex items-center justify-center py-2 px-4 bg-charcoal rounded-lg text-white hover:bg-charcoal/70 transition-colors"
-                  >
-                    <FaFacebook className="mr-2 text-blue-500" />
-                    Facebook
+                    Continue with Google
                   </button>
                 </div>
               </motion.form>

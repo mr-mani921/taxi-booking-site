@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Loader from "./components/Loader";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
+import AuthSuccess from "./pages/AuthSuccess";
 import Booking from "./pages/Booking";
 import ContactUs from "./pages/ContactUs";
 import AboutUs from "./pages/AboutUs";
@@ -46,6 +47,7 @@ function App() {
       <div className="min-h-screen bg-dark text-lightGray">
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth-success" element={<AuthSuccess />} />
           <Route path="/" element={<Home />} />
           <Route path="/booking" element={<Booking />} />
           <Route path="/contact" element={<ContactUs />} />
@@ -58,8 +60,6 @@ function App() {
           <Route path="/payment" element={<Payment />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/email-verification" element={<EmailVerification />} />
-
-          {/* New routes for the taxi booking application */}
           <Route path="/ride/:rideId" element={<RideDetails />} />
           <Route path="/ride-confirmation" element={<RideConfirmation />} />
           <Route path="/ride-history" element={<RideHistory />} />

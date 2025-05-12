@@ -15,7 +15,9 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return !this.googleId; // Password is required only if not using Google Auth
+      },
     },
     isAdmin: {
       type: Boolean,
@@ -32,13 +34,21 @@ const userSchema = new mongoose.Schema(
     verificationCodeExpires: {
       type: Date,
     },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values and enforces uniqueness only for non-null values
+    },
+    avatar: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
@@ -46,12 +56,15 @@ userSchema.pre("save", async function (next) {
 
 // Compare password method
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
 userSchema.methods.generateJWTToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRY,
   });
 };
+
 const User = mongoose.model("User", userSchema);
 export default User;

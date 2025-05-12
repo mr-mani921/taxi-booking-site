@@ -6,7 +6,8 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import connectDB from "./config/dbConfig.js"; // Import DB connection function
-// import authRoutes from "./routes/authRoutes.js"; // Authentication routes
+import passport from "./config/passport.js"; // Import Passport config
+import authRoutes from "./routes/authRoutes.js"; // Authentication routes
 import rideRoutes from "./routes/rideRoutes.js"; // Ride routes
 import userRoutes from "./routes/userRoutes.js"; // User routes
 // import driverRoutes from "./routes/driverRoutes.js"; // Driver routes
@@ -95,12 +96,15 @@ app.use(express.text({ type: "application/xml" })); // Add text parser for XML c
 app.use(express.json({ limit: "1mb" })); // Body parser for JSON with size limit
 app.use(cookieParser()); // Cookie parser
 
+// Initialize Passport
+app.use(passport.initialize());
+
 // Apply rate limiting to all API routes in production
 app.use("/api/", apiLimiter);
 
 // Routes
 app.use("/api/user/", userRoutes);
-// app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes); // Enable auth routes for Google OAuth
 app.use("/api/rides/", rideRoutes);
 // app.use("/api/drivers", driverRoutes);
 app.use("/api/payment", paymentRoutes);
