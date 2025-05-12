@@ -51,12 +51,15 @@ const PaymentForm = () => {
   useEffect(() => {
     // Create PaymentIntent only once when quote loads
     const initializeIntent = async () => {
-      if (selectedQuote?.pricing.priceNET) {
+      if (selectedQuote) {
         try {
+          // Use the price that already includes profit (in pounds)
+          const amount = selectedQuote.pricing?.price || selectedQuote.price;
+
           const paymentResult = await dispatch(
             createStripePaymentIntent({
-              amount: selectedQuote.pricing.priceNET,
-              currency: "usd",
+              amount: amount,
+              currency: "gbp", // Use GBP currency
               description: `Ride payment: ${selectedQuote.vehicleType} to ${
                 selectedQuote.destination || "destination"
               }`,
@@ -139,16 +142,23 @@ const PaymentForm = () => {
             });
             dispatch(setPaymentIntent(captureResponse.data));
           }
-          console.log("the bref is ",bidAuthResponse.payload.response.AgentBookingAuthorizationResponse.BookingReference);
-          
+          console.log(
+            "the bref is ",
+            bidAuthResponse.payload.response.AgentBookingAuthorizationResponse
+              .BookingReference
+          );
 
           setSelectedQuote({
             ...selectedQuote,
             bookingReference:
-            bidAuthResponse?.payload.response.AgentBookingAuthorizationResponse.BookingReference,
+              bidAuthResponse?.payload.response
+                .AgentBookingAuthorizationResponse.BookingReference,
           });
 
-          console.log("after adding the booking refference to the selected quote", selectedQuote);
+          console.log(
+            "after adding the booking refference to the selected quote",
+            selectedQuote
+          );
 
           navigate("/payment-success", {
             state: {
@@ -156,7 +166,8 @@ const PaymentForm = () => {
                 paymentIntentId: result.paymentIntent.id,
                 paymentStatus: result.paymentIntent.status,
                 bookingReference:
-                  bidAuthResponse?.payload.response.AgentBookingAuthorizationResponse.BookingReference || null,
+                  bidAuthResponse?.payload.response
+                    .AgentBookingAuthorizationResponse.BookingReference || null,
               },
               selectedQuote,
               bookingData,
@@ -194,7 +205,7 @@ const PaymentForm = () => {
         <div className="flex items-center justify-between">
           <p className="text-lightGray text-lg">Total Amount:</p>
           <p className="text-primary text-xl font-bold">
-            ${selectedQuote?.pricing?.priceNET?.toFixed(2) || "0.00"}
+            £{selectedQuote?.pricing?.priceNET?.toFixed(2) || "0.00"}
           </p>
         </div>
         <div className="mt-2 h-[1px] bg-white/10"></div>

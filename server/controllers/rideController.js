@@ -187,17 +187,24 @@ export const getPriceEstimate = async (req, res) => {
         // Apply 25% markup
         const markedUpPrice = price * 1.25;
 
+        // Convert from pence to pounds
+        const priceInPounds = markedUpPrice / 100;
+        const originalPriceInPounds = price / 100;
+
         return {
           id: index + 1,
           vendorId: bid.VendorId,
           vendorName: bid.VendorName || `Vendor ${index + 1}`,
-          price: parseFloat(markedUpPrice.toFixed(2)),
-          originalPrice: price,
+          price: parseFloat(priceInPounds.toFixed(2)),
+          displayPrice: `£${priceInPounds.toFixed(2)}`,
+          originalPrice: parseFloat(originalPriceInPounds.toFixed(2)),
           vehicleType: bid.VehicleType || "standard",
           estimatedArrival: new Date(
             new Date(pickupTime).getTime() + (bid.ETAInMinutes || 15) * 60000
           ),
           etaInMinutes: bid.ETAInMinutes || 15,
+          currency: "GBP",
+          currencySymbol: "£",
         };
       });
 
@@ -261,36 +268,45 @@ export const getPriceEstimate = async (req, res) => {
             vendorId: "MOCK_VENDOR_1",
             vendorName: "Premium Taxi Service",
             price: 28.5,
+            displayPrice: "£28.50",
             originalPrice: 22.8,
             vehicleType: "premium",
             estimatedArrival: new Date(
               new Date(pickupTime).getTime() + 10 * 60000
             ),
             etaInMinutes: 10,
+            currency: "GBP",
+            currencySymbol: "£",
           },
           {
             id: 2,
             vendorId: "MOCK_VENDOR_2",
             vendorName: "Standard Taxi Service",
             price: 21.25,
+            displayPrice: "£21.25",
             originalPrice: 17.0,
             vehicleType: "standard",
             estimatedArrival: new Date(
               new Date(pickupTime).getTime() + 15 * 60000
             ),
             etaInMinutes: 15,
+            currency: "GBP",
+            currencySymbol: "£",
           },
           {
             id: 3,
             vendorId: "MOCK_VENDOR_3",
             vendorName: "Budget Taxi Service",
             price: 18.75,
+            displayPrice: "£18.75",
             originalPrice: 15.0,
             vehicleType: "standard",
             estimatedArrival: new Date(
               new Date(pickupTime).getTime() + 20 * 60000
             ),
             etaInMinutes: 20,
+            currency: "GBP",
+            currencySymbol: "£",
           },
         ];
 
@@ -876,22 +892,63 @@ export const getRideStatus = async (req, res) => {
  */
 export const getUserRides = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const { status, limit = 10, skip = 0 } = req.query;
+    console.log("Fetching rides history...");
+    const userId = req.user?._id;
+    const {
+      status,
+      page = 1,
+      limit = 10,
+      timeRange,
+      sortBy = "date_desc",
+    } = req.query;
+
+    // Calculate skip for pagination (0-indexed)
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build query
     const query = { user: userId };
 
     // Add status filter if provided
-    if (status) {
+    if (status && status !== "all") {
       query.status = status;
     }
 
-    // Get rides with pagination
+    // Add time range filter if provided
+    if (timeRange && timeRange !== "all") {
+      const now = new Date();
+      if (timeRange === "last_24h") {
+        const cutoffDate = new Date(now);
+        cutoffDate.setDate(now.getDate() - 1);
+        query.createdAt = { $gte: cutoffDate };
+      } else if (timeRange === "last_week") {
+        const cutoffDate = new Date(now);
+        cutoffDate.setDate(now.getDate() - 7);
+        query.createdAt = { $gte: cutoffDate };
+      } else if (timeRange === "last_month") {
+        const cutoffDate = new Date(now);
+        cutoffDate.setMonth(now.getMonth() - 1);
+        query.createdAt = { $gte: cutoffDate };
+      }
+    }
+
+    // Build sort option
+    let sortOption = { createdAt: -1 }; // Default: date_desc
+
+    if (sortBy === "date_asc") {
+      sortOption = { createdAt: 1 };
+    } else if (sortBy === "price_desc") {
+      sortOption = { fare: -1 };
+    } else if (sortBy === "price_asc") {
+      sortOption = { fare: 1 };
+    }
+
+    // Get rides with pagination and sorting
     const rides = await Ride.find(query)
-      .sort({ createdAt: -1 })
+      .sort(sortOption)
       .skip(parseInt(skip))
       .limit(parseInt(limit));
+
+    console.log(`Found ${rides.length} rides for user ${userId}`);
 
     // Count total rides matching the query
     const total = await Ride.countDocuments(query);
@@ -900,9 +957,10 @@ export const getUserRides = async (req, res) => {
       rides,
       pagination: {
         total,
+        page: parseInt(page),
         limit: parseInt(limit),
-        skip: parseInt(skip),
-        hasMore: total > parseInt(skip) + rides.length,
+        pages: Math.ceil(total / parseInt(limit)),
+        hasMore: skip + rides.length < total,
       },
     });
   } catch (error) {
@@ -1117,7 +1175,7 @@ export const requestVendorBids = async (req, res) => {
       dropoffLocation,
       pickupTime,
       vehicleType,
-      passengers = 1,
+      passengers,
       bidType = igoConfig.bidTypes.BOTH,
     } = req.body;
 
@@ -1191,6 +1249,12 @@ export const requestVendorBids = async (req, res) => {
       const vendor = bid.VendorDetails || {};
       const journey = bid.EstimatedJourney || {};
       console.log("the vendor id is ", bid.Vendor.$.Id);
+
+      // Apply profit markup to pricing
+      const originalPrice = parseFloat(pricing.Price || 0);
+      const profitMargin = 0.25; // 25% markup
+      const priceWithProfit = originalPrice * (1 + profitMargin);
+
       formattedBids.push({
         bidReference: bidsResponse.AgentBidResponse?.BidReference,
         vendorId: bid.Vendor.$.Id,
@@ -1207,13 +1271,16 @@ export const requestVendorBids = async (req, res) => {
         estimatedDuration: parseInt(journey.Duration || "0", 10),
         pricing: {
           pricingMethod: pricing.PricingMethod || "",
-          price: parseFloat(pricing.Price || 0),
+          price: parseFloat((priceWithProfit / 100).toFixed(2)), // Convert from pence to pounds
+          displayPrice: `£${(priceWithProfit / 100).toFixed(2)}`, // Format with GBP symbol
+          originalPrice: parseFloat((originalPrice / 100).toFixed(2)), // Convert from pence to pounds
           commission: parseFloat(pricing.Commission || 0),
           gratuity: parseFloat(pricing.Gratuity || 0),
           currency: pricing.Currency || "GBP",
+          currencySymbol: "£",
           loyaltyCard: parseFloat(pricing.LoyaltyCard || 0),
           promotionCodeDiscount: parseFloat(pricing.PromotionCodeDiscount || 0),
-          priceNET: parseFloat(pricing.PriceNET || 0),
+          priceNET: parseFloat((priceWithProfit / 100).toFixed(2)), // Update to use price with profit in pounds
           serviceCharge: parseFloat(pricing.ServiceCharge || 0),
           VAT: parseFloat(pricing.VAT || 0),
           marketPlaceCommission: parseFloat(pricing.MarketPlaceCommission || 0),

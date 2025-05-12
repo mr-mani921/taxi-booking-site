@@ -20,9 +20,13 @@ import RideHistory from "./pages/RideHistory";
 import UserProfile from "./pages/UserProfile";
 import RateRide from "./pages/RateRide";
 import RatingSuccess from "./pages/RatingSuccess";
+import EmailVerification from "./pages/EmailVerification";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setIsAuthenticated } from "./store/userSlice";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "./styles/toast.css";
 
 function App() {
   const dispatch = useDispatch();
@@ -53,6 +57,7 @@ function App() {
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/payment" element={<Payment />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/email-verification" element={<EmailVerification />} />
 
           {/* New routes for the taxi booking application */}
           <Route path="/ride/:rideId" element={<RideDetails />} />
@@ -64,6 +69,22 @@ function App() {
         </Routes>
       </div>
       <Footer />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        className="toast-container"
+        toastClassName="toast"
+        bodyClassName="toast-body"
+        progressClassName="toast-progress"
+      />
     </Router>
   );
 }

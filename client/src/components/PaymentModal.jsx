@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaTimes, FaCreditCard } from "react-icons/fa";
 import { processPayment } from "../store/thunks/paymentThunks";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../utils/toast";
 
 const PaymentModal = ({ show, onClose, amount, onPaymentComplete, rideId }) => {
   const dispatch = useDispatch();
@@ -32,7 +32,8 @@ const PaymentModal = ({ show, onClose, amount, onPaymentComplete, rideId }) => {
     try {
       // Validate card details
       if (!validateCardDetails()) {
-        toast.error("Please fill in all card details correctly");
+        showError("Please fill in all card details correctly");
+        setIsProcessing(false);
         return;
       }
 
@@ -47,14 +48,14 @@ const PaymentModal = ({ show, onClose, amount, onPaymentComplete, rideId }) => {
       ).unwrap();
 
       if (result.success) {
-        toast.success("Payment processed successfully");
+        showSuccess("Payment processed successfully");
         onPaymentComplete();
       } else {
-        toast.error(result.message || "Payment failed");
+        showError(result.message || "Payment failed");
       }
     } catch (error) {
       console.error("Payment error:", error);
-      toast.error("Failed to process payment");
+      showError("Failed to process payment");
     } finally {
       setIsProcessing(false);
     }

@@ -12,6 +12,7 @@ import userRoutes from "./routes/userRoutes.js"; // User routes
 // import driverRoutes from "./routes/driverRoutes.js"; // Driver routes
 import paymentRoutes from "./routes/paymentRoutes.js"; // Payment routes
 import igoEventRoutes from "./routes/igoEventRoutes.js"; // iGo event routes
+import verificationRoutes from "./routes/verificationRoutes.js"; // Email verification routes
 import { notFound, errorHandler } from "./middlewares/errorMiddleware.js"; // Custom error handlers
 import http from "http";
 import { fileURLToPath } from "url";
@@ -104,6 +105,7 @@ app.use("/api/rides/", rideRoutes);
 // app.use("/api/drivers", driverRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/events", igoEventRoutes);
+app.use("/api/verification", verificationRoutes);
 
 // Health check endpoint for tests
 app.get("/health-check", (req, res) => {

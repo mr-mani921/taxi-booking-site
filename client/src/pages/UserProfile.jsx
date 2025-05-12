@@ -11,6 +11,8 @@ import {
   FaTimes,
   FaSignOutAlt,
   FaCreditCard,
+  FaCheckCircle,
+  FaExclamationCircle,
 } from "react-icons/fa";
 import {
   fetchUserProfile,
@@ -190,6 +192,38 @@ const UserProfile = () => {
               </div>
             </div>
           </div>
+
+          {/* Email Verification Status */}
+          {profile && (
+            <div className="px-6 py-3 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FaEnvelope className="text-gray-400 mr-2" />
+                  <span className="text-gray-300">Email Verification</span>
+                </div>
+
+                {profile.isEmailVerified ? (
+                  <div className="flex items-center text-green-500">
+                    <FaCheckCircle className="mr-1" />
+                    <span>Verified</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <div className="flex items-center text-yellow-500 mr-3">
+                      <FaExclamationCircle className="mr-1" />
+                      <span>Not Verified</span>
+                    </div>
+                    <button
+                      onClick={() => navigate("/email-verification")}
+                      className="px-3 py-1 bg-primary text-white text-sm rounded-md hover:bg-primary-dark transition-colors"
+                    >
+                      Verify Now
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Profile Form */}
           <div className="p-6">

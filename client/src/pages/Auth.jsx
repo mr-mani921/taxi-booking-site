@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaGoogle,
@@ -8,26 +8,54 @@ import {
   FaUser,
 } from "react-icons/fa";
 import BackroundImage from "../assets/authBgImage.jpeg";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { loginUser, registerUser } from "../store/thunks.js";
+import { useNavigate } from "react-router-dom";
 
 function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state) => state.user);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     name: "",
   });
 
+  // This useEffect runs on component mount to check authentication
+  useEffect(() => {
+    console.log("the user is authenticated initially", isAuthenticated);
+    // If user is already authenticated, redirect to home
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, []);
+
+  // This useEffect runs whenever isAuthenticated changes
+  useEffect(() => {
+    console.log("isAuthenticated changed to:", isAuthenticated);
+    // If user becomes authenticated after login/signup, redirect to home
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    isLogin ? dispatch(loginUser(formData)) : dispatch(registerUser(formData));
-    setFormData[{
-      email:"",
-      password:"",
-      name:"",
-    }]
+    // Dispatch the appropriate action based on whether we're in login or register mode
+    if (isLogin) {
+      dispatch(loginUser(formData));
+    } else {
+      dispatch(registerUser(formData));
+    }
+
+    // Reset form data correctly
+    setFormData({
+      email: "",
+      password: "",
+      name: "",
+    });
   };
 
   const handleInputChange = (e) => {
@@ -51,7 +79,7 @@ function Auth() {
               transition={{ duration: 0.6 }}
               className="text-4xl font-bold text-white mb-4"
             >
-              Welcome to TaxiGo
+              Welcome to ZappyTaxi
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -173,24 +201,15 @@ function Auth() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
-                  className="flex items-center justify-center gap-2 py-3 px-4 bg-charcoal rounded-lg hover:bg-charcoal/80 transition-colors duration-300"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-charcoal rounded-lg hover:bg-charcoal/80 transition-colors duration-300"
                 >
                   <FaGoogle className="text-white" />
                   <span className="text-white">Google</span>
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  className="flex items-center justify-center gap-2 py-3 px-4 bg-[#1877F2] rounded-lg hover:bg-[#1877F2]/90 transition-colors duration-300"
-                >
-                  <FaFacebook className="text-white" />
-                  <span className="text-white">Facebook</span>
                 </motion.button>
               </div>
             </motion.form>

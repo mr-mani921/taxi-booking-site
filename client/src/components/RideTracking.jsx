@@ -257,7 +257,7 @@ const RideTracking = ({
       );
     }
 
-    if (stepIndex < currentStepIndex +1) {
+    if (stepIndex < currentStepIndex + 1) {
       return <FaCheck className="text-green-400" />;
     } else if (stepIndex === currentStepIndex + 1) {
       return loading ? (

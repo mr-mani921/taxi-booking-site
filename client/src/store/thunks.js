@@ -1,6 +1,10 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../api/api";
-import { setIsAuthenticated } from "./userSlice";
+import {
+  setIsAuthenticated,
+  setEmailVerificationStatus,
+  setIsEmailVerified,
+} from "./userSlice";
 import { setLoading, setGlobalLoading } from "./apiSlice";
 import { setAvailabilityReference } from "./bookingSlice";
 
@@ -10,19 +14,33 @@ export const loginUser = createAsyncThunk(
   async (credentials, { dispatch, rejectWithValue }) => {
     try {
       dispatch(setGlobalLoading(true));
-      console.log(credentials);
       dispatch(setLoading({ entity: "user", isLoading: true }));
       const response = await api.login(credentials);
-      console.log(response.data);
       localStorage.setItem("token", response.data.token);
-      dispatch(setIsAuthenticated(true));
-      return response.data;
+      console.log("the success is ", response.data.success);
+      console.log("the type of success is ", typeof response.data.success);
+      console.log("complete response data: ", response.data);
+
+      // Only set authenticated if success is explicitly true
+      if (response.data.success === true) {
+        dispatch(setIsAuthenticated(true));
+      } else {
+        dispatch(setIsAuthenticated(false));
+      }
+
+      return {
+        ...response.data.message,
+        message: "Welcome back! You've successfully logged in.",
+      };
     } catch (error) {
       dispatch(setLoading({ entity: "user", isLoading: false }));
-      console.log(error);
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Login failed. Please check your credentials and try again.";
+      console.log("the error message", errorMessage);
+      return rejectWithValue({ message: errorMessage });
     } finally {
       dispatch(setLoading({ entity: "user", isLoading: false }));
       dispatch(setGlobalLoading(false));
@@ -101,11 +119,17 @@ export const updateUserProfile = createAsyncThunk(
       dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "user", isLoading: true }));
       const response = await api.updateUserProfile(profileData);
-      return response.data;
+      return {
+        ...response.data,
+        message: "Your profile has been successfully updated!",
+      };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to update your profile. Please try again.";
+      return rejectWithValue({ message: errorMessage });
     } finally {
       dispatch(setLoading({ entity: "user", isLoading: false }));
       dispatch(setGlobalLoading(false));
@@ -116,12 +140,45 @@ export const updateUserProfile = createAsyncThunk(
 // Rides thunks
 export const fetchRides = createAsyncThunk(
   "rides/fetchAll",
-  async (_, { dispatch, rejectWithValue }) => {
+  async (params = {}, { dispatch, rejectWithValue }) => {
     try {
       dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "rides", isLoading: true }));
-      const response = await api.getRides();
-      return response.data;
+
+      // Extract pagination and filter params
+      const {
+        page = 1,
+        limit = 10,
+        status,
+        timeRange,
+        sortBy,
+        append = false, // Flag to indicate if we should append or replace results
+      } = params;
+
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      queryParams.append("page", page);
+      queryParams.append("limit", limit);
+
+      if (status && status !== "all") {
+        queryParams.append("status", status);
+      }
+
+      if (timeRange && timeRange !== "all") {
+        queryParams.append("timeRange", timeRange);
+      }
+
+      if (sortBy) {
+        queryParams.append("sortBy", sortBy);
+      }
+
+      const response = await api.getRides(queryParams.toString());
+
+      // Add append flag to the response data to handle in the reducer
+      return {
+        ...response.data,
+        append,
+      };
     } catch (error) {
       return rejectWithValue(
         error.response?.data || { message: error.message }
@@ -159,11 +216,17 @@ export const bookRide = createAsyncThunk(
       dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "rides", isLoading: true }));
       const response = await api.bookRide(bookingData);
-      return response.data;
+      return {
+        ...response.data,
+        message: "Your ride has been successfully booked!",
+      };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to book your ride. Please try again.";
+      return rejectWithValue({ message: errorMessage });
     } finally {
       dispatch(setLoading({ entity: "rides", isLoading: false }));
       dispatch(setGlobalLoading(false));
@@ -344,7 +407,7 @@ export const authorizeBid = createAsyncThunk(
         vehicleType: selectedQuote.vehicleType || bookingData.vehicleType,
         pricingModel: selectedQuote.pricing?.pricingMethod || "FixedPrice",
         paymentPoint: "TimeOfBooking", // Assuming pre-payment
-        price: selectedQuote.pricing?.priceNET || selectedQuote.price,
+        price: selectedQuote.pricing?.price || selectedQuote.price, // Use price that already includes profit
         passengers: bookingData.passengers || 1,
         specialInstructions: bookingData.specialRequests || "",
         availabilityReference: selectedQuote.availabilityReference,
@@ -396,11 +459,17 @@ export const processPayment = createAsyncThunk(
       dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "payments", isLoading: true }));
       const response = await api.processPayment(paymentData);
-      return response.data;
+      return {
+        ...response.data,
+        message: "Payment processed successfully!",
+      };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Payment processing failed. Please try again or use a different payment method.";
+      return rejectWithValue({ message: errorMessage });
     } finally {
       dispatch(setLoading({ entity: "payments", isLoading: false }));
       dispatch(setGlobalLoading(false));
@@ -463,6 +532,56 @@ export const deletePaymentMethod = createAsyncThunk(
       );
     } finally {
       dispatch(setLoading({ entity: "payments", isLoading: false }));
+      dispatch(setGlobalLoading(false));
+    }
+  }
+);
+
+// Email verification thunks
+export const sendVerificationCode = createAsyncThunk(
+  "user/sendVerificationCode",
+  async (_, { dispatch, rejectWithValue }) => {
+    try {
+      dispatch(setGlobalLoading(true));
+      dispatch(setLoading({ entity: "user", isLoading: true }));
+      dispatch(setEmailVerificationStatus("pending"));
+
+      const response = await api.sendVerificationCode();
+
+      dispatch(setEmailVerificationStatus("codeSent"));
+      return response.data;
+    } catch (error) {
+      dispatch(setEmailVerificationStatus("failed"));
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    } finally {
+      dispatch(setLoading({ entity: "user", isLoading: false }));
+      dispatch(setGlobalLoading(false));
+    }
+  }
+);
+
+export const verifyEmail = createAsyncThunk(
+  "user/verifyEmail",
+  async (code, { dispatch, rejectWithValue }) => {
+    try {
+      dispatch(setGlobalLoading(true));
+      dispatch(setLoading({ entity: "user", isLoading: true }));
+      dispatch(setEmailVerificationStatus("verifying"));
+
+      const response = await api.verifyEmail(code);
+
+      dispatch(setIsEmailVerified(true));
+      dispatch(setEmailVerificationStatus("success"));
+      return response.data;
+    } catch (error) {
+      dispatch(setEmailVerificationStatus("failed"));
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    } finally {
+      dispatch(setLoading({ entity: "user", isLoading: false }));
       dispatch(setGlobalLoading(false));
     }
   }

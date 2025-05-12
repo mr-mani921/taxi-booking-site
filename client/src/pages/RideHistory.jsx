@@ -11,8 +11,8 @@ import {
   FaChevronDown,
   FaSearch,
   FaTimes,
+  FaSpinner,
 } from "react-icons/fa";
-import { IoFilterOutline } from "react-icons/io5";
 import RideTracking from "../components/RideTracking";
 
 const RideHistory = () => {
@@ -20,13 +20,13 @@ const RideHistory = () => {
   const dispatch = useDispatch();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterOpen, setFilterOpen] = useState(false);
   const [expandedRide, setExpandedRide] = useState(null);
-  const [filters, setFilters] = useState({
-    status: "all",
-    timeRange: "all",
-    sortBy: "date_desc",
-  });
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Get rides from Redux
   const rides = useSelector((state) => state.booking.rides || []);
@@ -35,8 +35,37 @@ const RideHistory = () => {
 
   // Fetch ride history
   useEffect(() => {
-    dispatch(fetchRides());
-  }, [dispatch]);
+    dispatch(fetchRides({ page: 1, limit }));
+  }, [dispatch, limit]);
+
+  // Function to load more rides
+  const loadMoreRides = async () => {
+    if (loadingMore || !hasMore) return;
+
+    try {
+      setLoadingMore(true);
+      const nextPage = page + 1;
+
+      const result = await dispatch(
+        fetchRides({
+          page: nextPage,
+          limit,
+          append: true, // Signal to append rather than replace rides
+        })
+      ).unwrap();
+
+      // Check if there are more rides to load
+      if (!result.pagination?.hasMore || result.rides?.length < limit) {
+        setHasMore(false);
+      }
+
+      setPage(nextPage);
+    } catch (err) {
+      console.error("Error loading more rides:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -74,17 +103,20 @@ const RideHistory = () => {
     }
   };
 
-  // Get filtered rides
-  const getFilteredRides = () => {
-    if (!rides || !Array.isArray(rides)) return [];
+  // Toggle expanded ride
+  const toggleExpandRide = (rideId) => {
+    if (expandedRide === rideId) {
+      setExpandedRide(null);
+    } else {
+      setExpandedRide(rideId);
+    }
+  };
 
-    let filteredRides = [...rides];
-
-    // Apply search filter
-    if (searchTerm) {
-      const lowercaseSearch = searchTerm.toLowerCase();
-      filteredRides = filteredRides.filter(
-        (ride) =>
+  // Filter rides by search term
+  const filteredRides = searchTerm
+    ? rides.filter((ride) => {
+        const lowercaseSearch = searchTerm.toLowerCase();
+        return (
           (ride.pickupLocation?.address &&
             ride.pickupLocation.address
               .toLowerCase()
@@ -96,64 +128,9 @@ const RideHistory = () => {
           (ride.igoBookingId &&
             ride.igoBookingId.toLowerCase().includes(lowercaseSearch)) ||
           (ride.status && ride.status.toLowerCase().includes(lowercaseSearch))
-      );
-    }
-
-    // Apply status filter
-    if (filters.status !== "all") {
-      filteredRides = filteredRides.filter(
-        (ride) =>
-          ride.status &&
-          ride.status.toLowerCase() === filters.status.toLowerCase()
-      );
-    }
-
-    // Apply time filter
-    if (filters.timeRange !== "all") {
-      const now = new Date();
-      const cutoffDate = new Date();
-
-      if (filters.timeRange === "last_24h") {
-        cutoffDate.setDate(now.getDate() - 1);
-      } else if (filters.timeRange === "last_week") {
-        cutoffDate.setDate(now.getDate() - 7);
-      } else if (filters.timeRange === "last_month") {
-        cutoffDate.setMonth(now.getMonth() - 1);
-      }
-
-      filteredRides = filteredRides.filter(
-        (ride) => new Date(ride.createdAt) >= cutoffDate
-      );
-    }
-
-    // Apply sorting
-    if (filters.sortBy === "date_desc") {
-      filteredRides.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
-    } else if (filters.sortBy === "date_asc") {
-      filteredRides.sort(
-        (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-      );
-    } else if (filters.sortBy === "price_desc") {
-      filteredRides.sort((a, b) => (b.fare || 0) - (a.fare || 0));
-    } else if (filters.sortBy === "price_asc") {
-      filteredRides.sort((a, b) => (a.fare || 0) - (b.fare || 0));
-    }
-
-    return filteredRides;
-  };
-
-  // Toggle expanded ride
-  const toggleExpandRide = (rideId) => {
-    if (expandedRide === rideId) {
-      setExpandedRide(null);
-    } else {
-      setExpandedRide(rideId);
-    }
-  };
-
-  const filteredRides = getFilteredRides();
+        );
+      })
+    : rides;
 
   return (
     <div className="min-h-screen bg-dark pt-20 pb-20">
@@ -165,7 +142,7 @@ const RideHistory = () => {
             <p className="text-lightGray">View and manage your ride history</p>
           </div>
 
-          {/* Search and Filter Bar */}
+          {/* Search Bar */}
           <div className="mb-8 flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -177,97 +154,10 @@ const RideHistory = () => {
                 className="w-full bg-charcoal border border-gray-700 rounded-lg py-3 pl-12 pr-4 text-white focus:outline-none focus:border-primary"
               />
             </div>
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 rounded-lg py-3 px-5 text-white transition-colors"
-            >
-              <IoFilterOutline />
-              <span>Filter</span>
-              {filterOpen ? <FaChevronDown /> : <FaChevronRight />}
-            </button>
           </div>
 
-          {/* Filters Panel */}
-          <AnimatePresence>
-            {filterOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="mb-8 overflow-hidden"
-              >
-                <div className="bg-charcoal rounded-lg p-6 border border-gray-700">
-                  <div className="grid md:grid-cols-3 gap-6">
-                    {/* Status Filter */}
-                    <div>
-                      <label className="block text-lightGray mb-2">
-                        Status
-                      </label>
-                      <select
-                        value={filters.status}
-                        onChange={(e) =>
-                          setFilters({ ...filters, status: e.target.value })
-                        }
-                        className="w-full bg-dark border border-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-primary"
-                      >
-                        <option value="all">All Statuses</option>
-                        <option value="booked">Booked</option>
-                        <option value="dispatched">Dispatched</option>
-                        <option value="driver_assigned">Driver Assigned</option>
-                        <option value="driver_arrived">Driver Arrived</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </div>
-
-                    {/* Time Range Filter */}
-                    <div>
-                      <label className="block text-lightGray mb-2">
-                        Time Range
-                      </label>
-                      <select
-                        value={filters.timeRange}
-                        onChange={(e) =>
-                          setFilters({ ...filters, timeRange: e.target.value })
-                        }
-                        className="w-full bg-dark border border-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-primary"
-                      >
-                        <option value="all">All Time</option>
-                        <option value="last_24h">Last 24 Hours</option>
-                        <option value="last_week">Last Week</option>
-                        <option value="last_month">Last Month</option>
-                      </select>
-                    </div>
-
-                    {/* Sort By Filter */}
-                    <div>
-                      <label className="block text-lightGray mb-2">
-                        Sort By
-                      </label>
-                      <select
-                        value={filters.sortBy}
-                        onChange={(e) =>
-                          setFilters({ ...filters, sortBy: e.target.value })
-                        }
-                        className="w-full bg-dark border border-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-primary"
-                      >
-                        <option value="date_desc">Date (Newest First)</option>
-                        <option value="date_asc">Date (Oldest First)</option>
-                        <option value="price_desc">
-                          Price (Highest First)
-                        </option>
-                        <option value="price_asc">Price (Lowest First)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Rides List */}
-          {loading ? (
+          {loading && rides.length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-4"></div>
               <p className="text-lightGray">Loading your rides...</p>
@@ -293,8 +183,8 @@ const RideHistory = () => {
                 No Rides Found
               </h3>
               <p className="text-lightGray mb-6">
-                {searchTerm || filters.status !== "all"
-                  ? "No rides match your search or filter criteria."
+                {searchTerm
+                  ? "No rides match your search criteria."
                   : "You haven't taken any rides yet."}
               </p>
               <button
@@ -314,7 +204,7 @@ const RideHistory = () => {
                   {/* Ride Card Header */}
                   <div
                     className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-gray-800/40 transition-colors"
-                    onClick={() => toggleExpandRide(ride._id)}
+                    // onClick={() => toggleExpandRide(ride._id)}
                   >
                     <div className="flex items-start md:items-center mb-4 md:mb-0">
                       <div className="w-10 h-10 bg-dark rounded-full flex items-center justify-center mr-4 flex-shrink-0">
@@ -348,17 +238,17 @@ const RideHistory = () => {
                       <div className="text-white font-medium mr-4">
                         ${ride.fare?.toFixed(2) || "0.00"}
                       </div>
-                      <div className="text-gray-400">
+                      {/* <div className="text-gray-400">
                         {expandedRide === ride._id ? (
                           <FaChevronDown />
                         ) : (
                           <FaChevronRight />
                         )}
-                      </div>
+                      </div> */}
                     </div>
                   </div>
 
-                  {/* Expanded Ride Detail */}
+                  {/* Expanded Ride Detail
                   <AnimatePresence>
                     {expandedRide === ride._id && (
                       <motion.div
@@ -375,13 +265,34 @@ const RideHistory = () => {
                             authorizationReference={
                               ride.igoAuthorizationReference
                             }
+                            isHistoryView={true}
                           />
                         </div>
                       </motion.div>
                     )}
-                  </AnimatePresence>
+                  </AnimatePresence> */}
                 </div>
               ))}
+
+              {/* Load More Button */}
+              {hasMore && filteredRides.length > 0 && (
+                <div className="text-center py-6">
+                  <button
+                    onClick={loadMoreRides}
+                    disabled={loadingMore}
+                    className="px-6 py-3 bg-charcoal hover:bg-gray-700 border border-gray-700 rounded-lg text-white transition-colors flex items-center justify-center mx-auto"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <FaSpinner className="animate-spin mr-2" />
+                        Loading...
+                      </>
+                    ) : (
+                      "Load More Rides"
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -1034,7 +1034,7 @@ export const requestBids = async (
   dropoffLocation,
   pickupTime,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
-  passengers = []
+  passengers
 ) => {
   try {
     const passengerDetails =
@@ -1091,7 +1091,7 @@ export const requestBids = async (
 
           Ride: {
             Type: "Passenger",
-            Count: (passengers.length || 1).toString(),
+            Count: (passengers || 1).toString(),
             VehicleType: vehicleTypeEnum,
             VehicleCategory: vehicleCategory,
           },

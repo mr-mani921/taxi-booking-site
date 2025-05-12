@@ -15,7 +15,7 @@ import { MdOutlineLocationOn } from "react-icons/md";
 import { BiCurrentLocation } from "react-icons/bi";
 import io from "socket.io-client";
 import { formatDistanceToNow } from "date-fns";
-import { toast } from "react-toastify";
+import { showSuccess, showError, showInfo } from "../utils/toast";
 import RideMap from "../components/RideMap";
 import PaymentModal from "../components/PaymentModal";
 
@@ -56,19 +56,19 @@ const RideDetails = () => {
       // Show appropriate notifications based on status
       switch (updatedRide.status) {
         case "DISPATCHED":
-          toast.info("Your ride has been dispatched");
+          showInfo("Your ride has been dispatched");
           break;
         case "VEHICLE_ARRIVED":
-          toast.success("Your vehicle has arrived!");
+          showSuccess("Your vehicle has arrived!");
           break;
         case "PASSENGER_ON_BOARD":
-          toast.info("You are now on board");
+          showInfo("You are now on board");
           break;
         case "COMPLETED":
-          toast.success("Your journey has been completed");
+          showSuccess("Your journey has been completed");
           break;
         case "CANCELLED":
-          toast.error(`Ride cancelled: ${updatedRide.cancellationReason}`);
+          showError(`Ride cancelled: ${updatedRide.cancellationReason}`);
           break;
       }
 
@@ -116,7 +116,7 @@ const RideDetails = () => {
         }
       } catch (error) {
         console.error("Error fetching ride details:", error);
-        toast.error("Failed to load ride details");
+        showError("Failed to load ride details");
       }
     };
 
@@ -126,16 +126,16 @@ const RideDetails = () => {
   const handleCancelRide = async () => {
     try {
       await dispatch(cancelRide(rideId)).unwrap();
-      toast.success("Ride cancelled successfully");
+      showSuccess("Ride cancelled successfully");
     } catch (error) {
       console.error("Error cancelling ride:", error);
-      toast.error("Failed to cancel ride");
+      showError("Failed to cancel ride");
     }
   };
 
   const handlePaymentComplete = () => {
     setShowPaymentModal(false);
-    toast.success("Payment processed successfully");
+    showSuccess("Payment processed successfully");
   };
 
   if (loading) {

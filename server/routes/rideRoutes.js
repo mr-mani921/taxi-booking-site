@@ -36,7 +36,7 @@ router.post("/quotes/estimate", authenticateUser, getPriceEstimate);
 router.post("/book", authenticateUser, bookRide);
 router.post("/cancel/:id", authenticateUser, cancelRide);
 router.get("/status/:id", authenticateUser, getRideStatus);
-router.get("/user/:userId", authenticateUser, getUserRides);
+router.get("/history", authenticateUser, getUserRides);
 // router.get("/vehicle-types", authenticateUser, getSavedVehicleTypes);
 
 // Bid-related routes

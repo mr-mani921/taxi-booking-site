@@ -7,9 +7,7 @@ import { setSelectedQuote } from "../store/quoteSlice";
 function Quotes() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { quotes, loading, error, selectedQuote } = useSelector(
-    (state) => state.quote
-  );
+  const { quotes, selectedQuote } = useSelector((state) => state.quote);
 
   // Helper function to convert rating string to numeric value
   const getRatingValue = (rating) => {
@@ -177,8 +175,10 @@ function Quotes() {
                     </span>
 
                     <span>
-                      {quote.pricing?.currency || "GBP"}{" "}
-                      {parseFloat(quote.pricing?.price || 0)?.toFixed(2)}
+                      {quote.displayPrice ||
+                        `£${parseFloat(
+                          quote.pricing?.price || quote.price
+                        ).toFixed(2)}`}
                     </span>
 
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">

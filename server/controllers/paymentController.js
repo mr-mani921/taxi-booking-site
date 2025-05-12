@@ -3,11 +3,14 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const createPaymentIntent = async (req, res) => {
-  const { amount, currency = "usd", description } = req.body;
+  const { amount, currency = "gbp", description } = req.body;
 
   try {
+    // Convert pounds to pence for Stripe (smallest currency unit)
+    const amountInPence = Math.round(amount * 100);
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount,
+      amount: amountInPence,
       currency,
       description,
       capture_method: "manual",

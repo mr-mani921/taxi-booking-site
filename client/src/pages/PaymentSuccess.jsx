@@ -41,7 +41,7 @@ const PaymentSuccess = () => {
     if (!selectedQuote && !location.state?.selectedQuote) {
       navigate("/");
     }
-    console.log("the booking Refference is", bookingReference)
+    console.log("the booking Refference is", bookingReference);
 
     // Reset payment state when component unmounts
     return () => {
@@ -71,7 +71,6 @@ const PaymentSuccess = () => {
     const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
-
 
   return (
     <div className="min-h-screen bg-dark pt-20">
@@ -206,7 +205,7 @@ const PaymentSuccess = () => {
                     <div className="flex justify-between items-center border-b border-gray-700 pb-2">
                       <span className="text-lightGray">Fare</span>
                       <span className="text-white font-medium">
-                        $
+                        £
                         {quote?.pricing?.priceNET?.toFixed(2) ||
                           quote?.price?.toFixed(2) ||
                           "0.00"}

@@ -10,32 +10,6 @@ const API = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor for adding user token
-API.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Userorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor for handling common errors
-API.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Handle userentication errors
-    if (error.response && error.response.status === 401) {
-      // Clear token and redirect to login if needed
-      localStorage.removeItem("token");
-      window.location.href = "/user";
-    }
-    return Promise.reject(error);
-  }
-);
-
 // API endpoints
 const endpoints = {
   // User
@@ -60,21 +34,29 @@ const endpoints = {
     API.post(`/api/payment/capture/`, paymentIntentId),
 
   // Rides
-  getRides: () => API.get("/api/rides/history"),
+  getRides: (queryParams = "") =>
+    API.get(`/api/rides/history${queryParams ? `?${queryParams}` : ""}`),
   getRideById: (id) => API.get(`/api/rides/${id}`),
   bookRide: (data) => API.post("/api/rides/book", data),
   cancelRide: (id) => API.post(`/api/rides/${id}/cancel`),
   rateRide: (id, data) => API.post(`/api/rides/${id}/rate`, data),
   getRideHistory: () => API.get("/api/rides/history"),
   getActiveRides: () => API.get("/api/rides/active"),
+
   // Quotes/Bids
   getPriceEstimate: (data) => API.post("/api/rides/quotes/estimate", data),
   getVendorBids: (data) => API.post("/api/rides/request-bids", data),
   selectBid: (data) => API.post("/api/bids/select", data),
   checkAvailability: (data) => API.post("/api/rides/select-bid", data),
   authorizeBid: (data) => API.post("/api/rides/authorize", data),
-  //Events
-  getEventsHistory: (bookingReference) => API.get(`/api/events/history/${bookingReference}`),
+
+  // Events
+  getEventsHistory: (bookingReference) =>
+    API.get(`/api/events/history/${bookingReference}`),
+
+  // Email Verification
+  sendVerificationCode: () => API.post("/api/verification/send-code"),
+  verifyEmail: (code) => API.post("/api/verification/verify", { code }),
 };
 
 export default endpoints;

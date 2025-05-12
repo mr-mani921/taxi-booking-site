@@ -26,15 +26,25 @@ export const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
-    res.status(201).json({
+    // Get token and cookie info from generateToken
+    const { token, cookieName, cookieOptions, message, statusCode } =
+      generateToken(user, "User Registered successfully", 201);
+
+    // Set the cookie
+    res.cookie(cookieName, token, cookieOptions);
+
+    // Send the response
+    res.status(statusCode).json({
+      success: true,
+      message,
       _id: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
-      token: generateToken(user, "User Registered successfully", 200, res),
+      token,
     });
   } else {
-    res.status(400).json({message: "Invalid user data"});
+    res.status(400).json({ message: "Invalid user data" });
     throw new Error("Invalid user data");
   }
 });
@@ -44,38 +54,62 @@ export const registerUser = asyncHandler(async (req, res) => {
 // @access  Public
 export const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  console.log("got login request");
 
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
-    res.json({
+    // Get token and cookie info from generateToken
+    const { token, cookieName, cookieOptions, message, statusCode } =
+      generateToken(user, "User logged in successfully", 200);
+
+    // Set the cookie
+    res.cookie(cookieName, token, cookieOptions);
+
+    // Send the response
+    res.status(statusCode).json({
+      success: true,
+      message: "User Logged In Successfully",
       _id: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
-      token: generateToken(user, "User logged in successfully", 200, res),
+      token,
     });
   } else {
-    res.status(401);
-    throw new Error("Invalid email or password");
+    res.status(401).json({
+      success: false,
+      message: "Email or Password Incorrect",
+    });
   }
 });
 
-export const logoutUser = asyncHandler(async (req, res, next) => {
+export const logoutUser = asyncHandler(async (req, res) => {
   console.log("request is in the backend logging out");
-  res
-    .status(200)
-    .cookie("userToken", "", {
-      httpOnly: true,
-      secure: true,
-      samesite: "None",
-      path: "/",
-      expires: new Date(0),
-    })
-    .json({
-      success: true,
-      message: "User Logout successfully",
-    });
+
+  // Clear the user token cookie
+  res.cookie("userToken", "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/",
+    expires: new Date(0),
+  });
+
+  // Also clear admin token if exists
+  res.cookie("adminToken", "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/",
+    expires: new Date(0),
+  });
+
+  // Send success response
+  res.status(200).json({
+    success: true,
+    message: "User Logout successfully",
+  });
 });
 
 // @desc    Get user profile

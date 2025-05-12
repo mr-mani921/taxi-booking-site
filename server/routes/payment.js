@@ -5,11 +5,11 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 // Create a payment intent
 router.post("/create-payment-intent", async (req, res) => {
   try {
-    const { amount, currency = "usd" } = req.body;
+    const { amount, currency = "gbp" } = req.body;
 
     // Create a PaymentIntent with the order amount and currency
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: Math.round(amount * 100), // Convert to pence
       currency,
       automatic_payment_methods: {
         enabled: true,

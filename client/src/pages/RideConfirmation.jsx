@@ -235,7 +235,7 @@ const RideConfirmation = () => {
                   <div className="flex justify-between mb-2">
                     <span className="text-gray-300">Base Fare</span>
                     <span className="text-white">
-                      $
+                      £
                       {rideDetails.fare?.baseFare ||
                         rideDetails.price ||
                         "0.00"}
@@ -246,7 +246,7 @@ const RideConfirmation = () => {
                     <div className="flex justify-between mb-2">
                       <span className="text-gray-300">Taxes & Fees</span>
                       <span className="text-white">
-                        ${rideDetails.fare?.taxes || rideDetails.tax || "0.00"}
+                        £{rideDetails.fare?.taxes || rideDetails.tax || "0.00"}
                       </span>
                     </div>
                   )}
@@ -254,7 +254,7 @@ const RideConfirmation = () => {
                   <div className="border-t border-gray-600 my-2 pt-2 flex justify-between font-semibold">
                     <span className="text-white">Total</span>
                     <span className="text-primary">
-                      $
+                      £
                       {rideDetails.fare?.total ||
                         rideDetails.totalPrice ||
                         "0.00"}

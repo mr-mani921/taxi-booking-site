@@ -1,4 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
+import {
+  fetchRides,
+  fetchRideById,
+  bookRide,
+  cancelRide,
+  rateRide,
+} from "./thunks";
 
 const initialState = {
   selectedQuote: null,
@@ -7,6 +14,8 @@ const initialState = {
   bookingStep: "location",
   isLoading: false,
   error: null,
+  rides: [],
+  currentRide: null,
   bookingData: {
     pickupLocation: null,
     dropoffLocation: null,
@@ -55,6 +64,71 @@ const bookingSlice = createSlice({
       state.bookingData.availabilityReference = action.payload;
     },
     resetBookingState: () => initialState,
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchRides.fulfilled, (state, action) => {
+        if (action.payload.append) {
+          state.rides = [...state.rides, ...(action.payload.rides || [])];
+        } else {
+          state.rides = action.payload.rides || [];
+        }
+
+        state.pagination = action.payload.pagination || null;
+      })
+      .addCase(fetchRides.rejected, (state, action) => {
+        state.error = action.payload?.message || "Failed to fetch rides";
+      })
+      .addCase(fetchRideById.fulfilled, (state, action) => {
+        state.currentRide = action.payload;
+
+        if (state.rides && state.rides.length > 0) {
+          const index = state.rides.findIndex(
+            (ride) => ride._id === action.payload._id
+          );
+          if (index !== -1) {
+            state.rides[index] = action.payload;
+          }
+        }
+      })
+      .addCase(bookRide.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.rides = [action.payload, ...(state.rides || [])];
+          state.currentRide = action.payload;
+        }
+      })
+      .addCase(cancelRide.fulfilled, (state, action) => {
+        if (action.payload && state.rides) {
+          const index = state.rides.findIndex(
+            (ride) => ride._id === action.payload._id
+          );
+          if (index !== -1) {
+            state.rides[index] = action.payload;
+          }
+          if (
+            state.currentRide &&
+            state.currentRide._id === action.payload._id
+          ) {
+            state.currentRide = action.payload;
+          }
+        }
+      })
+      .addCase(rateRide.fulfilled, (state, action) => {
+        if (action.payload && state.rides) {
+          const index = state.rides.findIndex(
+            (ride) => ride._id === action.payload._id
+          );
+          if (index !== -1) {
+            state.rides[index] = action.payload;
+          }
+          if (
+            state.currentRide &&
+            state.currentRide._id === action.payload._id
+          ) {
+            state.currentRide = action.payload;
+          }
+        }
+      });
   },
 });
 

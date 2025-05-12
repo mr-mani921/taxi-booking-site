@@ -3,6 +3,8 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   profile: null,
   isAuthenticated: false,
+  isEmailVerified: false,
+  emailVerificationStatus: null, // 'pending', 'success', 'failed'
   preferences: {
     defaultPaymentMethod: null,
     notifications: {
@@ -24,6 +26,9 @@ const userSlice = createSlice({
   reducers: {
     setProfile: (state, action) => {
       state.profile = action.payload;
+      if (action.payload && action.payload.isEmailVerified !== undefined) {
+        state.isEmailVerified = action.payload.isEmailVerified;
+      }
     },
     setIsAuthenticated: (state, action) => {
       state.isAuthenticated = action.payload;
@@ -61,6 +66,12 @@ const userSlice = createSlice({
         (method) => method.id !== action.payload
       );
     },
+    setEmailVerificationStatus: (state, action) => {
+      state.emailVerificationStatus = action.payload;
+    },
+    setIsEmailVerified: (state, action) => {
+      state.isEmailVerified = action.payload;
+    },
     resetUserState: () => initialState,
   },
 });
@@ -76,6 +87,8 @@ export const {
   setPaymentMethods,
   addPaymentMethod,
   removePaymentMethod,
+  setEmailVerificationStatus,
+  setIsEmailVerified,
   resetUserState,
 } = userSlice.actions;
 
