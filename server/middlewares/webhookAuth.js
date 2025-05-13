@@ -1,5 +1,5 @@
-import crypto from "crypto";
-import igoConfig from "../config/igoConfig.js";
+const crypto = require("crypto");
+const igoConfig = require("../config/igoConfig.js");
 
 /**
  * Middleware to verify iGo webhook signatures
@@ -14,8 +14,12 @@ import igoConfig from "../config/igoConfig.js";
  * 3. Apply this middleware to your webhook routes
  */
 
-export const verifyIgoWebhookSignature = (req, res, next) => {
-  console.log("from webhook auth middelware",process.env.SKIP_WEBHOOK_VERIFICATION,process.env.NODE_ENV);
+const verifyIgoWebhookSignature = (req, res, next) => {
+  console.log(
+    "from webhook auth middelware",
+    process.env.SKIP_WEBHOOK_VERIFICATION,
+    process.env.NODE_ENV
+  );
   // Skip verification in development/test mode if configured to do so
   if (
     process.env.NODE_ENV !== "production" &&
@@ -111,11 +115,16 @@ export const verifyIgoWebhookSignature = (req, res, next) => {
  * Apply additional rate limiting specifically for webhooks
  * to prevent abuse of the webhook endpoint
  */
-export const webhookRateLimit = (req, res, next) => {
+const webhookRateLimit = (req, res, next) => {
   // Implement rate limiting logic here or use a library like express-rate-limit
   // This is a simplified placeholder implementation
   const MAX_REQUESTS_PER_MINUTE = 60; // Adjust based on expected load
 
   // Use a more sophisticated rate limiter in production
   next();
+};
+
+module.exports = {
+  verifyIgoWebhookSignature,
+  webhookRateLimit,
 };

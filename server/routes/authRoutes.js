@@ -1,6 +1,6 @@
-import express from "express";
-import passport from "passport";
-import generateToken from "../utils/generateToken.js";
+const express = require("express");
+const passport = require("passport");
+const generateToken = require("../utils/generateToken.js");
 
 const router = express.Router();
 
@@ -78,4 +78,4 @@ router.get(
   }
 );
 
-export default router;
+module.exports = router;

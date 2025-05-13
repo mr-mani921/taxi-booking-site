@@ -1,10 +1,10 @@
-import asyncHandler from "express-async-handler";
-import User from "../models/User.js";
-import generateToken from "../utils/generateToken.js";
-import {
+const asyncHandler = require("express-async-handler");
+const User = require("../models/User.js");
+const generateToken = require("../utils/generateToken.js");
+const {
   generateVerificationCode,
   sendVerificationEmail,
-} from "../utils/emailVerification.js";
+} = require("../utils/emailVerification.js");
 
 // Store temporary user data with OTP (in memory - for production, use Redis or a database)
 const pendingUsers = new Map();
@@ -13,7 +13,7 @@ const pendingLogins = new Map();
 // @desc    Register a new user (without immediate authentication)
 // @route   POST /api/users/register
 // @access  Public
-export const registerUser = asyncHandler(async (req, res) => {
+const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
 
   // Check if user exists
@@ -60,7 +60,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 // @desc    Authenticate user (without immediate token generation)
 // @route   POST /api/users/login
 // @access  Public
-export const authUser = asyncHandler(async (req, res) => {
+const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
@@ -105,7 +105,7 @@ export const authUser = asyncHandler(async (req, res) => {
 // @desc    Verify OTP and complete authentication
 // @route   POST /api/users/verify-otp
 // @access  Public
-export const verifyOTP = asyncHandler(async (req, res) => {
+const verifyOTP = asyncHandler(async (req, res) => {
   const { email, otp, isRegistration } = req.body;
 
   if (!email || !otp) {
@@ -258,7 +258,7 @@ export const verifyOTP = asyncHandler(async (req, res) => {
 // @desc    Resend OTP
 // @route   POST /api/users/resend-otp
 // @access  Public
-export const resendOTP = asyncHandler(async (req, res) => {
+const resendOTP = asyncHandler(async (req, res) => {
   const { email, isRegistration } = req.body;
 
   if (!email) {
@@ -268,42 +268,39 @@ export const resendOTP = asyncHandler(async (req, res) => {
     });
   }
 
+  // Get the pending user or login
+  const pendingData = isRegistration
+    ? pendingUsers.get(email)
+    : pendingLogins.get(email);
+
+  if (!pendingData) {
+    return res.status(400).json({
+      success: false,
+      message: "No pending verification found",
+    });
+  }
+
   // Generate new OTP
   const verificationCode = generateVerificationCode();
   const verificationCodeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
+  // Update the stored data
   if (isRegistration) {
-    // Check if there's a pending registration
-    const pendingUser = pendingUsers.get(email);
-    if (!pendingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "No pending registration found",
-      });
-    }
-
-    // Update verification code
-    pendingUser.verificationCode = verificationCode;
-    pendingUser.verificationCodeExpires = verificationCodeExpires;
-    pendingUsers.set(email, pendingUser);
+    pendingUsers.set(email, {
+      ...pendingData,
+      verificationCode,
+      verificationCodeExpires,
+    });
   } else {
-    // Check if there's a pending login
-    const pendingLogin = pendingLogins.get(email);
-    if (!pendingLogin) {
-      return res.status(400).json({
-        success: false,
-        message: "No pending login found",
-      });
-    }
-
-    // Reset attempts and update verification code
-    pendingLogin.attempts = 0;
-    pendingLogin.verificationCode = verificationCode;
-    pendingLogin.verificationCodeExpires = verificationCodeExpires;
-    pendingLogins.set(email, pendingLogin);
+    pendingLogins.set(email, {
+      ...pendingData,
+      verificationCode,
+      verificationCodeExpires,
+      attempts: 0, // Reset attempts
+    });
   }
 
-  // Send OTP to user's email
+  // Send new OTP
   const emailSent = await sendVerificationEmail(email, verificationCode);
 
   if (!emailSent) {
@@ -316,39 +313,35 @@ export const resendOTP = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "New verification code sent to your email",
+    email,
   });
 });
 
-export const logoutUser = asyncHandler(async (req, res) => {
-  // Clear the user token cookie
+// @desc    Logout user
+// @route   GET /api/users/logout
+// @access  Public
+const logoutUser = asyncHandler(async (req, res) => {
+  // Clear user token cookie and admin token cookie
   res.cookie("userToken", "", {
     httpOnly: true,
-    secure: true,
-    sameSite: "None",
-    path: "/",
     expires: new Date(0),
   });
 
-  // Also clear admin token if exists
   res.cookie("adminToken", "", {
     httpOnly: true,
-    secure: true,
-    sameSite: "None",
-    path: "/",
     expires: new Date(0),
   });
 
-  // Send success response
   res.status(200).json({
     success: true,
-    message: "User Logout successfully",
+    message: "Logged out successfully",
   });
 });
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
 // @access  Private
-export const getUserProfile = asyncHandler(async (req, res) => {
+const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
@@ -364,3 +357,11 @@ export const getUserProfile = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 });
+
+module.exports = {
+  registerUser,
+  authUser,
+  verifyOTP,
+  resendOTP,
+  logoutUser,
+};

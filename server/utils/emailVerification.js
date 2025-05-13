@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+const nodemailer = require("nodemailer");
 
 // Create a transporter using SMTP
 const transporter = nodemailer.createTransport({
@@ -10,12 +10,12 @@ const transporter = nodemailer.createTransport({
 });
 
 // Generate a random 6-digit verification code
-export const generateVerificationCode = () => {
+const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 // Send verification email
-export const sendVerificationEmail = async (email, verificationCode) => {
+const sendVerificationEmail = async (email, verificationCode) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
@@ -35,4 +35,9 @@ export const sendVerificationEmail = async (email, verificationCode) => {
     console.error("Error sending verification email:", error);
     return false;
   }
+};
+
+module.exports = {
+  generateVerificationCode,
+  sendVerificationEmail,
 };

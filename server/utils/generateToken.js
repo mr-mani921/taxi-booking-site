@@ -22,4 +22,4 @@ const generateToken = (user, message, statusCode) => {
   };
 };
 
-export default generateToken;
+module.exports = generateToken;

@@ -1,4 +1,4 @@
-import {
+const {
   sendIgoRequest,
   buildXmlRequest,
   buildAgentSection,
@@ -12,19 +12,19 @@ import {
   requestBids,
   checkAvailability,
   sendRideAuthorizationRequest,
-} from "../services/igoService.js";
-import Ride from "../models/Ride.js";
-import igoConfig from "../config/igoConfig.js";
-import Bid from "../models/Bid.js";
-import Stripe from "stripe";
-import User from "../models/User.js";
+} = require("../services/igoService.js");
+const Ride = require("../models/Ride.js");
+const igoConfig = require("../config/igoConfig.js");
+const Bid = require("../models/Bid.js");
+const Stripe = require("stripe");
+const User = require("../models/User.js");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 /**
  * Get price estimate for a ride
  */
-export const getPriceEstimate = async (req, res) => {
+const getPriceEstimate = async (req, res) => {
   try {
     const {
       pickupLocation,
@@ -523,7 +523,7 @@ export const getPriceEstimate = async (req, res) => {
 /**
  * Book a ride
  */
-export const bookRide = async (req, res) => {
+const bookRide = async (req, res) => {
   try {
     const {
       userId,
@@ -791,7 +791,7 @@ const processUpfrontPayment = async (ride, paymentToken) => {
 /**
  * Get ride status
  */
-export const getRideStatus = async (req, res) => {
+const getRideStatus = async (req, res) => {
   try {
     const { bookingId } = req.params;
 
@@ -890,7 +890,7 @@ export const getRideStatus = async (req, res) => {
 /**
  * Get user rides
  */
-export const getUserRides = async (req, res) => {
+const getUserRides = async (req, res) => {
   try {
     console.log("Fetching rides history...");
     const userId = req.user?._id;
@@ -975,7 +975,7 @@ export const getUserRides = async (req, res) => {
 /**
  * Cancel a ride
  */
-export const cancelRide = async (req, res) => {
+const cancelRide = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const { cancellationReason } = req.body;
@@ -1053,7 +1053,7 @@ export const cancelRide = async (req, res) => {
 /**
  * Handle iGo webhook events
  */
-export const handleIgoWebhook = async (req, res) => {
+const handleIgoWebhook = async (req, res) => {
   try {
     // Enhanced logging for webhook events
     console.log("iGo Webhook received:", {
@@ -1168,7 +1168,7 @@ export const handleIgoWebhook = async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Promise<void>}
  */
-export const requestVendorBids = async (req, res) => {
+const requestVendorBids = async (req, res) => {
   try {
     const {
       pickupLocation,
@@ -1331,7 +1331,7 @@ export const requestVendorBids = async (req, res) => {
   }
 };
 
-export const authorizeBooking = async (req, res) => {
+const authorizeBooking = async (req, res) => {
   try {
     const {
       bidReference,
@@ -1498,7 +1498,7 @@ export const authorizeBooking = async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Promise<void>}
  */
-export const getBidsByReference = async (req, res) => {
+const getBidsByReference = async (req, res) => {
   try {
     const { bidReference } = req.params;
     const userId = req.user?._id;
@@ -1548,7 +1548,7 @@ export const getBidsByReference = async (req, res) => {
  * @param {Object} res - Express response object
  * @returns {Promise<void>}
  */
-export const selectBid = async (req, res) => {
+const selectBid = async (req, res) => {
   try {
     const { bidReference, vendorId } = req.body;
     const userId = req.user?._id;
@@ -1663,7 +1663,7 @@ export const selectBid = async (req, res) => {
  * Process payment for a completed ride
  * @route POST /api/rides/:id/payment
  */
-export const processPayment = async (req, res) => {
+const processPayment = async (req, res) => {
   try {
     const { id } = req.params;
     const { paymentToken, cardDetails } = req.body;
@@ -1849,7 +1849,7 @@ const processCardPayment = async (amount, cardToken, description) => {
  * Request a bill for a completed ride
  * @route GET /api/rides/:id/bill
  */
-export const requestBill = async (req, res) => {
+const requestBill = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -1919,7 +1919,7 @@ export const requestBill = async (req, res) => {
  * Get receipt for a completed and paid ride
  * @route GET /api/rides/:id/receipt
  */
-export const getReceipt = async (req, res) => {
+const getReceipt = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -1992,4 +1992,20 @@ export const getReceipt = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+module.exports = {
+  getPriceEstimate,
+  bookRide,
+  getRideStatus,
+  cancelRide,
+  handleIgoWebhook,
+  getUserRides,
+  requestVendorBids,
+  getBidsByReference,
+  selectBid,
+  processPayment,
+  requestBill,
+  getReceipt,
+  authorizeBooking,
 };

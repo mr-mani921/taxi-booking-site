@@ -1,9 +1,9 @@
-import express from "express";
-import { authenticateUser } from "../middlewares/authMiddleware.js";
-import {
+const express = require("express");
+const { authenticateUser } = require("../middlewares/authMiddleware.js");
+const {
   sendVerificationCode,
   verifyEmail,
-} from "../controllers/verificationController.js";
+} = require("../controllers/verificationController.js");
 
 const router = express.Router();
 
@@ -17,4 +17,4 @@ router.post("/send-code", authenticateUser, sendVerificationCode);
 // @access  Private
 router.post("/verify", authenticateUser, verifyEmail);
 
-export default router;
+module.exports = router;

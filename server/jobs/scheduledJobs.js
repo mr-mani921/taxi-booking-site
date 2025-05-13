@@ -1,11 +1,11 @@
-import cron from "node-cron";
-import {
+const cron = require("node-cron");
+const {
   processVendorSettlements,
   generateFinancialReport,
-} from "../services/paymentSettlementService.js";
-import Ride from "../models/Ride.js";
-import { sendIgoRequest } from "../services/igoService.js";
-import igoConfig from "../config/igoConfig.js";
+} = require("../services/paymentSettlementService.js");
+const Ride = require("../models/Ride.js");
+const { sendIgoRequest } = require("../services/igoService.js");
+const igoConfig = require("../config/igoConfig.js");
 
 /**
  * Scheduled Jobs Service
@@ -30,7 +30,7 @@ const SCHEDULES = {
 /**
  * Initialize all scheduled jobs
  */
-export const initScheduledJobs = () => {
+const initScheduledJobs = () => {
   // Skip scheduling in test environment
   if (process.env.NODE_ENV === "test") {
     console.log("Skipping scheduled jobs in test environment");
@@ -169,4 +169,9 @@ export const initScheduledJobs = () => {
 };
 
 // Export schedules for testing and debugging
-export const JobSchedules = SCHEDULES;
+const JobSchedules = SCHEDULES;
+
+module.exports = {
+  initScheduledJobs,
+  JobSchedules,
+};

@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-import igoConfig from "../config/igoConfig.js";
+const mongoose = require("mongoose");
+const igoConfig = require("../config/igoConfig.js");
 
 const passengerSchema = new mongoose.Schema(
   {
@@ -247,4 +247,4 @@ rideSchema.methods.updateFromIgoEvent = function (eventType, eventData) {
 };
 
 const Ride = mongoose.model("Ride", rideSchema);
-export default Ride;
+module.exports = Ride;

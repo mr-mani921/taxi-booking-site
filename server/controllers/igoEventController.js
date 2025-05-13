@@ -1,18 +1,20 @@
-import { parseStringPromise, Builder } from "xml2js";
-import Ride from "../models/Ride.js";
-import igoConfig from "../config/igoConfig.js";
-import {
+const { parseStringPromise, Builder } = require("xml2js");
+const Ride = require("../models/Ride.js");
+const igoConfig = require("../config/igoConfig.js");
+const {
   emitRideUpdate,
   emitDriverLocation,
-} from "../services/socketService.js";
-import EventHistory from "../models/EventHistory.js";
-import { handleIgoEvent as processIgoEvent } from "../services/igoService.js";
+} = require("../services/socketService.js");
+const EventHistory = require("../models/EventHistory.js");
+const {
+  handleIgoEvent: processIgoEvent,
+} = require("../services/igoService.js");
 
 /**
  * Main handler for iGo events
  * Processes incoming XML events from iGo and returns appropriate XML responses
  */
-export const handleIgoEvent = async (req, res) => {
+const handleIgoEvent = async (req, res) => {
   try {
     const { eventName } = req.params;
     let authRef = req.headers["x-authorization-reference"];
@@ -92,7 +94,7 @@ export const handleIgoEvent = async (req, res) => {
  * Simulate iGo events for testing
  * Allows frontend to trigger test events
  */
-export const simulateIgoEvent = async (req, res) => {
+const simulateIgoEvent = async (req, res) => {
   try {
     const { eventType } = req.params;
     const { bookingReference, authorizationReference, eventData } = req.body;
@@ -142,7 +144,7 @@ export const simulateIgoEvent = async (req, res) => {
 /**
  * Get event history for a booking
  */
-export const getEventHistory = async (req, res) => {
+const getEventHistory = async (req, res) => {
   try {
     const { bookingReference } = req.params;
 
@@ -258,7 +260,7 @@ const buildErrorResponse = (eventType, errorMessage) => {
       Result: {
         Success: "false",
         FailureReason: errorMessage,
-        FailureCode: "EVENT_PROCESSING_ERROR",
+        FailureCode: "SYSTEM_ERROR",
       },
     },
   };
@@ -267,91 +269,33 @@ const buildErrorResponse = (eventType, errorMessage) => {
 };
 
 /**
- * Build mock event data for simulation
+ * Build mock event data for testing
  */
 const buildMockEvent = (eventType, ride, additionalData = {}) => {
-  const baseEvent = {
-    AuthorizationReference: ride.igoAuthorizationReference,
-    BookingReference: ride.bookingReference,
-    VendorId: igoConfig.vendorId,
-    Time: new Date().toISOString(),
+  const mockEvent = {};
+  const eventRequestType = eventType + "Request";
+
+  mockEvent[eventRequestType] = {
+    Agent: {
+      Id: igoConfig.agentId,
+      Password: igoConfig.agentPassword,
+      Reference: `AgentRef_${Date.now()}`,
+      Time: new Date().toISOString(),
+    },
+    Vendor: {
+      Id: igoConfig.vendorId,
+    },
+    BookingReference: ride.bookingReference || `MOCK_BOOKING_${Date.now()}`,
+    AuthorizationReference:
+      ride.igoAuthorizationReference || `MOCK_AUTH_${Date.now()}`,
+    ...additionalData,
   };
 
-  switch (eventType) {
-    case igoConfig.eventTypes.DISPATCHED:
-      return {
-        ...baseEvent,
-        Driver: {
-          Name: additionalData.driverName || "Test Driver",
-          TelephoneNumber: additionalData.driverPhone || "+1234567890",
-          VehicleDetails: {
-            Make: additionalData.vehicleMake || "Toyota",
-            Model: additionalData.vehicleModel || "Camry",
-            Color: additionalData.vehicleColor || "Black",
-            RegistrationNumber: additionalData.vehicleReg || "TEST123",
-          },
-        },
-        ...additionalData,
-      };
+  return mockEvent;
+};
 
-    case igoConfig.eventTypes.DRIVER_ASSIGNED:
-      return {
-        ...baseEvent,
-        Driver: {
-          Name: additionalData.driverName || "Test Driver",
-          TelephoneNumber: additionalData.driverPhone || "+1234567890",
-          LicenseNumber: additionalData.licenseNumber || "DL12345",
-          Rating: additionalData.rating || "4.8",
-          VehicleDetails: {
-            Make: additionalData.vehicleMake || "Toyota",
-            Model: additionalData.vehicleModel || "Camry",
-            Color: additionalData.vehicleColor || "Black",
-            RegistrationNumber: additionalData.vehicleReg || "TEST123",
-          },
-        },
-        EstimatedArrivalTime:
-          additionalData.eta || new Date(Date.now() + 10 * 60000).toISOString(),
-        ...additionalData,
-      };
-
-    case igoConfig.eventTypes.DRIVER_ARRIVED:
-      return {
-        ...baseEvent,
-        ...additionalData,
-      };
-
-    case igoConfig.eventTypes.JOURNEY_STARTED:
-      return {
-        ...baseEvent,
-        ...additionalData,
-      };
-
-    case igoConfig.eventTypes.JOURNEY_COMPLETED:
-    case igoConfig.eventTypes.COMPLETED:
-      return {
-        ...baseEvent,
-        FinalFare: additionalData.finalFare || ride.fare || "45.00",
-        ...additionalData,
-      };
-
-    case igoConfig.eventTypes.CANCELLED:
-      return {
-        ...baseEvent,
-        Reason: additionalData.reason || "Cancelled by testing",
-        ...additionalData,
-      };
-
-    case igoConfig.eventTypes.FAILED:
-      return {
-        ...baseEvent,
-        Reason: additionalData.reason || "Failed by testing",
-        ...additionalData,
-      };
-
-    default:
-      return {
-        ...baseEvent,
-        ...additionalData,
-      };
-  }
+module.exports = {
+  handleIgoEvent,
+  simulateIgoEvent,
+  getEventHistory,
 };

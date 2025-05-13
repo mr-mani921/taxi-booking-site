@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+const User = require("../models/User.js");
 
 /**
  * Notification service for sending various types of notifications to users
@@ -36,12 +36,7 @@ const NOTIFICATION_TYPES = {
  * @param {Array} channels - Channels to send notification through, defaults to user preferences
  * @returns {Promise<Object>} - Result of the notification operation
  */
-export const sendUserNotification = async (
-  userId,
-  type,
-  data,
-  channels = null
-) => {
+const sendUserNotification = async (userId, type, data, channels = null) => {
   try {
     // Get user details including notification preferences
     const user = await User.findById(userId);
@@ -100,11 +95,7 @@ export const sendUserNotification = async (
  * @param {Object} eventData - Data related to the event
  * @returns {Promise<Object>} - Result of the notification operation
  */
-export const sendRideStatusNotification = async (
-  ride,
-  eventType,
-  eventData
-) => {
+const sendRideStatusNotification = async (ride, eventType, eventData) => {
   if (!ride || !ride.user) {
     console.error(
       "Cannot send ride status notification: Invalid ride or missing user"
@@ -198,16 +189,27 @@ const prepareNotificationData = (ride, eventType, eventData) => {
         fare: ride.finalFare || ride.fare,
         message: "Your journey has been completed",
         paymentRequired:
-          ride.paymentPoint === "END_OF_JOURNEY" &&
-          ride.paymentStatus !== "PAID",
+          ride.paymentPoint === "EndOfJourney" && ride.paymentStatus !== "PAID",
+      };
+
+    case "booking.cancelled":
+      return {
+        ...baseData,
+        reason: ride.cancellationReason || "Unknown reason",
+        message: `Your booking has been cancelled. Reason: ${
+          ride.cancellationReason || "Unknown reason"
+        }`,
       };
 
     case "payment.processed":
       return {
         ...baseData,
         amount: ride.finalFare || ride.fare,
-        paymentMethod: ride.paymentMethod,
-        receiptAvailable: true,
+        paymentMethod: ride.paymentMethod || "Unknown",
+        transactionReference: ride.paymentTransactionReference || "Unknown",
+        message: `Payment of ${
+          ride.finalFare || ride.fare
+        } has been processed successfully`,
       };
 
     default:
@@ -216,24 +218,24 @@ const prepareNotificationData = (ride, eventType, eventData) => {
 };
 
 /**
- * Get user's preferred notification channels based on settings and notification type
+ * Get user's preferred notification channels based on notification type
+ * This would typically be stored in user preferences
  */
 const getUserPreferredChannels = (user, notificationType) => {
-  // Default channels if user has no preferences
-  const defaultChannels = [CHANNELS.EMAIL, CHANNELS.IN_APP];
+  // In a real application, this would check user preferences
+  // For now, we'll use default channels based on notification type
+  const importantNotifications = [
+    NOTIFICATION_TYPES.DRIVER_ARRIVED,
+    NOTIFICATION_TYPES.BOOKING_CANCELLED,
+  ];
 
-  // If user has notification preferences, use those
-  if (user.notificationPreferences) {
-    const preferences =
-      user.notificationPreferences[notificationType] ||
-      user.notificationPreferences.default;
-
-    if (preferences) {
-      return preferences.channels || defaultChannels;
-    }
+  if (importantNotifications.includes(notificationType)) {
+    // For important notifications, use multiple channels
+    return [CHANNELS.EMAIL, CHANNELS.SMS, CHANNELS.IN_APP];
   }
 
-  return defaultChannels;
+  // For other notifications, just use email and in-app
+  return [CHANNELS.EMAIL, CHANNELS.IN_APP];
 };
 
 /**
@@ -242,16 +244,24 @@ const getUserPreferredChannels = (user, notificationType) => {
 const sendThroughChannel = async (channel, user, type, data) => {
   switch (channel) {
     case CHANNELS.EMAIL:
-      return sendEmailNotification(user.email, type, data);
+      return await sendEmailNotification(user.email, type, data);
 
     case CHANNELS.SMS:
-      return sendSmsNotification(user.phone, type, data);
+      // Only send SMS if user has a phone number
+      if (user.phone) {
+        return await sendSmsNotification(user.phone, type, data);
+      }
+      throw new Error("User has no phone number for SMS notification");
 
     case CHANNELS.PUSH:
-      return sendPushNotification(user.deviceTokens, type, data);
+      // This would require device tokens to be stored on the user
+      if (user.deviceTokens && user.deviceTokens.length > 0) {
+        return await sendPushNotification(user.deviceTokens, type, data);
+      }
+      throw new Error("User has no device tokens for push notification");
 
     case CHANNELS.IN_APP:
-      return saveInAppNotification(user._id, type, data);
+      return await saveInAppNotification(user._id, type, data);
 
     default:
       throw new Error(`Unsupported notification channel: ${channel}`);
@@ -259,95 +269,112 @@ const sendThroughChannel = async (channel, user, type, data) => {
 };
 
 /**
- * Send an email notification
- * In production, integrate with SendGrid, Mailgun, AWS SES, etc.
+ * Send email notification
  */
 const sendEmailNotification = async (email, type, data) => {
-  // Log the email we would send in production
-  console.log(`[EMAIL NOTIFICATION] To: ${email}, Type: ${type}`, data);
+  // This is a stub - in a real application, you would integrate with your email service
+  console.log(`[EMAIL NOTIFICATION] To: ${email}, Type: ${type}`);
+  console.log(`[EMAIL NOTIFICATION] Data:`, data);
 
-  // In production, uncomment and implement actual email sending
-  // const emailService = new EmailService();
-  // return emailService.send(email, getEmailTemplate(type), data);
-
-  // For demo purposes
-  return { id: `email_${Date.now()}`, channel: CHANNELS.EMAIL };
+  // Mock a successful email send
+  return {
+    messageId: `mock_email_${Date.now()}`,
+    sentAt: new Date(),
+  };
 };
 
 /**
- * Send an SMS notification
- * In production, integrate with Twilio, Nexmo, etc.
+ * Send SMS notification
  */
 const sendSmsNotification = async (phone, type, data) => {
-  // Log the SMS we would send in production
-  console.log(`[SMS NOTIFICATION] To: ${phone}, Type: ${type}`, data);
+  // This is a stub - in a real application, you would integrate with your SMS service
+  console.log(`[SMS NOTIFICATION] To: ${phone}, Type: ${type}`);
+  console.log(`[SMS NOTIFICATION] Data:`, data);
 
-  // In production, uncomment and implement actual SMS sending
-  // const smsService = new SmsService();
-  // return smsService.send(phone, getSmsTemplate(type), data);
-
-  // For demo purposes
-  return { id: `sms_${Date.now()}`, channel: CHANNELS.SMS };
+  // Mock a successful SMS send
+  return {
+    messageId: `mock_sms_${Date.now()}`,
+    sentAt: new Date(),
+  };
 };
 
 /**
- * Send a push notification
- * In production, integrate with Firebase Cloud Messaging, OneSignal, etc.
+ * Send push notification
  */
 const sendPushNotification = async (deviceTokens, type, data) => {
-  if (!deviceTokens || deviceTokens.length === 0) {
-    throw new Error("No device tokens available for push notification");
+  // This is a stub - in a real application, you would integrate with your push notification service
+  console.log(
+    `[PUSH NOTIFICATION] To: ${deviceTokens.length} devices, Type: ${type}`
+  );
+  console.log(`[PUSH NOTIFICATION] Data:`, data);
+
+  // Prepare notification title and body based on type
+  let title = "Taxi Booking";
+  let body = "You have a new notification";
+
+  switch (type) {
+    case NOTIFICATION_TYPES.DRIVER_ASSIGNED:
+      title = "Driver Assigned";
+      body = `${data.driverName} will arrive in approximately ${data.eta} minutes`;
+      break;
+    case NOTIFICATION_TYPES.DRIVER_ARRIVED:
+      title = "Driver Has Arrived";
+      body = `Your driver ${data.driverName} has arrived at the pickup location`;
+      break;
+    // Add cases for other notification types
   }
 
-  // Log the push notification we would send in production
-  console.log(
-    `[PUSH NOTIFICATION] To: ${deviceTokens.length} devices, Type: ${type}`,
-    data
-  );
-
-  // In production, uncomment and implement actual push notification sending
-  // const pushService = new PushNotificationService();
-  // return pushService.send(deviceTokens, getPushTitle(type), getPushBody(type, data), data);
-
-  // For demo purposes
-  return { id: `push_${Date.now()}`, channel: CHANNELS.PUSH };
+  // Mock a successful push notification send
+  return {
+    messageId: `mock_push_${Date.now()}`,
+    sentAt: new Date(),
+    title,
+    body,
+  };
 };
 
 /**
- * Save an in-app notification for the user to see when they log in
+ * Save in-app notification for later retrieval
  */
 const saveInAppNotification = async (userId, type, data) => {
-  // Log the in-app notification we would save in production
-  console.log(`[IN-APP NOTIFICATION] For user: ${userId}, Type: ${type}`, data);
+  // This is a stub - in a real application, you would save to your database
+  console.log(`[IN-APP NOTIFICATION] For user: ${userId}, Type: ${type}`);
+  console.log(`[IN-APP NOTIFICATION] Data:`, data);
 
-  // In production, implement actual in-app notification saving to database
-  // const notification = new InAppNotification({
-  //   user: userId,
-  //   type,
-  //   data,
-  //   read: false,
-  //   createdAt: new Date()
-  // });
-  // await notification.save();
+  // Determine notification message based on type
+  let message = "You have a new notification";
+  switch (type) {
+    case NOTIFICATION_TYPES.BOOKING_CONFIRMED:
+      message = "Your booking has been confirmed";
+      break;
+    case NOTIFICATION_TYPES.DRIVER_ARRIVED:
+      message = "Your driver has arrived at the pickup location";
+      break;
+    // Add cases for other notification types
+  }
 
-  // For demo purposes
-  return { id: `in_app_${Date.now()}`, channel: CHANNELS.IN_APP };
+  // Mock a successful in-app notification save
+  return {
+    notificationId: `mock_inapp_${Date.now()}`,
+    createdAt: new Date(),
+    message,
+    read: false,
+  };
 };
 
 /**
- * Log the notification for record-keeping and analytics
+ * Log notification for record-keeping
  */
 const logNotification = (userId, type, data, results) => {
-  // In production, store notification logs in the database
-  // For now, just log to console
-  console.log(`[NOTIFICATION LOG] ${type} notification for user ${userId}:`, {
-    timestamp: new Date(),
-    channels: Object.keys(results.channels),
-    success: results.success,
-    data: JSON.stringify(data),
-  });
+  // This is a stub - in a real application, you would log to your database
+  console.log(
+    `[NOTIFICATION LOG] User: ${userId}, Type: ${type}, Success: ${results.success}`
+  );
 };
 
-// Export constants for use throughout the application
-export const NotificationChannels = CHANNELS;
-export const NotificationTypes = NOTIFICATION_TYPES;
+module.exports = {
+  CHANNELS,
+  NOTIFICATION_TYPES,
+  sendUserNotification,
+  sendRideStatusNotification,
+};

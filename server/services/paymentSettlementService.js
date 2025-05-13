@@ -1,13 +1,9 @@
-import Ride from "../models/Ride.js";
-import Stripe from "stripe";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+const Ride = require("../models/Ride.js");
+const Stripe = require("stripe");
+const fs = require("fs");
+const path = require("path");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-// Get the directory name of the current module
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Payment Settlement Service
@@ -27,11 +23,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * @param {Boolean} dryRun - If true, only generate report without making actual transfers
  * @returns {Object} Settlement report with summary and details
  */
-export const processVendorSettlements = async (
-  startDate,
-  endDate,
-  dryRun = false
-) => {
+const processVendorSettlements = async (startDate, endDate, dryRun = false) => {
   try {
     // Get all completed and paid rides within the date range
     // that haven't been settled with vendors yet
@@ -181,7 +173,7 @@ export const processVendorSettlements = async (
  * @param {Date} endDate - End date for report period
  * @returns {Object} Financial report with summary metrics
  */
-export const generateFinancialReport = async (startDate, endDate) => {
+const generateFinancialReport = async (startDate, endDate) => {
   try {
     // Get all rides in the date range
     const rides = await Ride.find({
@@ -203,26 +195,19 @@ export const generateFinancialReport = async (startDate, endDate) => {
       0
     );
 
-    const vendorPayouts = paidRides.reduce(
+    const vendorPayments = paidRides.reduce(
       (sum, ride) => sum + (ride.commissionDetails?.vendorAmount || 0),
       0
     );
 
-    // Group by payment methods
-    const paymentMethods = {};
-    for (const ride of paidRides) {
-      const method = ride.paymentMethod || "UNKNOWN";
-      if (!paymentMethods[method]) {
-        paymentMethods[method] = {
-          count: 0,
-          amount: 0,
-        };
-      }
-      paymentMethods[method].count += 1;
-      paymentMethods[method].amount += ride.finalFare || ride.fare || 0;
-    }
+    const cancellationCharges = cancelledRides.reduce(
+      (sum, ride) =>
+        sum +
+        (ride.paymentStatus === "PAID" ? ride.finalFare || ride.fare || 0 : 0),
+      0
+    );
 
-    // Summary report
+    // Generate the financial report object
     const report = {
       periodStart: startDate,
       periodEnd: endDate,
@@ -234,26 +219,20 @@ export const generateFinancialReport = async (startDate, endDate) => {
         paidRides: paidRides.length,
         grossBookingValue: parseFloat(grossBookingValue.toFixed(2)),
         platformCommission: parseFloat(platformCommission.toFixed(2)),
-        vendorPayouts: parseFloat(vendorPayouts.toFixed(2)),
-        platformMargin:
-          grossBookingValue > 0
-            ? parseFloat(
-                ((platformCommission / grossBookingValue) * 100).toFixed(2)
-              )
-            : 0,
+        vendorPayments: parseFloat(vendorPayments.toFixed(2)),
+        cancellationCharges: parseFloat(cancellationCharges.toFixed(2)),
+        platformGrossRevenue: parseFloat(
+          (platformCommission + cancellationCharges).toFixed(2)
+        ),
       },
-      paymentMethods: Object.entries(paymentMethods).map(([method, data]) => ({
-        method,
-        count: data.count,
-        amount: parseFloat(data.amount.toFixed(2)),
-        percentage:
-          grossBookingValue > 0
-            ? parseFloat(((data.amount / grossBookingValue) * 100).toFixed(2))
-            : 0,
-      })),
+      details: {
+        dailyStats: calculateDailyStats(rides, startDate, endDate),
+        paymentMethodStats: calculatePaymentMethodStats(paidRides),
+        vendorStats: calculateVendorStats(completedRides),
+      },
     };
 
-    // Generate and save report
+    // Save the report to a file
     const reportFileName = `financial_report_${
       startDate.toISOString().split("T")[0]
     }_to_${endDate.toISOString().split("T")[0]}.json`;
@@ -273,44 +252,149 @@ export const generateFinancialReport = async (startDate, endDate) => {
     return {
       success: false,
       error: error.message,
-      periodStart: startDate,
-      periodEnd: endDate,
     };
   }
 };
 
 /**
- * Get settlement status for a specific ride
- *
- * @param {string} rideId - ID of the ride
- * @returns {Object} Settlement status and details
+ * Calculate daily statistics for the financial report
  */
-export const getRideSettlementStatus = async (rideId) => {
-  try {
-    const ride = await Ride.findById(rideId);
-    if (!ride) {
-      return { success: false, message: "Ride not found" };
+const calculateDailyStats = (rides, startDate, endDate) => {
+  const dailyStats = {};
+  const currentDate = new Date(startDate);
+  const endDateCopy = new Date(endDate);
+
+  // Initialize all days in the range
+  while (currentDate <= endDateCopy) {
+    const dateKey = currentDate.toISOString().split("T")[0];
+    dailyStats[dateKey] = {
+      date: dateKey,
+      totalRides: 0,
+      completedRides: 0,
+      cancelledRides: 0,
+      grossBookingValue: 0,
+      platformCommission: 0,
+    };
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // Populate with actual data
+  rides.forEach((ride) => {
+    const rideDate = new Date(ride.createdAt);
+    const dateKey = rideDate.toISOString().split("T")[0];
+
+    if (dailyStats[dateKey]) {
+      dailyStats[dateKey].totalRides++;
+
+      if (ride.status === "COMPLETED") {
+        dailyStats[dateKey].completedRides++;
+      } else if (ride.status === "CANCELLED") {
+        dailyStats[dateKey].cancelledRides++;
+      }
+
+      if (ride.paymentStatus === "PAID") {
+        dailyStats[dateKey].grossBookingValue +=
+          ride.finalFare || ride.fare || 0;
+        dailyStats[dateKey].platformCommission +=
+          ride.commissionDetails?.commissionAmount || 0;
+      }
+    }
+  });
+
+  // Convert object to array for easier consumption
+  return Object.values(dailyStats);
+};
+
+/**
+ * Calculate payment method statistics for the financial report
+ */
+const calculatePaymentMethodStats = (paidRides) => {
+  const stats = {};
+
+  paidRides.forEach((ride) => {
+    const method = ride.paymentMethod || "UNKNOWN";
+
+    if (!stats[method]) {
+      stats[method] = {
+        paymentMethod: method,
+        count: 0,
+        totalAmount: 0,
+      };
     }
 
-    // Return settlement status
+    stats[method].count++;
+    stats[method].totalAmount += ride.finalFare || ride.fare || 0;
+  });
+
+  return Object.values(stats);
+};
+
+/**
+ * Calculate vendor statistics for the financial report
+ */
+const calculateVendorStats = (completedRides) => {
+  const stats = {};
+
+  completedRides.forEach((ride) => {
+    const vendorId = ride.vendorId || "unknown";
+
+    if (!stats[vendorId]) {
+      stats[vendorId] = {
+        vendorId,
+        totalRides: 0,
+        totalFare: 0,
+        totalCommission: 0,
+        totalVendorPayment: 0,
+      };
+    }
+
+    stats[vendorId].totalRides++;
+    stats[vendorId].totalFare += ride.finalFare || ride.fare || 0;
+    stats[vendorId].totalCommission +=
+      ride.commissionDetails?.commissionAmount || 0;
+    stats[vendorId].totalVendorPayment +=
+      ride.commissionDetails?.vendorAmount || 0;
+  });
+
+  return Object.values(stats);
+};
+
+/**
+ * Get the settlement status of a specific ride
+ * @param {string} rideId - ID of the ride to check
+ * @returns {Promise<Object>} Settlement status
+ */
+const getRideSettlementStatus = async (rideId) => {
+  try {
+    const ride = await Ride.findById(rideId);
+
+    if (!ride) {
+      return {
+        success: false,
+        message: "Ride not found",
+      };
+    }
+
     return {
       success: true,
-      rideId: ride._id,
-      bookingId: ride.igoBookingId,
-      settled: ride.settlementDetails?.settled || false,
-      settledAt: ride.settlementDetails?.settledAt,
+      rideId,
+      isSettled: ride.settlementDetails?.settled || false,
+      settlementDate: ride.settlementDetails?.settledAt,
       settlementId: ride.settlementDetails?.settlementId,
-      vendorAmount:
-        ride.settlementDetails?.vendorAmount ||
-        ride.commissionDetails?.vendorAmount ||
-        0,
-      platformCommission:
-        ride.settlementDetails?.platformCommission ||
-        ride.commissionDetails?.commissionAmount ||
-        0,
+      vendorAmount: ride.settlementDetails?.vendorAmount || 0,
+      platformCommission: ride.settlementDetails?.platformCommission || 0,
     };
   } catch (error) {
-    console.error("Error getting ride settlement status:", error);
-    return { success: false, error: error.message };
+    console.error(`Error getting settlement status for ride ${rideId}:`, error);
+    return {
+      success: false,
+      error: error.message,
+    };
   }
+};
+
+module.exports = {
+  processVendorSettlements,
+  generateFinancialReport,
+  getRideSettlementStatus,
 };

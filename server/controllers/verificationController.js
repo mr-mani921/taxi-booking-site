@@ -1,13 +1,13 @@
-import User from "../models/User.js";
-import {
+const User = require("../models/User.js");
+const {
   generateVerificationCode,
   sendVerificationEmail,
-} from "../utils/emailVerification.js";
+} = require("../utils/emailVerification.js");
 
 // @desc    Send verification code to user's email
 // @route   POST /api/verification/send-code
 // @access  Private
-export const sendVerificationCode = async (req, res) => {
+const sendVerificationCode = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
@@ -44,7 +44,7 @@ export const sendVerificationCode = async (req, res) => {
 // @desc    Verify email with code
 // @route   POST /api/verification/verify
 // @access  Private
-export const verifyEmail = async (req, res) => {
+const verifyEmail = async (req, res) => {
   try {
     const { code } = req.body;
 
@@ -80,4 +80,9 @@ export const verifyEmail = async (req, res) => {
     console.error("Error in verifyEmail:", error);
     res.status(500).json({ message: "Server error" });
   }
+};
+
+module.exports = {
+  sendVerificationCode,
+  verifyEmail,
 };

@@ -1,8 +1,8 @@
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
-import asyncHandler from "express-async-handler";
+const jwt = require("jsonwebtoken");
+const User = require("../models/User.js");
+const asyncHandler = require("express-async-handler");
 
-export const authenticateAdmin = asyncHandler(async (req, res, next) => {
+const authenticateAdmin = asyncHandler(async (req, res, next) => {
   const token = req.cookies.adminToken;
 
   if (!token) {
@@ -33,7 +33,7 @@ export const authenticateAdmin = asyncHandler(async (req, res, next) => {
   }
 });
 
-export const authenticateUser = asyncHandler(async (req, res, next) => {
+const authenticateUser = asyncHandler(async (req, res, next) => {
   const token = req.cookies.userToken || req.cookies.adminToken;
 
   if (!token) {
@@ -63,3 +63,8 @@ export const authenticateUser = asyncHandler(async (req, res, next) => {
     throw new Error("Not authorized, token failed");
   }
 });
+
+module.exports = {
+  authenticateAdmin,
+  authenticateUser,
+};

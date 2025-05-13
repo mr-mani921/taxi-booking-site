@@ -1,9 +1,9 @@
-import User from "../models/User.js";
-import generateToken from "../utils/generateToken.js";
-import {
+const User = require("../models/User.js");
+const generateToken = require("../utils/generateToken.js");
+const {
   generateVerificationCode,
   sendVerificationEmail,
-} from "../utils/emailVerification.js";
+} = require("../utils/emailVerification.js");
 
 // Store temporary user data with OTP (in memory - for production, use Redis or a database)
 const pendingUsers = new Map();
@@ -12,7 +12,7 @@ const pendingLogins = new Map();
 // @desc    Register new user (without immediate authentication)
 // @route   POST /api/auth/register
 // @access  Public
-export const registerUser = async (req, res) => {
+const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -66,7 +66,7 @@ export const registerUser = async (req, res) => {
 // @desc    Login user (without immediate authentication)
 // @route   POST /api/auth/login
 // @access  Public
-export const loginUser = async (req, res) => {
+const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -128,7 +128,7 @@ export const loginUser = async (req, res) => {
 // @desc    Verify OTP and complete authentication
 // @route   POST /api/auth/verify-otp
 // @access  Public
-export const verifyOTP = async (req, res) => {
+const verifyOTP = async (req, res) => {
   try {
     const { email, otp, isRegistration } = req.body;
 
@@ -290,7 +290,7 @@ export const verifyOTP = async (req, res) => {
 // @desc    Resend OTP
 // @route   POST /api/auth/resend-otp
 // @access  Public
-export const resendOTP = async (req, res) => {
+const resendOTP = async (req, res) => {
   try {
     const { email, isRegistration } = req.body;
 
@@ -357,4 +357,35 @@ export const resendOTP = async (req, res) => {
       message: "Server error",
     });
   }
+};
+
+// @desc    Logout user / clear cookie
+// @route   POST /api/auth/logout
+// @access  Public
+const logout = async (req, res) => {
+  // ... existing code ...
+};
+
+// @desc    Get user profile
+// @route   GET /api/auth/profile
+// @access  Private
+const getUserProfile = async (req, res) => {
+  // ... existing code ...
+};
+
+// @desc    Google OAuth callback
+// @route   GET /api/auth/google/callback
+// @access  Public
+const googleCallback = async (req, res) => {
+  // ... existing code ...
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  verifyOTP,
+  resendOTP,
+  logout,
+  getUserProfile,
+  googleCallback,
 };

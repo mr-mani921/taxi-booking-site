@@ -1,12 +1,12 @@
-import express from "express";
-import {
+const express = require("express");
+const {
   authUser,
   logoutUser,
   registerUser,
   verifyOTP,
   resendOTP,
-} from "../controllers/userController.js";
-import { authenticateUser } from "../middlewares/authMiddleware.js";
+} = require("../controllers/userController.js");
+const { authenticateUser } = require("../middlewares/authMiddleware.js");
 const router = express.Router();
 
 router.post("/register", registerUser);
@@ -15,4 +15,4 @@ router.post("/verify-otp", verifyOTP);
 router.post("/resend-otp", resendOTP);
 router.get("/logout", logoutUser);
 
-export default router;
+module.exports = router;

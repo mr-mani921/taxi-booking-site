@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-import igoConfig from "../config/igoConfig.js";
+const mongoose = require("mongoose");
+const igoConfig = require("../config/igoConfig.js");
 
 // Schema for price band information
 const pricingSchema = new mongoose.Schema(
@@ -30,7 +30,6 @@ const pricingSchema = new mongoose.Schema(
   { _id: false }
 );
 
-
 // Schema for individual vendor bids
 const vendorBidSchema = new mongoose.Schema(
   {
@@ -52,7 +51,6 @@ const vendorBidSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
 
 // Main bid schema
 const bidSchema = new mongoose.Schema(
@@ -112,7 +110,7 @@ const bidSchema = new mongoose.Schema(
     igoResponseLog: {
       type: String,
     },
-    authorizationReference : {
+    authorizationReference: {
       type: String,
     },
   },
@@ -131,4 +129,4 @@ bidSchema.pre("save", function (next) {
 });
 
 const Bid = mongoose.model("Bid", bidSchema);
-export default Bid;
+module.exports = Bid;

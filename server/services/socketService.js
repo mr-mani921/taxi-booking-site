@@ -1,8 +1,8 @@
-import { Server } from "socket.io";
+const { Server } = require("socket.io");
 
 let io;
 
-export const initSocketIO = (server) => {
+const initSocketIO = (server) => {
   io = new Server(server, {
     cors: {
       origin: "*",
@@ -47,7 +47,7 @@ export const initSocketIO = (server) => {
 };
 
 // Emit ride status update to all clients in the ride room
-export const emitRideUpdate = (rideId, data) => {
+const emitRideUpdate = (rideId, data) => {
   if (!io) {
     console.warn("Socket.IO not initialized");
     return;
@@ -58,7 +58,7 @@ export const emitRideUpdate = (rideId, data) => {
 };
 
 // Emit driver location update to all clients in the ride room
-export const emitDriverLocation = (rideId, location) => {
+const emitDriverLocation = (rideId, location) => {
   if (!io) {
     console.warn("Socket.IO not initialized");
     return;
@@ -68,7 +68,7 @@ export const emitDriverLocation = (rideId, location) => {
 };
 
 // Emit payment status update to all clients in the ride room
-export const emitPaymentUpdate = (rideId, paymentData) => {
+const emitPaymentUpdate = (rideId, paymentData) => {
   if (!io) {
     console.warn("Socket.IO not initialized");
     return;
@@ -78,10 +78,18 @@ export const emitPaymentUpdate = (rideId, paymentData) => {
 };
 
 // Emit notification to specific client
-export const emitNotification = (userId, notification) => {
+const emitNotification = (userId, notification) => {
   if (!io) {
     console.warn("Socket.IO not initialized");
     return;
   }
   io.to(`user_${userId}`).emit("notification", notification);
+};
+
+module.exports = {
+  initSocketIO,
+  emitRideUpdate,
+  emitDriverLocation,
+  emitPaymentUpdate,
+  emitNotification,
 };

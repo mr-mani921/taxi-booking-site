@@ -1,5 +1,5 @@
-import express from "express";
-import {
+const express = require("express");
+const {
   bookRide,
   getRideStatus,
   cancelRide,
@@ -13,12 +13,12 @@ import {
   requestBill,
   getReceipt,
   authorizeBooking,
-} from "../controllers/rideController.js";
-import {
+} = require("../controllers/rideController.js");
+const {
   verifyIgoWebhookSignature,
   webhookRateLimit,
-} from "../middlewares/webhookAuth.js";
-import { authenticateUser } from "../middlewares/authMiddleware.js";
+} = require("../middlewares/webhookAuth.js");
+const { authenticateUser } = require("../middlewares/authMiddleware.js");
 
 const router = express.Router();
 
@@ -42,8 +42,7 @@ router.get("/history", authenticateUser, getUserRides);
 // Bid-related routes
 router.post("/request-bids", authenticateUser, requestVendorBids);
 router.post("/select-bid", authenticateUser, selectBid);
-router.post("/book", authenticateUser, bookRide );
-router.post("/authorize", authenticateUser, authorizeBooking)
+router.post("/book", authenticateUser, bookRide);
+router.post("/authorize", authenticateUser, authorizeBooking);
 
-
-export default router;
+module.exports = router;

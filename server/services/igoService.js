@@ -1,14 +1,14 @@
-import axios from "axios";
-import { parseStringPromise, Builder } from "xml2js";
-import Ride from "../models/Ride.js";
-import igoConfig from "../config/igoConfig.js";
-import { sendRideStatusNotification } from "./notificationService.js";
-import {
+const axios = require("axios");
+const { parseStringPromise, Builder } = require("xml2js");
+const Ride = require("../models/Ride.js");
+const igoConfig = require("../config/igoConfig.js");
+const { sendRideStatusNotification } = require("./notificationService.js");
+const {
   emitRideUpdate,
   emitDriverLocation,
   emitPaymentUpdate,
-} from "./socketService.js";
-import EventHistory from "../models/EventHistory.js";
+} = require("./socketService.js");
+const EventHistory = require("../models/EventHistory.js");
 
 // Update to determine if we should use mock mode
 // We'll disable mock mode if we have a webhook URL configured (ngrok)
@@ -29,9 +29,9 @@ const shouldUseMockMode = () => {
 };
 
 // Pricing models and payment points
-export const PRICING_MODELS = igoConfig.pricingModels;
-export const PAYMENT_POINTS = igoConfig.paymentPoints;
-export const PRICING_FLAGS = igoConfig.pricingFlags;
+const PRICING_MODELS = igoConfig.pricingModels;
+const PAYMENT_POINTS = igoConfig.paymentPoints;
+const PRICING_FLAGS = igoConfig.pricingFlags;
 
 /**
  * Send a request to the iGo API with XML payload.
@@ -119,7 +119,7 @@ const sendIgoRequestBasic = async (xmlBody) => {
  * @param {boolean} options.exponentialBackoff - Whether to use exponential backoff (default: true)
  * @returns {Promise<Object>} The parsed response from the iGo API
  */
-export const sendIgoRequest = async (xmlBody, options = {}) => {
+const sendIgoRequest = async (xmlBody, options = {}) => {
   const {
     maxRetries = 3,
     baseDelay = 1000,
@@ -379,7 +379,7 @@ function extractAuthRef(xmlBody) {
 /**
  * Convert JSON to XML.
  */
-export const buildXmlRequest = (jsonData) => {
+const buildXmlRequest = (jsonData) => {
   const builder = new Builder({
     headless: true,
     renderOpts: {
@@ -394,7 +394,7 @@ export const buildXmlRequest = (jsonData) => {
 /**
  * Build the common Agent section for all requests
  */
-export const buildAgentSection = () => ({
+const buildAgentSection = () => ({
   Id: igoConfig.agentId,
   Password: igoConfig.agentPassword,
   Reference: `AgentRef_${Date.now()}`,
@@ -404,14 +404,14 @@ export const buildAgentSection = () => ({
 /**
  * Build the common Vendor section for all requests
  */
-export const buildVendorSection = () => ({
+const buildVendorSection = () => ({
   Id: igoConfig.vendorId,
 });
 
 /**
  * Build pricing section for booking requests
  */
-export const buildPricingSection = ({
+const buildPricingSection = ({
   pricingModel = PRICING_MODELS.UP_FRONT,
   paymentPoint = PAYMENT_POINTS.TIME_OF_BOOKING,
   price,
@@ -438,7 +438,7 @@ export const buildPricingSection = ({
 /**
  * Handle incoming iGo events
  */
-export const handleIgoEvent = async (eventType, eventData) => {
+const handleIgoEvent = async (eventType, eventData) => {
   try {
     const eventRoot = eventData[eventType]; // Access the root element
     const authRef = eventRoot.AuthorizationReference;
@@ -515,7 +515,7 @@ export const handleIgoEvent = async (eventType, eventData) => {
 /**
  * Get estimated price for a ride (AgentPriceRequest)
  */
-export const getEstimatedPrice = async (
+const getEstimatedPrice = async (
   pickupLocation,
   dropoffLocation,
   pickupTime,
@@ -600,7 +600,7 @@ export const getEstimatedPrice = async (
 /**
  * Check ride availability
  */
-export const checkAvailability = async (
+const checkAvailability = async (
   pickupLocation,
   dropoffLocation,
   pickupTime,
@@ -685,7 +685,7 @@ export const checkAvailability = async (
 /**
  * Book a ride
  */
-export const sendRideAuthorizationRequest = async ({
+const sendRideAuthorizationRequest = async ({
   pickupLocation,
   dropoffLocation,
   pickupTime,
@@ -756,7 +756,7 @@ export const sendRideAuthorizationRequest = async ({
 /**
  * Get ride status
  */
-export const getRideStatus = async (authorizationReference) => {
+const getRideStatus = async (authorizationReference) => {
   try {
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingStatusRequest: {
@@ -777,10 +777,7 @@ export const getRideStatus = async (authorizationReference) => {
 /**
  * Cancel a ride
  */
-export const cancelRide = async (
-  authorizationReference,
-  cancellationReason
-) => {
+const cancelRide = async (authorizationReference, cancellationReason) => {
   try {
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingCancellationRequest: {
@@ -814,7 +811,6 @@ const handleBookingDispatched = async (ride, eventData) => {
         vehicleDetails: eventData.Driver.Vehicle,
       };
     }
-    
 
     await ride.save();
 
@@ -1029,7 +1025,7 @@ const handlePassengerOnBoard = async (ride, eventData) => {
 /**
  * Request bids from all available vendors (AgentBidRequest)
  */
-export const requestBids = async (
+const requestBids = async (
   pickupLocation,
   dropoffLocation,
   pickupTime,
@@ -1121,7 +1117,7 @@ export const requestBids = async (
  * @param {object} cardDetails - Optional card details for card payments
  * @returns {Promise<object>} - The payment response
  */
-export const processPayment = async (
+const processPayment = async (
   authorizationReference,
   paymentAmount,
   paymentMethod,
@@ -1164,7 +1160,7 @@ export const processPayment = async (
  * @param {string} authorizationReference - The authorization reference from the booking
  * @returns {Promise<object>} - The bill response
  */
-export const requestBill = async (authorizationReference) => {
+const requestBill = async (authorizationReference) => {
   try {
     console.log(`Requesting bill for booking ${authorizationReference}`);
 
@@ -1189,7 +1185,7 @@ export const requestBill = async (authorizationReference) => {
  * @param {string} authorizationReference - The authorization reference from the booking
  * @returns {Promise<object>} - The receipt response
  */
-export const getReceipt = async (authorizationReference) => {
+const getReceipt = async (authorizationReference) => {
   try {
     console.log(`Getting receipt for booking ${authorizationReference}`);
 
@@ -1231,4 +1227,26 @@ const storeEventInHistory = async (eventType, eventData, ride) => {
   } catch (error) {
     console.error("Error storing event in history:", error);
   }
+};
+
+// Add module.exports at the end of the file
+module.exports = {
+  PRICING_MODELS,
+  PAYMENT_POINTS,
+  PRICING_FLAGS,
+  sendIgoRequest,
+  buildXmlRequest,
+  buildAgentSection,
+  buildVendorSection,
+  buildPricingSection,
+  handleIgoEvent,
+  getEstimatedPrice,
+  checkAvailability,
+  sendRideAuthorizationRequest,
+  getRideStatus,
+  cancelRide,
+  requestBids,
+  processPayment,
+  requestBill,
+  getReceipt,
 };

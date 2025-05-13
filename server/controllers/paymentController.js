@@ -1,8 +1,6 @@
-import Stripe from "stripe";
+const stripe = require("../utils/stripe.js");
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-export const createPaymentIntent = async (req, res) => {
+const createPaymentIntent = async (req, res) => {
   const { amount, currency = "gbp", description } = req.body;
 
   try {
@@ -35,7 +33,7 @@ export const createPaymentIntent = async (req, res) => {
 /**
  * Capture a held payment (after successful iGo booking)
  */
-export const capturePayment = async (req, res) => {
+const capturePayment = async (req, res) => {
   const { paymentIntentId } = req.body;
 
   try {
@@ -56,7 +54,7 @@ export const capturePayment = async (req, res) => {
 /**
  * Cancel a payment hold (if iGo booking fails)
  */
-export const cancelPayment = async (req, res) => {
+const cancelPayment = async (req, res) => {
   const { paymentIntentId } = req.body;
 
   try {
@@ -70,4 +68,10 @@ export const cancelPayment = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+module.exports = {
+  createPaymentIntent,
+  capturePayment,
+  cancelPayment,
 };

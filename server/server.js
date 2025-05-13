@@ -1,39 +1,38 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import helmet from "helmet";
-import morgan from "morgan";
-import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
-import connectDB from "./config/dbConfig.js"; // Import DB connection function
-import passport from "./config/passport.js"; // Import Passport config
-import authRoutes from "./routes/authRoutes.js"; // Authentication routes
-import rideRoutes from "./routes/rideRoutes.js"; // Ride routes
-import userRoutes from "./routes/userRoutes.js"; // User routes
-// import driverRoutes from "./routes/driverRoutes.js"; // Driver routes
-import paymentRoutes from "./routes/paymentRoutes.js"; // Payment routes
-import igoEventRoutes from "./routes/igoEventRoutes.js"; // iGo event routes
-import verificationRoutes from "./routes/verificationRoutes.js"; // Email verification routes
-import { notFound, errorHandler } from "./middlewares/errorMiddleware.js"; // Custom error handlers
-import http from "http";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-import { join } from "path";
-import { initScheduledJobs } from "./jobs/scheduledJobs.js";
-import * as Sentry from "@sentry/node";
-import { initSocketIO } from "./services/socketService.js";
-import { verifyIgoWebhookSignature } from "./middlewares/webhookAuth.js";
-import { handleIgoEvent } from "./services/igoService.js";
+const express = require("express");
+const dotenv = require("dotenv");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
+const rateLimit = require("express-rate-limit");
+const connectDB = require("./config/dbConfig.js"); // Import DB connection function
+const passport = require("./config/passport.js"); // Import Passport config
+const authRoutes = require("./routes/authRoutes.js"); // Authentication routes
+const rideRoutes = require("./routes/rideRoutes.js"); // Ride routes
+const userRoutes = require("./routes/userRoutes.js"); // User routes
+// const driverRoutes = require("./routes/driverRoutes.js"); // Driver routes
+const paymentRoutes = require("./routes/paymentRoutes.js"); // Payment routes
+const igoEventRoutes = require("./routes/igoEventRoutes.js"); // iGo event routes
+const verificationRoutes = require("./routes/verificationRoutes.js"); // Email verification routes
+const { notFound, errorHandler } = require("./middlewares/errorMiddleware.js"); // Custom error handlers
+const http = require("http");
+const path = require("path");
+const { initScheduledJobs } = require("./jobs/scheduledJobs.js");
+const Sentry = require("@sentry/node");
+const { initSocketIO } = require("./services/socketService.js");
+const { verifyIgoWebhookSignature } = require("./middlewares/webhookAuth.js");
+const { handleIgoEvent } = require("./services/igoService.js");
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// __dirname is already available in CommonJS
 
-const envPath = join(__dirname, ".env");
+const envPath = path.join(__dirname, ".env");
 
 // Load environment variables
 dotenv.config({ path: envPath });
 
 console.log(process.env.NODE_ENV);
+
+const app = express();
 
 // Initialize Sentry for error monitoring in production
 if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
@@ -51,7 +50,6 @@ if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
   });
 }
 
-const app = express();
 // Trust proxy - needed for rate limiting when behind a proxy
 app.set("trust proxy", 1);
 
@@ -155,3 +153,6 @@ server.listen(PORT, async () => {
     process.exit(1);
   }
 });
+
+// Export for testing purposes
+module.exports = { app, server };

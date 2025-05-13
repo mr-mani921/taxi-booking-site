@@ -3,8 +3,8 @@
  * This file contains all configuration settings for the iGo integration
  */
 
-import dotenv from "dotenv";
-import { Builder } from "xml2js";
+const dotenv = require("dotenv");
+const { Builder } = require("xml2js");
 
 dotenv.config();
 console.log("IGO_AGENT_ID:", process.env.IGO_AGENT_ID);
@@ -209,4 +209,4 @@ const igoConfig = {
   mockMode: process.env.IGO_MOCK_MODE === "true" || true,
 };
 
-export default igoConfig;
+module.exports = igoConfig;

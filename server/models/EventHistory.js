@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const eventHistorySchema = new mongoose.Schema(
   {
@@ -51,4 +51,4 @@ eventHistorySchema.index(
 
 const EventHistory = mongoose.model("EventHistory", eventHistorySchema);
 
-export default EventHistory;
+module.exports = EventHistory;
