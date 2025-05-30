@@ -10,6 +10,7 @@
     "test:win": "npx jest",
     "test:bids": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest tests/igoBidding.test.js",
     "test:payment": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest tests/igoPayment.test.js",
+    "build": "npm install",
     "dev": "nodemon server.js",
     "start": "node server.js",
     "settlement:daily": "node scripts/runDailySettlement.js",
