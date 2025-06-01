@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaTaxi, FaBars, FaTimes, FaUser, FaChevronDown } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
-import NavbarMobileMenu from "./NavBarMobileMenu";
+import NavbarMobileMenu from "./NavbarMobileMenu";
 import { Dropdown } from "flowbite-react";
 import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../store/thunks";
