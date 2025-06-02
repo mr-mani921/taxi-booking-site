@@ -1,22 +1,22 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 const testimonials = [
   {
     name: "John Doe",
     rating: 5,
-    text: "Best taxi service I've ever used! Professional drivers and clean cars."
+    text: "Best taxi service I've ever used! Professional drivers and clean cars.",
   },
   {
     name: "Jane Smith",
     rating: 5,
-    text: "Excellent service and very punctual. Highly recommended!"
+    text: "Excellent service and very punctual. Highly recommended!",
   },
   {
     name: "Mike Johnson",
     rating: 4,
-    text: "Great experience overall. The app is very user-friendly."
-  }
+    text: "Great experience overall. The app is very user-friendly.",
+  },
 ];
 
 function Testimonials() {
@@ -30,7 +30,7 @@ function Testimonials() {
   }, []);
 
   return (
-    <section className="py-20 bg-dark relative">
+    <section className="py-20 bg-dark relative overflow-hidden">
       <div className="container mx-auto px-4">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -41,7 +41,7 @@ function Testimonials() {
           What Our Customers Say
         </motion.h2>
 
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto overflow-hidden">
           <motion.div
             key={currentIndex}
             initial={{ opacity: 0, y: 20 }}
@@ -52,17 +52,23 @@ function Testimonials() {
           >
             <div className="flex justify-center mb-4">
               {[...Array(testimonials[currentIndex].rating)].map((_, i) => (
-                <span key={i} className="text-primary text-2xl">★</span>
+                <span key={i} className="text-primary text-2xl">
+                  ★
+                </span>
               ))}
             </div>
-            <p className="text-lg mb-4 text-white">"{testimonials[currentIndex].text}"</p>
-            <p className="font-medium text-primary">{testimonials[currentIndex].name}</p>
+            <p className="text-lg mb-4 text-white">
+              "{testimonials[currentIndex].text}"
+            </p>
+            <p className="font-medium text-primary">
+              {testimonials[currentIndex].name}
+            </p>
           </motion.div>
         </div>
-        
+
         {/* Decorative Elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-[250px] h-[250px] bg-primary/5 rounded-full blur-3xl pointer-events-none z-[-1]" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-primary/5 rounded-full blur-3xl pointer-events-none z-[-1]" />
       </div>
     </section>
   );

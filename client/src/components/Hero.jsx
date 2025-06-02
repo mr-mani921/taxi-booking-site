@@ -42,8 +42,10 @@ function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          <div className="flex justify-center  rounded-2xl  p-6 md:p-8">
-            <BookingForm onGetLocation={handleGetLocation} />
+          <div className="w-full px-2 sm:px-4 p-4 md:p-6">
+            <div className="max-w-4xl mx-auto">
+              <BookingForm onGetLocation={handleGetLocation} />
+            </div>
           </div>
         </motion.div>
       </div>

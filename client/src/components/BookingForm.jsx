@@ -87,7 +87,7 @@ function BookingForm({ onGetLocation }) {
       dispatch(updateBookingData(rideData));
 
       // Call the completeBookingFlow thunk to get vendor quotes
-      console.log("sending request for bids with data", rideData)
+      console.log("sending request for bids with data", rideData);
       const result = await dispatch(getBids(rideData));
       console.log(`Quote request result:`, result);
 
@@ -159,7 +159,7 @@ function BookingForm({ onGetLocation }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-6 p-6 glass-effect rounded-xl shadow-lg"
+      className="space-y-6 p-4 sm:p-6 glass-effect rounded-xl shadow-lg w-full max-w-full overflow-hidden"
     >
       {error && (
         <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg">
@@ -167,17 +167,17 @@ function BookingForm({ onGetLocation }) {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row gap-10 justify-evenly">
-        <div className="flex flex-1">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 justify-between">
+        <div className="flex flex-1 min-w-0">
           <div className="flex min-h-full items-center">
             <img
               src={arrowLine}
               alt=""
-              className="transform rotate-[135deg] w-10 h-10"
+              className="transform rotate-[135deg] w-8 h-8 sm:w-10 sm:h-10"
             />
           </div>
 
-          <div className="flex flex-col gap-4 w-full">
+          <div className="flex flex-col gap-4 w-full min-w-0">
             {/* From Location */}
             <div className="space-y-2">
               <PlacesAutocomplete
@@ -188,7 +188,7 @@ function BookingForm({ onGetLocation }) {
                 label="From Location"
               />
               {pickupLocation && (
-                <div className="text-green-400 text-xs">
+                <div className="text-green-400 text-xs truncate">
                   Coordinates: {pickupLocation.lat.toFixed(4)},{" "}
                   {pickupLocation.lng.toFixed(4)}
                 </div>
@@ -215,7 +215,7 @@ function BookingForm({ onGetLocation }) {
                 label="To Location"
               />
               {dropoffLocation && (
-                <div className="text-green-400 text-xs">
+                <div className="text-green-400 text-xs truncate">
                   Coordinates: {dropoffLocation.lat.toFixed(4)},{" "}
                   {dropoffLocation.lng.toFixed(4)}
                 </div>
@@ -224,7 +224,7 @@ function BookingForm({ onGetLocation }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 w-full lg:w-auto lg:min-w-[250px]">
           {/* Trip Type Toggle */}
           <div className="space-x-2 items-center">
             <div className="flex items-center gap-4">
