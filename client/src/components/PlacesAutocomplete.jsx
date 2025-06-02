@@ -190,13 +190,13 @@ const PlacesAutocomplete = ({
           placeholder={placeholder}
           onFocus={() => value && value.length > 2 && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          className="flex-1 bg-dark/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
+          className="max-w-[80%] md:max-w-[100%] flex-1 bg-dark/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all truncate"
           readOnly={readOnly}
         />
         {loading ? (
-          <FaSpinner className="animate-spin text-primary ml-2" />
+          <FaSpinner className="animate-spin text-primary ml-2 flex-shrink-0" />
         ) : (
-          <FaMapMarkerAlt className="text-primary ml-2" />
+          <FaMapMarkerAlt className="text-primary ml-2 flex-shrink-0" />
         )}
       </div>
 
@@ -213,7 +213,7 @@ const PlacesAutocomplete = ({
             suggestions.map((suggestion) => (
               <div
                 key={suggestion.id}
-                className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white text-sm"
+                className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white text-sm truncate"
                 onMouseDown={() => selectSuggestion(suggestion)}
               >
                 {suggestion.description}
