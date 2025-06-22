@@ -225,7 +225,7 @@ function BookingForm({ onGetLocation }) {
         </div>
 
         <div className="flex flex-col gap-4 w-full lg:w-auto lg:min-w-[250px]">
-          {/* Trip Type Toggle */}
+          {/* Trip Type Toggle
           <div className="space-x-2 items-center">
             <div className="flex items-center gap-4">
               <span className="text-white">One-Way</span>
@@ -247,7 +247,7 @@ function BookingForm({ onGetLocation }) {
               </button>
               <span className="text-white">Round Trip</span>
             </div>
-          </div>
+          </div> */}
 
           {/* Date & Time Picker */}
           <div className="space-y-2">

@@ -142,6 +142,7 @@ server.listen(PORT, async () => {
     );
     console.log(`🔍 Health check: http://127.0.0.1:${PORT}/health-check`);
     console.log(`🔗 API base URL: http://127.0.0.1:${PORT}/api`);
+    console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL}`);
 
     // Initialize scheduled jobs
     if (process.env.NODE_ENV !== "test") {

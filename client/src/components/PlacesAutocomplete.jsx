@@ -139,27 +139,27 @@ const PlacesAutocomplete = ({
       setSuggestions([]);
     }
 
-    // For a fallback in case Google Places API isn't loaded
-    if (!isGoogleLoaded) {
-      if (inputValue && inputValue.length > 2) {
-        setLoading(true);
-        // Simulate suggestions for fallback
-        setTimeout(() => {
-          const mockSuggestions = [
-            { id: 1, description: `${inputValue} Street, New York, NY` },
-            { id: 2, description: `${inputValue} Avenue, Los Angeles, CA` },
-            { id: 3, description: `${inputValue} Road, Chicago, IL` },
-            { id: 4, description: `${inputValue} Boulevard, Miami, FL` },
-          ];
-          setSuggestions(mockSuggestions);
-          setLoading(false);
-          setShowSuggestions(true);
-        }, 300);
-      } else {
-        setSuggestions([]);
-        setShowSuggestions(false);
-      }
-    }
+    // // For a fallback in case Google Places API isn't loaded
+    // if (!isGoogleLoaded) {
+    //   if (inputValue && inputValue.length > 2) {
+    //     setLoading(true);
+    //     // Simulate suggestions for fallback
+    //     setTimeout(() => {
+    //       const mockSuggestions = [
+    //         { id: 1, description: `${inputValue} Street, New York, NY` },
+    //         { id: 2, description: `${inputValue} Avenue, Los Angeles, CA` },
+    //         { id: 3, description: `${inputValue} Road, Chicago, IL` },
+    //         { id: 4, description: `${inputValue} Boulevard, Miami, FL` },
+    //       ];
+    //       setSuggestions(mockSuggestions);
+    //       setLoading(false);
+    //       setShowSuggestions(true);
+    //     }, 300);
+    //   } else {
+    //     setSuggestions([]);
+    //     setShowSuggestions(false);
+    //   }
+    // }
   };
 
   // Select a suggestion from the fallback list
