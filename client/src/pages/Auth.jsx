@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaGoogle, FaEnvelope, FaLock, FaUser } from "react-icons/fa";
+import {
+  FaGoogle,
+  FaEnvelope,
+  FaLock,
+  FaUser,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa";
 import BackroundImage from "../assets/authBgImage.jpeg";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser, registerUser } from "../store/thunks.js";
@@ -20,6 +27,7 @@ function Auth() {
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isAuthenticated, pendingAuth } = useSelector((state) => state.user);
@@ -96,6 +104,10 @@ function Auth() {
 
   const handleBackFromOTP = () => {
     setShowOTPVerification(false);
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -228,13 +240,20 @@ function Auth() {
                     <FaLock className="text-primary" />
                   </div>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="Password"
                     className="w-full pl-10 pr-4 py-3 bg-charcoal border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-white placeholder-gray-400"
                   />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary text-xl"
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
                 </div>
 
                 {/* Submit Button */}

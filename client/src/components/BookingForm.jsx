@@ -228,7 +228,7 @@ function BookingForm({ onGetLocation }) {
       )}
 
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 justify-between">
-        <div className="flex flex-1 min-w-0">
+        <div className="flex flex-1 min-w-[50%]">
           <div className="flex min-h-full items-center">
             <img
               src={arrowLine}
@@ -245,6 +245,7 @@ function BookingForm({ onGetLocation }) {
                 onChange={setPickupAddress}
                 onSelect={handlePickupSelect}
                 label="From"
+                isPickup={true}
               />
               {pickupLocation && (
                 <div className="text-green-400 text-xs truncate">
@@ -271,6 +272,7 @@ function BookingForm({ onGetLocation }) {
                 onChange={setDropoffAddress}
                 onSelect={handleDropoffSelect}
                 label="To"
+                isPickup={false}
               />
               {dropoffLocation && (
                 <div className="text-green-400 text-xs truncate">
@@ -282,13 +284,13 @@ function BookingForm({ onGetLocation }) {
           </div>
         </div>
 
-        <div className="flex flex-col items-center w-full lg:w-auto lg:min-w-[350px] gap-4">
+        <div className="flex flex-col items-center w-full lg:w-auto lg:min-w-[320px] gap-4">
           {/* Date & Time Picker */}
           <div className="w-full space-y-4">
             {/* Pickup Date/Time Row */}
             <div className="flex items-center bg-white/10 rounded-lg overflow-hidden w-full">
               {/* Date Selection */}
-              <div className="flex items-center bg-white/5 px-4 py-2 md:py-4 flex-1 border-r border-gray-600/30 relative cursor-pointer">
+              <div className="flex items-center bg-white/5 px-3 py-2 md:py-4 flex-1 border-r border-gray-600/30 relative cursor-pointer">
                 <FaCalendarAlt className="text-primary mr-2" size={16} />
                 <div className="flex items-center justify-between flex-1">
                   <span className="text-white text-sm">
@@ -369,13 +371,14 @@ function BookingForm({ onGetLocation }) {
                   <select
                     value={passengers}
                     onChange={(e) => setPassengers(parseInt(e.target.value))}
-                    className="bg-transparent border-none text-white focus:outline-none focus:ring-0 pr-8 appearance-none cursor-pointer"
+                    className="bg-transparent border-none text-white focus:outline-none focus:ring-0 pr-8 appearance-none cursor-pointer text-center"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
                       <option
                         key={num}
                         value={num}
-                        className="bg-dark text-white"
+                        className="bg-dark text-white text-center"
+                        style={{ textAlign: "center" }}
                       >
                         {num}
                       </option>
@@ -390,7 +393,7 @@ function BookingForm({ onGetLocation }) {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth="2" 
+                      strokeWidth="2"
                       d="M19 9l-7 7-7-7"
                     ></path>
                   </svg>
@@ -407,16 +410,21 @@ function BookingForm({ onGetLocation }) {
                   <select
                     value={luggage}
                     onChange={(e) => setLuggage(parseInt(e.target.value))}
-                    className="bg-transparent border-none text-white focus:outline-none focus:ring-0 pr-8 appearance-none cursor-pointer"
+                    className="bg-transparent border-none text-white focus:outline-none focus:ring-0 pr-8 appearance-none cursor-pointer text-center"
                   >
-                    <option value="0" className="bg-dark text-white">
+                    <option
+                      value="0"
+                      className="bg-dark text-white text-center"
+                      style={{ textAlign: "center" }}
+                    >
                       None
                     </option>
                     {[1, 2, 3, 4, 5, 6].map((num) => (
                       <option
                         key={num}
                         value={num}
-                        className="bg-dark text-white"
+                        className="bg-dark text-white text-center"
+                        style={{ textAlign: "center" }}
                       >
                         {num}
                       </option>

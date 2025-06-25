@@ -8,6 +8,7 @@ const PlacesAutocomplete = ({
   onChange,
   onSelect,
   label,
+  isPickup = false, // New prop to determine if this is pickup or destination
   country = "uk", // Restrict to United Kingdom by default
   readOnly = false, // Add readOnly prop
 }) => {
@@ -164,9 +165,14 @@ const PlacesAutocomplete = ({
           type="text"
           value={value || ""}
           onChange={handleInputChange}
+          placeholder={
+            isPickup
+              ? "Enter pickup, post code, venue or place"
+              : "Enter destination, post code, venue or place"
+          }
           onFocus={() => value && value.length > 2 && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          className="max-w-[80%] md:max-w-[100%] flex-1 bg-dark/50 border border-gray-600 rounded-lg pl-[78px] pr-4 py-2 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all truncate"
+          className="w-full bg-dark/50 border border-gray-600 rounded-lg pl-[78px] pr-10 py-2 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
           readOnly={readOnly}
         />
         {loading ? (
@@ -208,6 +214,7 @@ PlacesAutocomplete.propTypes = {
   onChange: PropTypes.func.isRequired,
   onSelect: PropTypes.func.isRequired,
   label: PropTypes.string,
+  isPickup: PropTypes.bool,
   country: PropTypes.string,
   readOnly: PropTypes.bool,
 };

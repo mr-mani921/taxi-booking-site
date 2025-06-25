@@ -34,7 +34,7 @@ function HowItWorks() {
 
         <div className="relative">
           {/* Connecting Line */}
-          <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-primary/20 via-primary to-primary/20 transform -translate-y-1/2" />
+          <div className="hidden md:block absolute top-[45%] left-0 w-full h-0.5 bg-gradient-to-r from-primary/20 via-primary to-primary/20 transform -translate-y-1/2" />
 
           <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-12 md:gap-8">
             {steps.map((step, index) => (
@@ -51,7 +51,7 @@ function HowItWorks() {
                 </div>
 
                 {/* Icon Circle */}
-                <div className="relative z-10 w-20 h-20 mb-6 rounded-full bg-dark flex items-center justify-center glass-effect border border-primary/30 group-hover:border-primary transition-colors duration-300">
+                <div className="relative z-10 w-20 h-20 mb-4 rounded-full bg-dark flex items-center justify-center glass-effect border border-primary/30 group-hover:border-primary transition-colors duration-300">
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     className="transform transition-transform duration-300"
@@ -60,7 +60,7 @@ function HowItWorks() {
                   </motion.div>
                 </div>
 
-                <h3 className="text-xl font-semibold text-white mb-3">{step.title}</h3>
+                <h3 className="text-xl font-semibold text-white pt-4 mb-3">{step.title}</h3>
                 <p className="text-lightGray max-w-xs">{step.description}</p>
               </motion.div>
             ))}
