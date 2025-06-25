@@ -3,7 +3,13 @@ import { useSelector, useDispatch } from "react-redux";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import arrowLine from "../assets/dotted-arrow.png";
-import { FaExchangeAlt } from "react-icons/fa";
+import {
+  FaExchangeAlt,
+  FaClock,
+  FaCalendarAlt,
+  FaUser,
+  FaSuitcase,
+} from "react-icons/fa";
 import PropTypes from "prop-types";
 import PlacesAutocomplete from "./PlacesAutocomplete";
 import { updateBookingData } from "../store/bookingSlice";
@@ -16,6 +22,11 @@ function BookingForm({ onGetLocation }) {
   const [isOneWay, setIsOneWay] = useState(true);
   const [passengers, setPassengers] = useState(1);
   const [luggage, setLuggage] = useState(0);
+
+  // New date and time state variables
+  const [pickupDate, setPickupDate] = useState("");
+  const [pickupHour, setPickupHour] = useState("");
+  const [pickupMinute, setPickupMinute] = useState("");
   const [pickupTime, setPickupTime] = useState("");
 
   // Location state
@@ -38,6 +49,55 @@ function BookingForm({ onGetLocation }) {
       setPickupLocation(userLocation);
     }
   }, [userLocation]);
+
+  // Update pickupTime when date or time components change
+  useEffect(() => {
+    if (pickupDate && pickupHour && pickupMinute) {
+      const dateObj = new Date(pickupDate);
+      dateObj.setHours(parseInt(pickupHour, 10));
+      dateObj.setMinutes(parseInt(pickupMinute, 10));
+      setPickupTime(dateObj.toISOString().slice(0, 16));
+    }
+  }, [pickupDate, pickupHour, pickupMinute]);
+
+  // Initialize date and time values from current date
+  useEffect(() => {
+    const now = new Date();
+    now.setMinutes(Math.ceil(now.getMinutes() / 10) * 10); // Round up to nearest 10 minutes
+
+    setPickupDate(now.toISOString().split("T")[0]);
+    setPickupHour(String(now.getHours()).padStart(2, "0"));
+    setPickupMinute(String(now.getMinutes()).padStart(2, "0"));
+  }, []);
+
+  // Format date as "Tue 24th Jun"
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const day = date.getDate();
+    let suffix = "th";
+    if (day === 1 || day === 21 || day === 31) suffix = "st";
+    else if (day === 2 || day === 22) suffix = "nd";
+    else if (day === 3 || day === 23) suffix = "rd";
+
+    return `${days[date.getDay()]} ${day}${suffix} ${months[date.getMonth()]}`;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -177,15 +237,14 @@ function BookingForm({ onGetLocation }) {
             />
           </div>
 
-          <div className="flex flex-col gap-4 w-full min-w-0">
+          <div className="flex flex-col gap-2 w-full min-w-0">
             {/* From Location */}
             <div className="space-y-2">
               <PlacesAutocomplete
                 value={pickupAddress}
                 onChange={setPickupAddress}
                 onSelect={handlePickupSelect}
-                placeholder="Enter pickup location"
-                label="From Location"
+                label="From"
               />
               {pickupLocation && (
                 <div className="text-green-400 text-xs truncate">
@@ -211,8 +270,7 @@ function BookingForm({ onGetLocation }) {
                 value={dropoffAddress}
                 onChange={setDropoffAddress}
                 onSelect={handleDropoffSelect}
-                placeholder="Enter your destination"
-                label="To Location"
+                label="To"
               />
               {dropoffLocation && (
                 <div className="text-green-400 text-xs truncate">
@@ -224,95 +282,161 @@ function BookingForm({ onGetLocation }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 w-full lg:w-auto lg:min-w-[250px]">
-          {/* Trip Type Toggle
-          <div className="space-x-2 items-center">
-            <div className="flex items-center gap-4">
-              <span className="text-white">One-Way</span>
-              <button
-                type="button"
-                onClick={toggleTripType}
-                className={`relative w-12 h-6 rounded-full p-1 transition-all ${
-                  isOneWay ? "bg-primary" : "bg-gray-600"
-                }`}
-                aria-label={
-                  isOneWay ? "Switch to round trip" : "Switch to one way"
-                }
-              >
-                <motion.div
-                  className="w-4 h-4 bg-white rounded-full shadow-md"
-                  animate={{ x: isOneWay ? 0 : 24 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                />
-              </button>
-              <span className="text-white">Round Trip</span>
-            </div>
-          </div> */}
-
+        <div className="flex flex-col items-center w-full lg:w-auto lg:min-w-[350px] gap-4">
           {/* Date & Time Picker */}
-          <div className="space-y-2">
-            <label className="block text-white text-sm font-medium">
-              Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              className="w-full bg-dark/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
-              value={pickupTime}
-              onChange={(e) => setPickupTime(e.target.value)}
-              required
-              min={new Date().toISOString().slice(0, 16)}
-            />
-          </div>
+          <div className="w-full space-y-4">
+            {/* Pickup Date/Time Row */}
+            <div className="flex items-center bg-white/10 rounded-lg overflow-hidden w-full">
+              {/* Date Selection */}
+              <div className="flex items-center bg-white/5 px-4 py-2 md:py-4 flex-1 border-r border-gray-600/30 relative cursor-pointer">
+                <FaCalendarAlt className="text-primary mr-2" size={16} />
+                <div className="flex items-center justify-between flex-1">
+                  <span className="text-white text-sm">
+                    {formatDate(pickupDate)}
+                  </span>
+                  <svg
+                    className="w-4 h-4 text-white ml-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    ></path>
+                  </svg>
+                </div>
+                <label htmlFor="date-picker" className="sr-only">
+                  Select date
+                </label>
+                <input
+                  id="date-picker"
+                  type="date"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                  value={pickupDate}
+                  onChange={(e) => setPickupDate(e.target.value)}
+                  required
+                  min={new Date().toISOString().split("T")[0]}
+                  onClick={(e) => {
+                    // This ensures the calendar opens on mobile devices
+                    e.currentTarget.showPicker();
+                  }}
+                />
+              </div>
 
-          {/* Number of Passengers */}
-          <div className="space-y-2">
-            <label className="block text-white text-sm font-medium">
-              Passengers
-            </label>
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setPassengers((prev) => Math.max(1, prev - 1))}
-                className="p-2 bg-dark/50 border border-gray-600 rounded-lg text-white hover:bg-primary/50 transition-all"
-                aria-label="Decrease passenger count"
-              >
-                -
-              </button>
-              <span className="text-white">{passengers}</span>
-              <button
-                type="button"
-                onClick={() => setPassengers((prev) => Math.min(10, prev + 1))}
-                className="p-2 bg-dark/50 border border-gray-600 rounded-lg text-white hover:bg-primary/50 transition-all"
-                aria-label="Increase passenger count"
-              >
-                +
-              </button>
+              {/* Time Selection */}
+              <div className="flex items-center px-4 py-2 gap-1">
+                <FaClock className="text-primary mr-2" size={16} />
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  step="1"
+                  className="bg-transparent border-none text-white focus:outline-none focus:ring-0 text-center w-10 p-0"
+                  value={pickupHour}
+                  onChange={(e) =>
+                    setPickupHour(e.target.value.padStart(2, "0"))
+                  }
+                  required
+                />
+                <span className="text-white mx-1">:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  step="1"
+                  className="bg-transparent border-none text-white focus:outline-none focus:ring-0 text-center w-10 p-0"
+                  value={pickupMinute}
+                  onChange={(e) =>
+                    setPickupMinute(e.target.value.padStart(2, "0"))
+                  }
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Luggage Count */}
-          <div className="space-y-2">
-            <label className="block text-white text-sm font-medium">
-              Luggage (pieces)
-            </label>
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setLuggage((prev) => Math.max(0, prev - 1))}
-                className="p-2 bg-dark/50 border border-gray-600 rounded-lg text-white hover:bg-primary/50 transition-all"
-                aria-label="Decrease luggage count"
-              >
-                -
-              </button>
-              <span className="text-white">{luggage}</span>
-              <button
-                type="button"
-                onClick={() => setLuggage((prev) => Math.min(10, prev + 1))}
-                className="p-2 bg-dark/50 border border-gray-600 rounded-lg text-white hover:bg-primary/50 transition-all"
-                aria-label="Increase luggage count"
-              >
-                +
-              </button>
+            {/* Passengers and Luggage Row */}
+            <div className="flex flex-row gap-4 w-full">
+              {/* Passengers Selection */}
+              <div className="flex items-center bg-white/10 rounded-lg overflow-hidden flex-1">
+                <div className="flex items-center gap-2 px-4 py-4 flex-1">
+                  <FaUser className="text-primary" size={16} />
+                  <span className="text-white text-sm">Passengers</span>
+                </div>
+                <div className="flex items-center gap-2 md:px-4">
+                  <select
+                    value={passengers}
+                    onChange={(e) => setPassengers(parseInt(e.target.value))}
+                    className="bg-transparent border-none text-white focus:outline-none focus:ring-0 pr-8 appearance-none cursor-pointer"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                      <option
+                        key={num}
+                        value={num}
+                        className="bg-dark text-white"
+                      >
+                        {num}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className="w-4 h-4 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2" 
+                      d="M19 9l-7 7-7-7"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Luggage Selection */}
+              <div className="flex items-center bg-white/10 rounded-lg overflow-hidden flex-1">
+                <div className="flex items-center gap-2 px-2 md:px-4 py-4 flex-1">
+                  <FaSuitcase className="text-primary" size={16} />
+                  <span className="text-white text-sm">Luggage</span>
+                </div>
+                <div className="flex items-center gap-2 md:px-4">
+                  <select
+                    value={luggage}
+                    onChange={(e) => setLuggage(parseInt(e.target.value))}
+                    className="bg-transparent border-none text-white focus:outline-none focus:ring-0 pr-8 appearance-none cursor-pointer"
+                  >
+                    <option value="0" className="bg-dark text-white">
+                      None
+                    </option>
+                    {[1, 2, 3, 4, 5, 6].map((num) => (
+                      <option
+                        key={num}
+                        value={num}
+                        className="bg-dark text-white"
+                      >
+                        {num}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className="w-4 h-4 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
         </div>

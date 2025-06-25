@@ -7,7 +7,6 @@ const PlacesAutocomplete = ({
   value,
   onChange,
   onSelect,
-  placeholder,
   label,
   country = "uk", // Restrict to United Kingdom by default
   readOnly = false, // Add readOnly prop
@@ -138,28 +137,6 @@ const PlacesAutocomplete = ({
       setShowSuggestions(false);
       setSuggestions([]);
     }
-
-    // // For a fallback in case Google Places API isn't loaded
-    // if (!isGoogleLoaded) {
-    //   if (inputValue && inputValue.length > 2) {
-    //     setLoading(true);
-    //     // Simulate suggestions for fallback
-    //     setTimeout(() => {
-    //       const mockSuggestions = [
-    //         { id: 1, description: `${inputValue} Street, New York, NY` },
-    //         { id: 2, description: `${inputValue} Avenue, Los Angeles, CA` },
-    //         { id: 3, description: `${inputValue} Road, Chicago, IL` },
-    //         { id: 4, description: `${inputValue} Boulevard, Miami, FL` },
-    //       ];
-    //       setSuggestions(mockSuggestions);
-    //       setLoading(false);
-    //       setShowSuggestions(true);
-    //     }, 300);
-    //   } else {
-    //     setSuggestions([]);
-    //     setShowSuggestions(false);
-    //   }
-    // }
   };
 
   // Select a suggestion from the fallback list
@@ -176,27 +153,26 @@ const PlacesAutocomplete = ({
 
   return (
     <div className="relative w-full">
-      {label && (
-        <label className="block text-white text-sm font-medium mb-1">
-          {label}
-        </label>
-      )}
-      <div className="flex items-center">
+      <div className="relative flex items-center">
+        {label && (
+          <span className="absolute left-4 text-gray-400 text-sm z-10 pointer-events-none">
+            {label}:
+          </span>
+        )}
         <input
           ref={inputRef}
           type="text"
           value={value || ""}
           onChange={handleInputChange}
-          placeholder={placeholder}
           onFocus={() => value && value.length > 2 && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          className="max-w-[80%] md:max-w-[100%] flex-1 bg-dark/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all truncate"
+          className="max-w-[80%] md:max-w-[100%] flex-1 bg-dark/50 border border-gray-600 rounded-lg pl-[78px] pr-4 py-2 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all truncate"
           readOnly={readOnly}
         />
         {loading ? (
-          <FaSpinner className="animate-spin text-primary ml-2 flex-shrink-0" />
+          <FaSpinner className="absolute right-4 animate-spin text-primary flex-shrink-0" />
         ) : (
-          <FaMapMarkerAlt className="text-primary ml-2 flex-shrink-0" />
+          <FaMapMarkerAlt className="absolute right-4 text-primary flex-shrink-0" />
         )}
       </div>
 
@@ -231,7 +207,6 @@ PlacesAutocomplete.propTypes = {
   value: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   onSelect: PropTypes.func.isRequired,
-  placeholder: PropTypes.string,
   label: PropTypes.string,
   country: PropTypes.string,
   readOnly: PropTypes.bool,
