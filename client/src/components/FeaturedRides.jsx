@@ -8,7 +8,7 @@ const vehicles = [
     type: 'eco',
     name: 'Eco-Friendly',
     price: '1.0x',
-    image: 'https://teara.govt.nz/files/p-20812-pc.jpg',
+    image: 'https://akm-img-a-in.tosshub.com/businesstoday/images/photo_gallery/201107/eco-cars_06_070811010913.jpg',
     description: 'Environmentally conscious travel with hybrid and electric vehicles',
     passengers: 4,
     luggage: 2,
