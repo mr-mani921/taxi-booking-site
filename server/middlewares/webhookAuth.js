@@ -15,11 +15,7 @@ const igoConfig = require("../config/igoConfig.js");
  */
 
 const verifyIgoWebhookSignature = (req, res, next) => {
-  console.log(
-    "from webhook auth middelware",
-    process.env.SKIP_WEBHOOK_VERIFICATION,
-    process.env.NODE_ENV
-  );
+
   // Skip verification in development/test mode if configured to do so
   if (
     process.env.NODE_ENV !== "production" &&

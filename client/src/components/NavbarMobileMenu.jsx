@@ -10,7 +10,6 @@ const NavbarMobileMenu = ({ isOpen, navLinks, setIsOpen }) => {
   const { isAuthenticated } = useSelector((state) => state.user);
 
   const handleLogout = () => {
-    console.log("logging out");
     dispatch(logoutUser());
     setIsOpen(!isOpen);
   };

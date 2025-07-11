@@ -34,19 +34,6 @@ const getPriceEstimate = async (req, res) => {
       luggage,
       isOneWay,
     } = req.body;
-    console.log(
-      `Request received for price estimate maeney tumhey bss pakkar hi lia :`,
-      JSON.stringify(
-        {
-          pickupLocation,
-          dropoffLocation,
-          pickupTime,
-          passengers,
-        },
-        null,
-        2
-      )
-    );
 
     // Validate required inputs
     if (!pickupLocation || !dropoffLocation || !pickupTime) {
@@ -79,10 +66,6 @@ const getPriceEstimate = async (req, res) => {
       !dropoffLocation.lat ||
       !dropoffLocation.lng
     ) {
-      console.log(
-        "Warning: dropoffLocation is not properly formatted. This should not happen if using the updated frontend."
-      );
-
       // For backward compatibility, create a fake coordinate close to pickup
       formattedDropoff = {
         lat: parseFloat(pickupLocation.lat) + 0.01,
@@ -113,7 +96,6 @@ const getPriceEstimate = async (req, res) => {
         throw new Error("Invalid date format");
       }
       formattedPickupTime = pickupDate.toISOString();
-      console.log("Formatted pickup time:", formattedPickupTime);
     } catch (err) {
       return res.status(400).json({
         message:
@@ -142,14 +124,6 @@ const getPriceEstimate = async (req, res) => {
         });
       }
     }
-
-    // Log the request parameters for debugging
-    console.log("Sending bid request with:", {
-      pickup: formattedPickup,
-      dropoff: formattedDropoff,
-      time: formattedPickupTime,
-      passengers: passengerDetails.length,
-    });
 
     const response = await getEstimatedPrice(
       formattedPickup,
@@ -244,7 +218,6 @@ const getPriceEstimate = async (req, res) => {
         response.AgentBidResponse.Result &&
         response.AgentBidResponse.Result.Success === "false"
       ) {
-        console.log("API returned an error:", response.AgentBidResponse.Result);
         return res.status(400).json({
           message: `API Error: ${
             response.AgentBidResponse.Result.FailureReason || "Unknown error"
@@ -253,14 +226,11 @@ const getPriceEstimate = async (req, res) => {
         });
       }
 
-      console.log("No bids returned from API:", response);
-
       // For development/testing, create a mock bid to allow UI to continue working
       if (
         process.env.NODE_ENV !== "production" ||
         process.env.MOCK_MODE === "true"
       ) {
-        console.log("Using mock data for quotes");
         // Generate multiple mock bids with different prices and times
         formattedResponse.quotes = [
           {
@@ -542,7 +512,6 @@ const bookRide = async (req, res) => {
 
     // Validate required inputs
     if (!pickupLocation || !dropoffLocation || !pickupTime || !passengers) {
-      console.log("Missing required fields:", req.body);
       return res.status(400).json({
         message: "Missing required fields for booking",
       });
@@ -892,7 +861,6 @@ const getRideStatus = async (req, res) => {
  */
 const getUserRides = async (req, res) => {
   try {
-    console.log("Fetching rides history...");
     const userId = req.user?._id;
     const {
       status,
@@ -947,8 +915,6 @@ const getUserRides = async (req, res) => {
       .sort(sortOption)
       .skip(parseInt(skip))
       .limit(parseInt(limit));
-
-    console.log(`Found ${rides.length} rides for user ${userId}`);
 
     // Count total rides matching the query
     const total = await Ride.countDocuments(query);
@@ -1055,14 +1021,6 @@ const cancelRide = async (req, res) => {
  */
 const handleIgoWebhook = async (req, res) => {
   try {
-    // Enhanced logging for webhook events
-    console.log("iGo Webhook received:", {
-      headers: req.headers,
-      eventType: req.headers["x-igo-event-type"],
-      body: JSON.stringify(req.body),
-      timestamp: new Date().toISOString(),
-    });
-
     const eventType = req.headers["x-igo-event-type"];
     const eventData = req.body;
 
@@ -1093,9 +1051,6 @@ const handleIgoWebhook = async (req, res) => {
           ride.paymentPoint === PAYMENT_POINTS.END_OF_JOURNEY
         ) {
           // Request bill to get final fare
-          console.log(
-            `Automatically requesting bill for completed ride ${ride._id}`
-          );
 
           const billResult = await sendIgoRequest(
             igoConfig.buildXmlRequest({
@@ -1145,7 +1100,6 @@ const handleIgoWebhook = async (req, res) => {
     }
 
     // Log the webhook activity
-    console.log(`Webhook processed: ${eventType}`, result);
 
     // Return a success response to iGo
     res.json({
@@ -1180,7 +1134,6 @@ const requestVendorBids = async (req, res) => {
     } = req.body;
 
     const userId = req.user?._id;
-    console.log("Received bid request:", req.body);
 
     if (!userId) {
       return res.status(401).json({ message: "User authentication required" });
@@ -1236,19 +1189,14 @@ const requestVendorBids = async (req, res) => {
       passengers
     );
 
-    console.log("the bid response are", JSON.stringify(bidsResponse));
-
     const formattedBids = [];
     const rawBids = bidsResponse.AgentBidResponse?.Offers?.Offer;
     const ensureArray = (data) => (Array.isArray(data) ? data : [data]);
-
-    console.log("raw bids", rawBids);
 
     for (const bid of ensureArray(rawBids)) {
       const pricing = bid.Pricing || {};
       const vendor = bid.VendorDetails || {};
       const journey = bid.EstimatedJourney || {};
-      console.log("the vendor id is ", bid.Vendor.$.Id);
 
       // Apply profit markup to pricing
       const originalPrice = parseFloat(pricing.Price || 0);
@@ -1469,8 +1417,6 @@ const authorizeBooking = async (req, res) => {
 
       // Save the ride
       await newRide.save();
-
-      console.log("Created new ride record with ID:", newRide._id);
     }
 
     console.log(
@@ -1553,10 +1499,6 @@ const selectBid = async (req, res) => {
     const { bidReference, vendorId } = req.body;
     const userId = req.user?._id;
 
-    console.log(
-      "request reached to the selectbid controller and the bid refference is",
-      bidReference
-    );
     // Validate inputs
     if (!bidReference) {
       return res.status(400).json({ message: "Bid reference is required" });
@@ -1565,7 +1507,6 @@ const selectBid = async (req, res) => {
     if (!vendorId) {
       return res.status(400).json({ message: "Vendor ID is required" });
     }
-    // console.log("The bid reference is: ", bidReference, "\nThe vendor id is: ",vendorId, "\nThe userId is: ", userId);
 
     // Helper function to normalize vehicle type
     const normalizeVehicleType = (type) => {
@@ -1605,8 +1546,6 @@ const selectBid = async (req, res) => {
       });
     }
 
-    // console.log("the selected bid is :", bid);
-
     // Find selected vendor bid
     const selectedBid = bid.bids.find((b) => b.vendorId === vendorId);
 
@@ -1625,12 +1564,6 @@ const selectBid = async (req, res) => {
       bid.requestedTime,
       bid.bidReference,
       normalizeVehicleType(selectedBid.vehicleType) // Normalize vehicle type for API request
-    );
-
-    console.log(
-      "the availability reference is",
-      availabilityResponse.AgentBookingAvailabilityResponse
-        ?.AvailabilityReference
     );
 
     // Return the availability reference for booking

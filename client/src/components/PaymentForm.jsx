@@ -126,27 +126,18 @@ const PaymentForm = () => {
           authorizeBid({ bidReference: selectedQuote.bidReference })
         );
         let captureResponse;
-        console.log(
-          "the bid auth response is",
-          bidAuthResponse.payload.success
-        );
+
         const isAuthorized =
           bidAuthResponse?.payload?.success === true ||
           bidAuthResponse?.meta?.requestStatus === "fulfilled";
         if (isAuthorized) {
           // STEP 4: Capture payment if needed
-          console.log("the payment intent is", result.paymentIntent);
           if (result.paymentIntent.status === "requires_capture") {
             captureResponse = await api.captureStripePayment({
               paymentIntentId: result.paymentIntent.id,
             });
             dispatch(setPaymentIntent(captureResponse.data));
           }
-          console.log(
-            "the bref is ",
-            bidAuthResponse.payload.response.AgentBookingAuthorizationResponse
-              .BookingReference
-          );
 
           setSelectedQuote({
             ...selectedQuote,
@@ -155,10 +146,7 @@ const PaymentForm = () => {
                 .AgentBookingAuthorizationResponse.BookingReference,
           });
 
-          console.log(
-            "after adding the booking refference to the selected quote",
-            selectedQuote
-          );
+
 
           navigate("/payment-success", {
             state: {
@@ -182,7 +170,6 @@ const PaymentForm = () => {
         );
       }
     } catch (err) {
-      console.log(err);
       setError(err.message || "Payment processing failed");
     } finally {
       setIsProcessing(false);

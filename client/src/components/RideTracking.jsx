@@ -33,7 +33,6 @@ const RideTracking = ({
   const { selectedQuote } = useSelector((state) => state.quote);
 
   useEffect(() => {
-    console.log("the booking Refference is", bookingReference);
   }, []);
   // Define updateRideStatusFromEvents first since it's used by fetchEvents
   const updateRideStatusFromEvents = (eventList) => {
@@ -88,14 +87,11 @@ const RideTracking = ({
   // Fetch ride events - defined before any useEffect that uses it
   const fetchEvents = useCallback(async () => {
     if (!bookingReference || loading) return;
-    console.log("from ride tracking the selected quote is", selectedQuote);
 
     try {
       setLoading(true);
       setError(null);
-      console.log("Fetching Event History...");
       const response = await api.getEventsHistory(bookingReference);
-      console.log("Fetched Events", response.data.events);
 
       if (isMountedRef.current) {
         if (response.data.success) {
@@ -109,7 +105,6 @@ const RideTracking = ({
             updateRideStatusFromEvents(sortedEvents);
           }
         }
-        console.log("Fetched Events", events);
         setLoading(false);
       }
     } catch (err) {
@@ -124,7 +119,6 @@ const RideTracking = ({
   // Connect to socket.io on component mount
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-    console.log("Connecting to socket server at:", socketUrl);
 
     const newSocket = io(socketUrl, {
       transports: ["websocket", "polling"],
@@ -136,7 +130,6 @@ const RideTracking = ({
 
     // Add connection event handlers
     newSocket.on("connect", () => {
-      console.log("Socket connected successfully with ID:", newSocket.id);
       setSocket(newSocket);
     });
 
@@ -145,12 +138,10 @@ const RideTracking = ({
     });
 
     newSocket.on("reconnect_attempt", (attemptNumber) => {
-      console.log(`Socket reconnection attempt ${attemptNumber}`);
     });
 
     // Listen for ride updates
     newSocket.on("rideUpdate", (data) => {
-      console.log("got ride update from socket with data", data);
       if (data.status) setRideStatus(data.status.toUpperCase());
       if (data.driverDetails) setDriverDetails(data.driverDetails);
 
@@ -161,12 +152,10 @@ const RideTracking = ({
     // Listen for driver location updates if we implement that feature
     newSocket.on("driverLocationUpdate", (locationData) => {
       // Update driver location on map if we had a map component
-      console.log("Driver location update:", locationData);
     });
 
     // Cleanup on unmount
     return () => {
-      console.log("Disconnecting socket");
       isMountedRef.current = false;
       newSocket.disconnect();
     };
@@ -185,7 +174,6 @@ const RideTracking = ({
       // Use rideId if available, otherwise use bookingReference
       const roomIdentifier = rideId || bookingReference;
       socket.emit("joinRideRoom", roomIdentifier);
-      console.log(`Joining ride room with identifier: ${roomIdentifier}`);
 
       return () => {
         socket.emit("leaveRideRoom", roomIdentifier);

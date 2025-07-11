@@ -20,17 +20,6 @@ const handleIgoEvent = async (req, res) => {
     let authRef = req.headers["x-authorization-reference"];
     let bookingRef = req.headers["x-agent-booking-reference"];
 
-    // console.log("the event body is ", req.body);
-
-    // Log incoming event
-    console.log(`Received iGo event: ${eventName}`, {
-      headers: req.headers,
-      body: req.body,
-      eventName,
-      authRef,
-      bookingRef,
-      timestamp: new Date().toISOString(),
-    });
 
     // Parse XML body if it's not already parsed
     let eventData = req.body;
@@ -148,7 +137,6 @@ const getEventHistory = async (req, res) => {
   try {
     const { bookingReference } = req.params;
 
-    console.log("in the getEventHistory controller for:", bookingReference);
 
     // Look for events using both the booking reference and as a potential ride ID
     const events = await EventHistory.find({
@@ -159,7 +147,6 @@ const getEventHistory = async (req, res) => {
       ],
     }).sort({ timestamp: 1 });
 
-    console.log("Found events:", events.length);
 
     return res.json({
       success: true,
@@ -180,11 +167,6 @@ const getEventHistory = async (req, res) => {
  */
 const storeEventHistory = async (eventType, authRef, bookingRef, eventData) => {
   try {
-    console.log(
-      `Storing event history: ${eventType}, bookingRef: ${
-        bookingRef || "N/A"
-      }, authRef: ${authRef || "N/A"}`
-    );
 
     // Don't proceed if we don't have any reference at all
     if (!bookingRef && !authRef) {
@@ -204,7 +186,6 @@ const storeEventHistory = async (eventType, authRef, bookingRef, eventData) => {
     });
 
     const savedEvent = await event.save();
-    console.log(`Event history saved with ID: ${savedEvent._id}`);
     return savedEvent;
   } catch (error) {
     console.error(`Error storing event history:`, error);

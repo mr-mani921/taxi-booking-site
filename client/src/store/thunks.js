@@ -185,7 +185,6 @@ export const logoutUser = createAsyncThunk(
   async (_, { dispatch, rejectWithValue }) => {
     try {
       dispatch(setGlobalLoading(true));
-      console.log("request is in the frontend logging out");
       await api.logout();
       localStorage.removeItem("token");
       dispatch(setIsAuthenticated(false));
@@ -449,7 +448,6 @@ export const checkBidAvailability = createAsyncThunk(
 
       const { bidReference, vendorId } = bidData;
 
-      console.log("bidData", bidData);
       // Build the request data for the API call
       const requestData = {
         vendorId,
@@ -458,10 +456,6 @@ export const checkBidAvailability = createAsyncThunk(
 
       // Make the API call to check availability
       const response = await api.checkAvailability(requestData);
-      console.log(
-        "the availabiltiy referernce is ",
-        response.data.availabilityReference
-      );
 
       // If availability check is successful, navigate to payment or confirmation page
       dispatch(setAvailabilityReference(response.data.availabilityReference));
@@ -526,12 +520,8 @@ export const authorizeBid = createAsyncThunk(
         vendorId: selectedQuote.vendorId,
       };
 
-      console.log("Authorization request data:", requestData);
-
       // Make the API call to authorize the bid
       const response = await api.authorizeBid(requestData);
-
-      console.log("the response is,", response.data);
 
       // Handle successful response
       if (response.data.success) {
@@ -591,12 +581,10 @@ export const createStripePaymentIntent = createAsyncThunk(
   "payments/createStripeIntent",
   async (paymentData, { dispatch, rejectWithValue }) => {
     try {
-      console.log("in the cratePaymentIntent Thunk");
       dispatch(setGlobalLoading(true));
       dispatch(setLoading({ entity: "payments", isLoading: true }));
       // Uncomment the API call when the backend is ready
       const response = await api.createStripePaymentIntent(paymentData);
-      console.log("and the secret is ", response.data.clientSecret);
       return response.data.clientSecret;
     } catch (error) {
       return rejectWithValue(

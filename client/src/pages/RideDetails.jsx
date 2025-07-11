@@ -41,12 +41,10 @@ const RideDetails = () => {
     const socket = io(socketUrl);
 
     socket.on("connect", () => {
-      console.log("Connected to socket server");
       socket.emit("joinRideRoom", rideId);
     });
 
     socket.on("rideUpdate", (updatedRide) => {
-      console.log("Ride update received:", updatedRide);
       setRide((prevRide) => ({
         ...prevRide,
         ...updatedRide,
@@ -79,12 +77,10 @@ const RideDetails = () => {
     });
 
     socket.on("driverLocationUpdate", (location) => {
-      console.log("Driver location update:", location);
       setDriverLocation(location);
     });
 
     socket.on("paymentUpdate", (paymentData) => {
-      console.log("Payment update:", paymentData);
       if (paymentData.required) {
         setPaymentAmount(paymentData.amount);
         setShowPaymentModal(true);

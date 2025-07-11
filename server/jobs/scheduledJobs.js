@@ -33,13 +33,11 @@ const SCHEDULES = {
 const initScheduledJobs = () => {
   // Skip scheduling in test environment
   if (process.env.NODE_ENV === "test") {
-    console.log("Skipping scheduled jobs in test environment");
     return;
   }
 
   // Daily settlement processing
   cron.schedule(SCHEDULES.DAILY_SETTLEMENT, async () => {
-    console.log("Running daily vendor settlement job");
     try {
       // Process settlements for the previous day
       const yesterday = new Date();
@@ -60,7 +58,6 @@ const initScheduledJobs = () => {
 
   // Weekly financial report generation
   cron.schedule(SCHEDULES.WEEKLY_REPORT, async () => {
-    console.log("Running weekly financial report job");
     try {
       // Generate report for the last week
       const lastWeekStart = new Date();
@@ -71,9 +68,6 @@ const initScheduledJobs = () => {
       today.setHours(0, 0, 0, 0);
 
       const result = await generateFinancialReport(lastWeekStart, today);
-      console.log(
-        `Weekly report generated with ${result.summary?.totalRides || 0} rides`
-      );
     } catch (error) {
       console.error("Error in weekly report job:", error);
     }
@@ -81,7 +75,6 @@ const initScheduledJobs = () => {
 
   // Hourly check for active ride statuses
   cron.schedule(SCHEDULES.HOURLY_RIDE_STATUS_CHECK, async () => {
-    console.log("Running hourly ride status check");
     try {
       // Find all rides in active states that haven't been updated recently
       const activeStatuses = [
@@ -99,15 +92,11 @@ const initScheduledJobs = () => {
         updatedAt: { $lt: twoHoursAgo },
       });
 
-      console.log(`Found ${staleRides.length} potentially stale rides`);
-
       // Check status for each stale ride
       for (const ride of staleRides) {
         if (!ride.igoAuthorizationReference) continue;
 
         try {
-          console.log(`Checking status for ride ${ride._id}`);
-
           // Request status from iGo
           const statusResponse = await sendIgoRequest(
             igoConfig.buildXmlRequest({
@@ -121,7 +110,6 @@ const initScheduledJobs = () => {
 
           if (statusResponse && statusResponse.AgentBookingStatusResponse) {
             const igoStatus = statusResponse.AgentBookingStatusResponse.Status;
-            console.log(`Received status ${igoStatus} for ride ${ride._id}`);
 
             // Only update if the status is different
             if (ride.status !== igoStatus) {
@@ -132,7 +120,6 @@ const initScheduledJobs = () => {
                 details: `Status updated from job: ${igoStatus}`,
               });
               await ride.save();
-              console.log(`Updated ride ${ride._id} status to ${igoStatus}`);
             }
           }
         } catch (error) {
@@ -146,7 +133,6 @@ const initScheduledJobs = () => {
 
   // Weekly cleanup of old data
   cron.schedule(SCHEDULES.CLEANUP_OLD_DATA, async () => {
-    console.log("Running weekly data cleanup job");
     try {
       // Clean up expired or temporary data older than 30 days
       const thirtyDaysAgo = new Date();
@@ -158,14 +144,10 @@ const initScheduledJobs = () => {
       // - Failed booking attempts
       // - Expired tokens
       // - etc.
-
-      console.log("Weekly cleanup job completed");
     } catch (error) {
       console.error("Error in weekly cleanup job:", error);
     }
   });
-
-  console.log("All scheduled jobs initialized");
 };
 
 // Export schedules for testing and debugging

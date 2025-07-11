@@ -147,9 +147,7 @@ function BookingForm({ onGetLocation }) {
       dispatch(updateBookingData(rideData));
 
       // Call the completeBookingFlow thunk to get vendor quotes
-      console.log("sending request for bids with data", rideData);
       const result = await dispatch(getBids(rideData));
-      console.log(`Quote request result:`, result);
 
       if (result.error) {
         // Handle the error response
@@ -164,7 +162,6 @@ function BookingForm({ onGetLocation }) {
       // Navigate to the quotes page if successful
       navigate("/quotes");
     } catch (err) {
-      console.error("Error requesting quotes:", err);
       setError(
         err.message || "An unexpected error occurred while getting quotes"
       );
@@ -197,7 +194,6 @@ function BookingForm({ onGetLocation }) {
     try {
       await onGetLocation();
     } catch (locationError) {
-      console.error("Location error:", locationError);
       setError("Failed to get your location. Please enter manually.");
     }
   };

@@ -39,7 +39,6 @@ function Quotes() {
     }
   };
 
-  console.log("the quotes are", quotes);
 
   const handleQuoteSelect = async (quote) => {
     try {
@@ -50,15 +49,12 @@ function Quotes() {
 
       // Extract the bid reference from the quote
       const bidReference = quote.bidReference || quotes[0]?.bidReference;
-      console.log("bidReference", bidReference);
-      console.log("vendor id", quote.vendorId);
 
       if (!bidReference) {
         console.error("Couldn't find bid reference for this ride");
         return;
       }
 
-      console.log("before updating selected bid is ", selectedQuote);
 
       // Check ride availability using the thunk
       // const resultAction = await dispatch(
@@ -82,7 +78,6 @@ function Quotes() {
       //     })
       //   );
 
-      console.log("after updating selected quote is ", selectedQuote);
 
       navigate("/payment");
 
@@ -91,7 +86,6 @@ function Quotes() {
       //   const errorMessage =
       //     resultAction.payload?.message ||
       //     "This ride is no longer available. Please try another option.";
-      //   console.log("errorMessage", errorMessage);
       // }
     } catch (error) {
       console.error("Error checking ride availability:", error);

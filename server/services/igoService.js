@@ -20,7 +20,6 @@ const shouldUseMockMode = () => {
 
   // If we have a webhook URL configured, use real mode by default
   if (process.env.API_BASE_URL && process.env.API_BASE_URL.includes("ngrok")) {
-    console.log("ngrok webhook URL detected, using real iGo API mode");
     return false;
   }
 
@@ -41,7 +40,6 @@ const sendIgoRequestBasic = async (xmlBody) => {
   try {
     // Log outgoing requests in development
     if (!igoConfig.isProduction) {
-      console.log("iGo API Request:", xmlBody);
     }
 
     // Determine if we should use mock mode
@@ -49,7 +47,6 @@ const sendIgoRequestBasic = async (xmlBody) => {
 
     // Use mock response in mock mode
     if (useMockMode) {
-      console.log("MOCK MODE: Returning mock response");
       const mockResponse = getMockResponse(xmlBody);
 
       // Log mock response
@@ -64,7 +61,6 @@ const sendIgoRequestBasic = async (xmlBody) => {
     }
 
     // We're using real mode, send actual request to iGo API
-    console.log(`Sending request to iGo API at ${igoConfig.apiUrl}`);
 
     const response = await axios.post(igoConfig.apiUrl, xmlBody, {
       headers: {
@@ -84,7 +80,6 @@ const sendIgoRequestBasic = async (xmlBody) => {
 
     // Log responses in development
     if (!igoConfig.isProduction) {
-      console.log("iGo API Response:", JSON.stringify(parsedResponse, null, 2));
     }
 
     // Check for error responses
@@ -100,7 +95,6 @@ const sendIgoRequestBasic = async (xmlBody) => {
 
     // Check if we're in mock mode and should fall back to mock response
     if (!shouldUseMockMode() && process.env.FALLBACK_TO_MOCK === "true") {
-      console.log("Error in real mode, falling back to mock response");
       return getMockResponse(xmlBody);
     }
 
@@ -166,9 +160,6 @@ const sendIgoRequest = async (xmlBody, options = {}) => {
         ? baseDelay * Math.pow(2, attempts - 1)
         : baseDelay;
 
-      console.log(
-        `Retry attempt ${attempts}/${maxRetries} after ${delay}ms...`
-      );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
@@ -443,11 +434,6 @@ const handleIgoEvent = async (eventType, eventData) => {
     const eventRoot = eventData[eventType]; // Access the root element
     const authRef = eventRoot.AuthorizationReference;
 
-    console.log(
-      `Received iGo event: ${eventType} \n`,
-      eventRoot.AuthorizationReference
-    );
-
     // Parse booking reference from the event data
     let bookingId;
 
@@ -586,10 +572,8 @@ const getEstimatedPrice = async (
     };
 
     const xmlString = igoConfig.buildXmlRequest(xmlRequest);
-    console.log("Sending price request to iGo:", xmlString);
 
     const response = await sendIgoRequest(xmlString);
-    console.log("Received price response from iGo:", response);
     return response;
   } catch (error) {
     console.error("Price request error:", error);
@@ -620,12 +604,10 @@ const checkAvailability = async (
               isLead: true,
             },
           ];
-    console.log(
-      "Checking availability with bid reference:",
+    "Checking availability with bid reference:",
       bidReference,
       "and vehicle type:",
-      vehicleType
-    );
+      vehicleType;
 
     // Map vehicle type to appropriate category and type enums
     let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
@@ -671,8 +653,6 @@ const checkAvailability = async (
         },
       },
     });
-
-    // console.log("Sending availability request to iGo:", xmlRequest);
 
     const response = await sendIgoRequest(xmlRequest);
     return response;
@@ -845,9 +825,6 @@ const handleBookingDispatched = async (ride, eventData) => {
 
 const handleBookingCompleted = async (ride, eventData) => {
   try {
-    console.log(
-      "in the specified event handler" + " which is handleBookingCompleted"
-    );
     // Update ride with completion information
     ride.status = igoConfig.rideStatuses.COMPLETED;
     ride.completedAt = new Date();
@@ -889,9 +866,6 @@ const handleBookingCompleted = async (ride, eventData) => {
 
 const handleBookingCancelled = async (ride, eventData) => {
   try {
-    console.log(
-      "in the specified event handler" + " which is handleBookingCancelled"
-    );
     // Update ride with cancellation information
     ride.status = igoConfig.rideStatuses.CANCELLED;
     ride.cancelledAt = new Date();
@@ -930,9 +904,6 @@ const handleBookingCancelled = async (ride, eventData) => {
 
 const handleVehicleArrived = async (ride, eventData) => {
   try {
-    console.log(
-      "in the specified event handler" + " which is handleVehicleArrived"
-    );
     // Update ride with arrival information
     ride.status = igoConfig.rideStatuses.VEHICLE_ARRIVED;
     ride.vehicleArrivedAt = new Date();
@@ -977,9 +948,6 @@ const handleVehicleArrived = async (ride, eventData) => {
 
 const handlePassengerOnBoard = async (ride, eventData) => {
   try {
-    console.log(
-      "in the specified event handler" + " which is handlePassengerOnBoard"
-    );
     // Update ride with passenger on board information
     ride.status = igoConfig.rideStatuses.PASSENGER_ON_BOARD;
     ride.passengerOnBoardAt = new Date();
@@ -1097,10 +1065,7 @@ const requestBids = async (
 
     const xmlString = igoConfig.buildXmlRequest(xmlRequest);
 
-    console.log("the xml string is", xmlString);
-
     const response = await sendIgoRequest(xmlString);
-    console.log("the response is", JSON.stringify(response));
     return response;
   } catch (error) {
     console.error("Bid request error:", error);
@@ -1125,8 +1090,6 @@ const processPayment = async (
   cardDetails = null
 ) => {
   try {
-    console.log(`Processing payment for booking ${authorizationReference}`);
-
     const request = igoConfig.buildXmlRequest({
       AgentPaymentRequest: {
         Agent: igoConfig.buildAgentSection(),
@@ -1162,8 +1125,6 @@ const processPayment = async (
  */
 const requestBill = async (authorizationReference) => {
   try {
-    console.log(`Requesting bill for booking ${authorizationReference}`);
-
     const request = igoConfig.buildXmlRequest({
       AgentBillRequest: {
         Agent: igoConfig.buildAgentSection(),
@@ -1187,8 +1148,6 @@ const requestBill = async (authorizationReference) => {
  */
 const getReceipt = async (authorizationReference) => {
   try {
-    console.log(`Getting receipt for booking ${authorizationReference}`);
-
     const request = igoConfig.buildXmlRequest({
       AgentReceiptRequest: {
         Agent: igoConfig.buildAgentSection(),

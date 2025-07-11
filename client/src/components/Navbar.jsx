@@ -38,7 +38,6 @@ function Navbar() {
     {
       label: "Logout",
       action: () => {
-        console.log("logging out");
         dispatch(logoutUser());
       },
     },

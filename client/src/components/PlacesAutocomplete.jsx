@@ -29,7 +29,6 @@ const PlacesAutocomplete = ({
       }&libraries=places`;
       script.async = true;
       script.onload = () => {
-        console.log("Google Maps script loaded successfully");
         setIsGoogleLoaded(true);
         initAutocomplete();
       };
