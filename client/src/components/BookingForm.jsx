@@ -240,7 +240,7 @@ function BookingForm({ onGetLocation }) {
                 value={pickupAddress}
                 onChange={setPickupAddress}
                 onSelect={handlePickupSelect}
-                label="From"
+                label="From Location"
                 isPickup={true}
               />
               {pickupLocation && (
@@ -267,7 +267,7 @@ function BookingForm({ onGetLocation }) {
                 value={dropoffAddress}
                 onChange={setDropoffAddress}
                 onSelect={handleDropoffSelect}
-                label="To"
+                label="To Location"
                 isPickup={false}
               />
               {dropoffLocation && (
@@ -356,32 +356,34 @@ function BookingForm({ onGetLocation }) {
             </div>
 
             {/* Passengers and Luggage Row */}
-            <div className="flex flex-row gap-4 w-full">
-              {/* Passengers Selection */}
-              <div className="flex items-center bg-white/10 rounded-lg overflow-hidden flex-1">
-                <div className="flex items-center gap-2 px-4 py-4 flex-1">
+            <div className="flex flex-col md:flex-row gap-4 w-full  bg-white/10 rounded-lg p-3 md:pr-2">
+              {/* Passengers */}
+              <div className="flex flex-1 items-center justify-between">
+                <div className="flex items-center gap-2 mr-2">
                   <FaUser className="text-primary" size={16} />
-                  <span className="text-white text-sm">Passengers</span>
+                  <span className="text-white font-medium text-sm">
+                    Passengers: 
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 md:px-4">
+                <div className="relative">
                   <select
                     value={passengers}
                     onChange={(e) => setPassengers(parseInt(e.target.value))}
-                    className="bg-transparent border-none text-white focus:outline-none focus:ring-0 pr-8 appearance-none cursor-pointer text-center"
+                    className="bg-transparent border-2 border-white/20 text-white rounded px-3 py-1 pr-8 appearance-none focus:outline-none cursor-pointer text-sm"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
                       <option
                         key={num}
                         value={num}
-                        className="bg-dark text-white text-center"
-                        style={{ textAlign: "center" }}
+                        className="bg-dark text-white text-center px-3 py-2"
+                        style={{ padding: "0.5rem 0.75rem" }}
                       >
                         {num}
                       </option>
                     ))}
                   </select>
                   <svg
-                    className="w-4 h-4 text-white"
+                    className="w-4 h-4 text-white absolute top-1/2 right-2 transform -translate-y-1/2 pointer-events-none"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -396,22 +398,23 @@ function BookingForm({ onGetLocation }) {
                 </div>
               </div>
 
-              {/* Luggage Selection */}
-              <div className="flex items-center bg-white/10 rounded-lg overflow-hidden flex-1">
-                <div className="flex items-center gap-2 px-2 md:px-4 py-4 flex-1">
+              {/* Luggage */}
+              <div className="flex flex-1 items-center justify-between">
+                <div className="flex items-center gap-2 mr-2">
                   <FaSuitcase className="text-primary" size={16} />
-                  <span className="text-white text-sm">Luggage</span>
+                  <span className="text-white font-medium text-sm">
+                    Luggage:
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 md:px-4">
+                <div className="relative">
                   <select
                     value={luggage}
                     onChange={(e) => setLuggage(parseInt(e.target.value))}
-                    className="bg-transparent border-none text-white focus:outline-none focus:ring-0 pr-8 appearance-none cursor-pointer text-center"
+                    className="bg-transparent border-2 border-white/20 text-white rounded px-3 py-1 pr-8 appearance-none focus:outline-none cursor-pointer text-sm"
                   >
                     <option
                       value="0"
                       className="bg-dark text-white text-center"
-                      style={{ textAlign: "center" }}
                     >
                       None
                     </option>
@@ -420,14 +423,13 @@ function BookingForm({ onGetLocation }) {
                         key={num}
                         value={num}
                         className="bg-dark text-white text-center"
-                        style={{ textAlign: "center" }}
                       >
                         {num}
                       </option>
                     ))}
                   </select>
                   <svg
-                    className="w-4 h-4 text-white"
+                    className="w-4 h-4 text-white absolute top-1/2 right-2 transform -translate-y-1/2 pointer-events-none"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

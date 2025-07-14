@@ -171,7 +171,9 @@ const PlacesAutocomplete = ({
           }
           onFocus={() => value && value.length > 2 && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          className="w-full bg-dark/50 border border-gray-600 rounded-lg pl-[78px] pr-10 py-2 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all"
+          className={`w-full bg-dark/50 border border-gray-600 rounded-lg ${
+            label === "From Location" ? "pl-[120px]" : "pl-[100px]"
+          }  pr-10 py-2 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all`}
           readOnly={readOnly}
         />
         {loading ? (
