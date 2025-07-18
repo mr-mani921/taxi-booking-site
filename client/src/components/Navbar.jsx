@@ -1,18 +1,25 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaTaxi, FaBars, FaTimes, FaUser, FaChevronDown } from "react-icons/fa";
+import {
+  FaTaxi,
+  FaBars,
+  FaTimes,
+  FaUser,
+  FaChevronDown,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaMobileAlt,
+} from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 import NavbarMobileMenu from "./NavbarMobileMenu";
 import { Dropdown } from "flowbite-react";
 import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../store/thunks";
-import { FaLocationDot } from "react-icons/fa6";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isOthersDropdownOpen, setIsOthersDropdownOpen] = useState(false);
   const dispatch = useDispatch();
   const location = useLocation();
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
@@ -28,9 +35,12 @@ function Navbar() {
 
   const navLinks = [
     { path: "/", label: "Home" },
-    { path: "/booking", label: "Ride Booking" },
-    { path: "/about", label: "About Us" },
-    { path: "/contact", label: "Contact Us" },
+    { path: "/about", label: "About us" },
+    { path: "/booking", label: "Book a Taxi" },
+    { path: "/services", label: "Services" },
+    { path: "/terms", label: "Terms" },
+    { path: "/privacy", label: "Privacy" },
+    { path: "/contact", label: "Contact us" },
   ];
 
   const userMenuItems = [
@@ -42,94 +52,88 @@ function Navbar() {
       },
     },
   ];
-  const otherPagesLink = [
-    { label: "Services", path: "/services" },
-    { label: "Terms", path: "/terms" },
-    { label: "Policy Policy", path: "/privacy" },
-  ];
 
   return (
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed w-screen z-50 transition-all duration-300 ${
-        isScrolled ? "bg-dark/95 backdrop-blur-md shadow-lg" : "bg-dark/70"
+      className={`fixed w-full z-50 transition-all duration-300 ${
+        isScrolled ? "bg-white shadow-minicabit" : "bg-white"
       }`}
     >
+      {/* Top bar with contact info and app download */}
+      {/* <div className="hidden md:block bg-minicabit-lightGray border-b border-gray-200">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-10">
+            <div className="flex items-center space-x-4">
+              <a
+                href="tel:+123456789"
+                className="flex items-center space-x-1 text-sm text-minicabit-darkGray hover:text-primary"
+              >
+                <FaPhone className="text-xs" />
+                <span>+123 456 789</span>
+              </a>
+            </div>
+            <div className="flex items-center space-x-4">
+              <a
+                href="#"
+                className="flex items-center space-x-1 text-sm text-minicabit-darkGray hover:text-primary"
+              >
+                <FaMobileAlt className="text-xs" />
+                <span>Download our app</span>
+              </a>
+              <Link
+                to="/contact"
+                className="text-sm text-minicabit-darkGray hover:text-primary"
+              >
+                Contact Us
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div> */}
+
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <motion.div
-            whileHover={{ rotate: -10, scale: 1.1 }}
+            whileHover={{ scale: 1.05 }}
             className="flex-shrink-0 flex items-center hover:cursor-pointer"
           >
             <Link
               to="/"
-              className="flex items-center space-x-2 hover:scale-105 transition-transform"
+              className="flex items-center space-x-2 transition-transform"
             >
-              <FaLocationDot className="text-primary text-2xl" />
-              <span className="text-white font-bold text-xl">Zappy Taxi</span>
+              <FaTaxi className="text-primary text-2xl" />
+              <span className="text-minicabit-darkBlue font-bold text-xl">
+                ZappyTaxis
+              </span>
             </Link>
           </motion.div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-lightGray hover:text-primary transition-colors relative group ${
-                  location.pathname === link.path ? "text-primary" : ""
+                className={`text-minicabit-darkGray hover:text-primary transition-colors relative group ${
+                  location.pathname === link.path
+                    ? "text-primary font-medium"
+                    : ""
                 }`}
               >
                 {link.label}
                 <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform" />
               </Link>
             ))}
-
-            <div className="relative">
-              <button
-                onClick={() => setIsOthersDropdownOpen(!isOthersDropdownOpen)}
-                className="flex items-center space-x-2 p-4 text-lightGray hover:text-primary transition-colors"
-              >
-                <span>Others</span>
-                <FaChevronDown
-                  className={`transition-transform  ${
-                    isOthersDropdownOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {isOthersDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute right-0 mt-2 w-48 bg-dark/95 backdrop-blur-md rounded-lg shadow-lg py-2"
-                  >
-                    {otherPagesLink.map((item, index) => (
-                      <div key={index}>
-                        <Link
-                          to={item.path}
-                          onClick={() => setIsOthersDropdownOpen(false)}
-                          className="block px-4 py-2 text-lightGray hover:bg-primary/10 hover:text-primary transition-colors"
-                        >
-                          {item.label}
-                        </Link>
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
 
           {/* Desktop CTA and User Menu */}
           <div className="hidden md:flex items-center space-x-4">
             <Link
               to="/booking"
-              className="bg-primary text-dark px-4 py-2 rounded-lg font-medium hover:scale-105 hover:shadow-glow transition-all"
+              className="bg-primary text-white px-4 py-2 rounded-md font-medium hover:bg-opacity-90 transition-all"
             >
               Book Now
             </Link>
@@ -139,7 +143,7 @@ function Navbar() {
               <div className="relative">
                 <Link
                   to={"/auth"}
-                  className="flex items-center space-x-2 p-4 text-primary transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 text-minicabit-darkBlue hover:text-primary transition-colors"
                 >
                   Login/SignUp
                 </Link>
@@ -148,7 +152,7 @@ function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 p-4 text-lightGray hover:text-primary transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 text-minicabit-darkGray hover:text-primary transition-colors"
                 >
                   <FaUser />
                   <FaChevronDown
@@ -164,21 +168,21 @@ function Navbar() {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute right-0 mt-2 w-48 bg-dark/95 backdrop-blur-md rounded-lg shadow-lg py-2"
+                      className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border border-gray-200 z-50"
                     >
                       {userMenuItems.map((item, index) => (
                         <div key={index}>
                           {item.path ? (
                             <Link
                               to={item.path}
-                              className="block px-4 py-2 text-lightGray hover:bg-primary/10 hover:text-primary transition-colors"
+                              className="block px-4 py-2 text-minicabit-darkGray hover:bg-gray-100 hover:text-primary transition-colors"
                             >
                               {item.label}
                             </Link>
                           ) : (
                             <button
                               onClick={item.action}
-                              className="w-full text-left px-4 py-2 text-lightGray hover:bg-primary/10 hover:text-primary transition-colors"
+                              className="w-full text-left px-4 py-2 text-minicabit-darkGray hover:bg-gray-100 hover:text-primary transition-colors"
                             >
                               {item.label}
                             </button>
@@ -195,18 +199,20 @@ function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden text-lightGray hover:text-primary transition-colors"
+            className="md:hidden text-minicabit-darkGray hover:text-primary transition-colors"
           >
             <FaBars size={24} />
           </button>
         </div>
       </div>
       <AnimatePresence>
-        <NavbarMobileMenu
-          isOpen={isOpen}
-          navLinks={navLinks}
-          setIsOpen={setIsOpen}
-        />
+        {isOpen && (
+          <NavbarMobileMenu
+            isOpen={isOpen}
+            navLinks={navLinks}
+            setIsOpen={setIsOpen}
+          />
+        )}
       </AnimatePresence>
     </motion.nav>
   );

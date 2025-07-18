@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaChevronDown, FaSearch } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const faqCategories = [
   {
@@ -52,6 +53,7 @@ function FAQ() {
   const [activeCategory, setActiveCategory] = useState(faqCategories[0].category);
   const [activeQuestionId, setActiveQuestionId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate()
 
   const filteredQuestions = faqCategories.flatMap(category => 
     category.questions.filter(q => 
@@ -61,10 +63,10 @@ function FAQ() {
   );
 
   return (
-    <div className="min-h-screen bg-dark pt-20">
+    <div className="min-h-screen bg-white pt-20">
       {/* Hero Section */}
-      <section className="relative py-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-dark/50" />
+      <section className="relative py-16 overflow-hidden bg-gray-50">
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white/90" />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -72,10 +74,10 @@ function FAQ() {
             transition={{ duration: 0.6 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
               Frequently Asked Questions
             </h1>
-            <p className="text-lg text-lightGray mb-8">
+            <p className="text-lg text-gray-600 mb-8">
               Find answers to common questions about our services
             </p>
 
@@ -87,7 +89,7 @@ function FAQ() {
                 placeholder="Search questions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-dark/50 border border-gray-600 rounded-lg pl-12 pr-4 py-3 text-white focus:outline-none focus:border-primary"
+                className="w-full bg-white border border-gray-300 rounded-lg pl-12 pr-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
           </motion.div>
@@ -95,12 +97,12 @@ function FAQ() {
       </section>
 
       {/* FAQ Content */}
-      <section className="py-16 bg-charcoal">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           {searchQuery ? (
             // Search Results
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-2xl font-bold text-white mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-8">
                 Search Results ({filteredQuestions.length})
               </h2>
               <div className="space-y-4">
@@ -110,13 +112,13 @@ function FAQ() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className="glass-effect rounded-xl overflow-hidden"
+                    className="border border-gray-200 rounded-xl overflow-hidden shadow-sm"
                   >
                     <button
                       onClick={() => setActiveQuestionId(activeQuestionId === index ? null : index)}
-                      className="w-full px-6 py-4 flex items-center justify-between text-left"
+                      className="w-full px-6 py-4 flex items-center justify-between text-left bg-white"
                     >
-                      <span className="text-lg font-medium text-white">{question.q}</span>
+                      <span className="text-lg font-medium text-gray-800">{question.q}</span>
                       <FaChevronDown
                         className={`text-primary transition-transform duration-300 ${
                           activeQuestionId === index ? 'rotate-180' : ''
@@ -132,7 +134,7 @@ function FAQ() {
                           transition={{ duration: 0.3 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-6 pb-4 text-lightGray">
+                          <div className="px-6 pb-4 text-gray-600 bg-white">
                             {question.a}
                           </div>
                         </motion.div>
@@ -156,8 +158,8 @@ function FAQ() {
                     onClick={() => setActiveCategory(category.category)}
                     className={`px-6 py-2 rounded-lg font-medium transition-all duration-300 ${
                       activeCategory === category.category
-                        ? 'bg-primary text-dark'
-                        : 'bg-dark/50 text-lightGray hover:bg-dark/70'
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     {category.category}
@@ -175,13 +177,13 @@ function FAQ() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6, delay: index * 0.1 }}
-                      className="glass-effect rounded-xl overflow-hidden"
+                      className="border border-gray-200 rounded-xl overflow-hidden shadow-sm"
                     >
                       <button
                         onClick={() => setActiveQuestionId(activeQuestionId === index ? null : index)}
-                        className="w-full px-6 py-4 flex items-center justify-between text-left"
+                        className="w-full px-6 py-4 flex items-center justify-between text-left bg-white"
                       >
-                        <span className="text-lg font-medium text-white">{question.q}</span>
+                        <span className="text-lg font-medium text-gray-800">{question.q}</span>
                         <FaChevronDown
                           className={`text-primary transition-transform duration-300 ${
                             activeQuestionId === index ? 'rotate-180' : ''
@@ -197,7 +199,7 @@ function FAQ() {
                             transition={{ duration: 0.3 }}
                             className="overflow-hidden"
                           >
-                            <div className="px-6 pb-4 text-lightGray">
+                            <div className="px-6 pb-4 text-gray-600 bg-white">
                               {question.a}
                             </div>
                           </motion.div>
@@ -212,7 +214,7 @@ function FAQ() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 bg-dark">
+      <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -220,16 +222,17 @@ function FAQ() {
             transition={{ duration: 0.6 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">
               Still Have Questions?
             </h2>
-            <p className="text-lightGray mb-8">
-              Can't find what you're looking for? Our support team is here to help.
+            <p className="text-gray-600 mb-8">
+              Can&apos;t find what you&apos;re looking for? Our support team is here to help.
             </p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-primary text-dark px-8 py-3 rounded-lg font-semibold hover:shadow-glow transition-all duration-300"
+              className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+              onClick={() => {navigate('/contact')}}
             >
               Contact Support
             </motion.button>

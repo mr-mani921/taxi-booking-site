@@ -1,162 +1,160 @@
-import { motion } from 'framer-motion';
-import { useDispatch, useSelector } from 'react-redux';
-// import { setSelectedRideType } from '../store/bookingSlice';
-import { FaUsers, FaSuitcase, FaLeaf, FaCar, FaWifi, FaSnowflake } from 'react-icons/fa';
+import { motion } from "framer-motion";
+import {
+  FaCar,
+  FaLeaf,
+  FaCogs,
+  FaUsers,
+  FaSuitcase,
+  FaAccessibleIcon,
+} from "react-icons/fa";
+import { Link } from "react-router-dom";
 
-const vehicles = [
+const carTypes = [
   {
-    type: 'eco',
-    name: 'Eco-Friendly',
-    price: '1.0x',
-    image: 'https://akm-img-a-in.tosshub.com/businesstoday/images/photo_gallery/201107/eco-cars_06_070811010913.jpg',
-    description: 'Environmentally conscious travel with hybrid and electric vehicles',
+    icon: <FaCar />,
+    name: "Saloon/Sedan",
+    examples: "e.g. Toyota Prius, VW Passat",
+    description: "For economy travel",
     passengers: 4,
     luggage: 2,
-    examples: ['Toyota Prius', 'Tesla Model 3'],
-    features: ['Zero Emissions', 'Quiet Ride', 'Modern Tech'],
-    icon: <FaLeaf className="text-green-500" />
+    carryOn: 2,
   },
   {
-    type: 'comfort',
-    name: 'Comfort',
-    price: '1.2x',
-    image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=300',
-    description: 'Premium sedans for comfortable business or leisure travel',
+    icon: <FaLeaf />,
+    name: "Electric Vehicle (EV)",
+    examples: "e.g. Tesla Model 3, Ioniq 5",
+    description: "For greener travel",
+    passengers: 4,
+    luggage: 2,
+    carryOn: 2,
+  },
+  {
+    icon: <FaCogs />,
+    name: "Estate",
+    examples: "e.g. Vauxhall Zafira",
+    description: "For more luggage space",
     passengers: 4,
     luggage: 3,
-    examples: ['BMW 5 Series', 'Mercedes E-Class'],
-    features: ['Leather Seats', 'Extra Legroom', 'WiFi'],
-    icon: <FaCar className="text-blue-500" />
+    carryOn: 3,
   },
   {
-    type: 'executive',
-    name: 'Executive',
-    price: '1.8x',
-    image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=300',
-    description: 'Luxury vehicles for premium travel experience',
-    passengers: 4,
-    luggage: 3,
-    examples: ['Mercedes S-Class', 'BMW 7 Series'],
-    features: ['Premium Interior', 'Professional Driver', 'Refreshments'],
-    icon: <FaWifi className="text-purple-500" />
-  },
-  {
-    type: 'xl',
-    name: 'XL / Minivan',
-    price: '1.5x',
-    image: 'https://images.unsplash.com/photo-1559416523-140ddc3d238c?auto=format&fit=crop&w=300',
-    description: 'Spacious vehicles perfect for groups or extra luggage',
+    icon: <FaUsers />,
+    name: "MPV/Minivan",
+    examples: "e.g. VW Sharan, Ford Galaxy",
+    description: "Ideal for families",
     passengers: 6,
     luggage: 4,
-    examples: ['Mercedes V-Class', 'VW Multivan'],
-    features: ['Extra Space', 'Family Friendly', 'Climate Control'],
-    icon: <FaSnowflake className="text-cyan-500" />
-  }
+    carryOn: 4,
+  },
+  {
+    icon: <FaCar />,
+    name: "Executive",
+    examples: "e.g. Merc E class, BMW 5",
+    description: "For extra comfort",
+    passengers: 4,
+    luggage: 2,
+    carryOn: 2,
+  },
+  {
+    icon: <FaCar />,
+    name: "Luxury",
+    examples: "e.g. Merc S class, BMW 7",
+    description: "Travel in style",
+    passengers: 4,
+    luggage: 2,
+    carryOn: 2,
+  },
+  {
+    icon: <FaUsers />,
+    name: "8 passengers",
+    examples: "e.g. Mercedes Viano",
+    description: "For group Travel",
+    passengers: 8,
+    luggage: 4,
+    carryOn: 4,
+  },
+  {
+    icon: <FaAccessibleIcon />,
+    name: "Wheelchair accessible",
+    examples: "e.g. Peugeot Premier",
+    description: "For travelling by Wheelchair",
+    passengers: 8,
+    luggage: 4,
+    carryOn: 4,
+  },
 ];
 
 function FeaturedRides() {
-  const dispatch = useDispatch();
-  const selectedRideType = useSelector(state => state.booking.selectedRideType);
-
   return (
-    <section className="py-20 bg-dark relative overflow-hidden">
+    <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
-        <motion.h2
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-3xl md:text-4xl font-bold text-center text-white mb-12"
+          className="text-center max-w-3xl mx-auto mb-12"
         >
-          Choose Your Perfect Ride
-        </motion.h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+            Get a ride that fits your needs
+          </h2>
+          <p className="text-gray-600 mb-4">
+            To book a taxi, simply enter your pickup location and chosen
+            destination and we'll provide you with a list of quotes, allowing
+            you to make your choice based on price, eco-friendliness or car
+            type.
+          </p>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {vehicles.map((vehicle, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {carTypes.map((car, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className={`glass-effect rounded-xl overflow-hidden cursor-pointer group
-                ${selectedRideType === vehicle.type ? 'border-2 border-primary' : 'border border-gray-700'}
-              `}
-              // onClick={() => dispatch(setSelectedRideType(vehicle.type))}
+              className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300"
             >
-              {/* Image Container */}
-              <div className="relative h-48">
-                <img
-                  src={vehicle.image}
-                  alt={vehicle.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 "
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-dark to-transparent" />
-                
-                {/* Price Badge */}
-                <div className="absolute top-4 right-4 bg-primary text-dark px-3 py-1 rounded-full font-semibold">
-                  {vehicle.price}
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-6 space-y-4">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold text-white group-hover:text-primary transition-colors">
-                    {vehicle.name}
-                  </h3>
-                  <div className="text-2xl">{vehicle.icon}</div>
-                </div>
-
-                {/* Description */}
-                <p className="text-lightGray text-sm">{vehicle.description}</p>
-
-                {/* Capacity Info */}
-                <div className="flex items-center justify-between text-lightGray">
-                  <div className="flex items-center gap-2">
-                    <FaUsers className="text-primary" />
-                    <span>{vehicle.passengers} seats</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaSuitcase className="text-primary" />
-                    <span>{vehicle.luggage} bags</span>
-                  </div>
-                </div>
-
-                {/* Example Cars */}
-                <div className="pt-4 border-t border-gray-700">
-                  <p className="text-sm text-lightGray mb-2">Available Models:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {vehicle.examples.map((car, i) => (
-                      <span
-                        key={i}
-                        className="text-xs bg-charcoal text-white px-2 py-1 rounded-full"
-                      >
-                        {car}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Features */}
-                <div className="flex flex-wrap gap-2">
-                  {vehicle.features.map((feature, i) => (
-                    <span
-                      key={i}
-                      className="text-xs text-primary bg-primary/10 px-2 py-1 rounded-full"
-                    >
-                      {feature}
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-2xl text-primary">{car.icon}</div>
+                  <div className="flex items-center space-x-1">
+                    <span className="font-bold text-gray-800">
+                      {car.passengers}
                     </span>
-                  ))}
+                    <FaUsers className="text-gray-400" />
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-semibold text-gray-800 mb-1">
+                  {car.name}
+                </h3>
+                <p className="text-sm text-gray-500 mb-3">{car.examples}</p>
+                <p className="text-gray-600 mb-4">{car.description}</p>
+
+                <div className="flex justify-between text-sm text-gray-600 border-t border-gray-200 pt-4">
+                  <div className="flex items-center gap-1">
+                    <FaSuitcase />
+                    <span>{car.luggage}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <FaSuitcase className="text-xs" />
+                    <span>{car.carryOn}</span>
+                  </div>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
-      </div>
 
-      {/* Decorative Elements */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="mt-12 text-center">
+          <Link
+            to="/booking"
+            className="inline-block bg-primary text-white px-6 py-3 rounded-md font-medium hover:bg-primary/90 transition-colors"
+          >
+            Book Your Ride Now
+          </Link>
+        </div>
+      </div>
     </section>
   );
 }

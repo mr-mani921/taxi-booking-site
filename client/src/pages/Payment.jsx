@@ -20,10 +20,10 @@ function Payment() {
   }
 
   return (
-    <div className="min-h-screen bg-dark pt-20">
+    <div className="min-h-screen bg-white pt-20">
       {/* Hero Section */}
-      <section className="relative py-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-dark/50" />
+      <section className="relative py-16 overflow-hidden bg-gray-50">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-white/50" />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -31,10 +31,10 @@ function Payment() {
             transition={{ duration: 0.6 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
               Secure Payment
             </h1>
-            <p className="text-lg text-lightGray">
+            <p className="text-lg text-gray-600">
               Complete your booking with our secure payment system
             </p>
           </motion.div>
@@ -42,7 +42,7 @@ function Payment() {
       </section>
 
       {/* Payment Section */}
-      <section className="py-16 bg-charcoal">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
             {/* Quote Summary */}
@@ -50,33 +50,33 @@ function Payment() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="glass-effect rounded-xl p-6 mb-8"
+              className="bg-white rounded-xl p-6 mb-8 shadow-sm border border-gray-200"
             >
-              <h2 className="text-2xl font-bold text-white mb-4">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
                 Ride Summary
               </h2>
-              <div className="grid grid-cols-2 gap-4 text-lightGray">
+              <div className="grid grid-cols-2 gap-4 text-gray-600">
                 <div>
                   <p className="mb-2">Driver</p>
-                  <p className="text-white font-semibold">
+                  <p className="text-gray-800 font-semibold">
                     {selectedQuote.driverName}
                   </p>
                 </div>
                 <div>
                   <p className="mb-2">Vehicle</p>
-                  <p className="text-white font-semibold">
+                  <p className="text-gray-800 font-semibold">
                     {selectedQuote.vehicleModel}
                   </p>
                 </div>
                 <div>
                   <p className="mb-2">Type</p>
-                  <p className="text-white font-semibold">
+                  <p className="text-gray-800 font-semibold">
                     {selectedQuote.vehicleType}
                   </p>
                 </div>
                 <div>
                   <p className="mb-2">Total Price</p>
-                  <p className="text-white font-semibold">
+                  <p className="text-gray-800 font-semibold">
                     ${selectedQuote.price?.toFixed(2)}
                   </p>
                 </div>
@@ -90,17 +90,19 @@ function Payment() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
             >
-              <div className="glass-effect rounded-xl p-4 text-center">
+              <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-200">
                 <FaCreditCard className="text-primary text-2xl mx-auto mb-2" />
-                <p className="text-white font-medium">Secure Payments</p>
+                <p className="text-gray-800 font-medium">Secure Payments</p>
               </div>
-              <div className="glass-effect rounded-xl p-4 text-center">
+              <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-200">
                 <FaLock className="text-primary text-2xl mx-auto mb-2" />
-                <p className="text-white font-medium">Encrypted Data</p>
+                <p className="text-gray-800 font-medium">Encrypted Data</p>
               </div>
-              <div className="glass-effect rounded-xl p-4 text-center">
+              <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-200">
                 <FaShieldAlt className="text-primary text-2xl mx-auto mb-2" />
-                <p className="text-white font-medium">Protected Information</p>
+                <p className="text-gray-800 font-medium">
+                  Protected Information
+                </p>
               </div>
             </motion.div>
 
@@ -110,7 +112,7 @@ function Payment() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-                <PaymentForm />
+              <PaymentForm />
             </motion.div>
           </div>
         </div>

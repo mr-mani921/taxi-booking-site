@@ -1,51 +1,83 @@
-import { motion } from 'framer-motion';
-import { FaClock, FaShieldAlt, FaHeadset, FaStar } from 'react-icons/fa';
+import { motion } from "framer-motion";
+import {
+  FaClock,
+  FaShieldAlt,
+  FaHeadset,
+  FaStar,
+  FaMoneyBillWave,
+  FaCalendarAlt,
+} from "react-icons/fa";
 
 const benefits = [
   {
-    icon: <FaClock className="text-3xl text-primary" />,
-    title: "24/7 Availability",
-    description: "Book your ride anytime, day or night"
+    icon: <FaCalendarAlt className="text-3xl text-primary" />,
+    title: "Free cancellations",
+    description: "Plans change? Easily cancel for a full refund",
   },
   {
     icon: <FaShieldAlt className="text-3xl text-primary" />,
-    title: "Safe & Secure",
-    description: "Verified drivers and secure payments"
+    title: "Fully licensed providers",
+    description: "Transparent, fixed price rides with quality drivers",
+  },
+  {
+    icon: <FaClock className="text-3xl text-primary" />,
+    title: "Free wait time included",
+    description: "Up to 15 minutes, 45 minutes at airports",
+  },
+  {
+    icon: <FaMoneyBillWave className="text-3xl text-primary" />,
+    title: "Best prices guaranteed",
+    description: "Book up to 12 months ahead for better rates",
   },
   {
     icon: <FaHeadset className="text-3xl text-primary" />,
     title: "24/7 Support",
-    description: "Always here to help you"
+    description: "By email, live chat or phone, we're here to help",
   },
   {
     icon: <FaStar className="text-3xl text-primary" />,
-    title: "Best Rates",
-    description: "Competitive pricing guaranteed"
-  }
+    title: "Highly Rated Service",
+    description: "Drivers independently rated by customers",
+  },
 ];
 
 function RideBenefits() {
   return (
-    <section className="py-16 bg-charcoal">
+    <section className="py-16 bg-white">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-3xl mx-auto mb-12"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+            Pre-Book Taxis Online - Cheap Zappy Taxis Quotes
+          </h2>
+          <p className="text-lg text-gray-600">
+            Compare fares from over 1,000 taxi firms nationwide in over 550
+            towns and cities and save money on your next trip!
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {benefits.map((benefit, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="glass-effect rounded-xl p-6 text-center group hover:border-primary border border-gray-700 transition-all duration-300"
+              className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-all duration-300"
             >
-              <div className="mb-4 transform group-hover:scale-110 transition-transform duration-300">
-                {benefit.icon}
+              <div className="flex items-start">
+                <div className="mr-4 text-primary">{benefit.icon}</div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                    {benefit.title}
+                  </h3>
+                  <p className="text-gray-600">{benefit.description}</p>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">
-                {benefit.title}
-              </h3>
-              <p className="text-lightGray">
-                {benefit.description}
-              </p>
             </motion.div>
           ))}
         </div>

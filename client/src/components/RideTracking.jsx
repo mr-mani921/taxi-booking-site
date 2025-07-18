@@ -32,8 +32,7 @@ const RideTracking = ({
   const isMountedRef = useRef(true);
   const { selectedQuote } = useSelector((state) => state.quote);
 
-  useEffect(() => {
-  }, []);
+  useEffect(() => {}, []);
   // Define updateRideStatusFromEvents first since it's used by fetchEvents
   const updateRideStatusFromEvents = (eventList) => {
     // Find the most recent status-changing event
@@ -137,8 +136,7 @@ const RideTracking = ({
       console.error("Socket connection error:", error);
     });
 
-    newSocket.on("reconnect_attempt", (attemptNumber) => {
-    });
+    newSocket.on("reconnect_attempt", (attemptNumber) => {});
 
     // Listen for ride updates
     newSocket.on("rideUpdate", (data) => {
@@ -213,12 +211,12 @@ const RideTracking = ({
   // Get the status icon based on current step
   const getStatusIcon = (step) => {
     const statusMap = {
-      BOOKED: <FaCheck className="text-blue-400" />,
-      DISPATCHED: <FaCheck className="text-blue-400" />,
-      VEHICLE_ARRIVED: <FaCheck className="text-blue-400" />,
-      PASSENGERONBOARD: <FaCheck className="text-blue-400" />,
-      COMPLETED: <FaCheck className="text-green-400" />,
-      CANCELLED: <FaExclamationTriangle className="text-red-400" />,
+      BOOKED: <FaCheck className="text-blue-600" />,
+      DISPATCHED: <FaCheck className="text-blue-600" />,
+      VEHICLE_ARRIVED: <FaCheck className="text-blue-600" />,
+      PASSENGERONBOARD: <FaCheck className="text-blue-600" />,
+      COMPLETED: <FaCheck className="text-green-600" />,
+      CANCELLED: <FaExclamationTriangle className="text-red-600" />,
     };
 
     const currentStepIndex = [
@@ -241,20 +239,20 @@ const RideTracking = ({
       return step === rideStatus ? (
         statusMap[step]
       ) : (
-        <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+        <div className="w-3 h-3 rounded-full bg-gray-300"></div>
       );
     }
 
     if (stepIndex < currentStepIndex + 1) {
-      return <FaCheck className="text-green-400" />;
+      return <FaCheck className="text-green-600" />;
     } else if (stepIndex === currentStepIndex + 1) {
       return loading ? (
-        <FaSpinner className="text-blue-400 animate-spin" />
+        <FaSpinner className="text-blue-600 animate-spin" />
       ) : (
         statusMap[step]
       );
     } else {
-      return <div className="w-3 h-3 rounded-full bg-gray-500"></div>;
+      return <div className="w-3 h-3 rounded-full bg-gray-300"></div>;
     }
   };
 
@@ -271,37 +269,39 @@ const RideTracking = ({
   };
 
   return (
-    <div className="ride-tracking-container bg-dark-800 rounded-lg overflow-hidden">
+    <div className="ride-tracking-container rounded-lg overflow-hidden border border-gray-200 shadow-md">
       {/* Status Header */}
       <div
         className={`p-4 ${
           rideStatus === "COMPLETED"
-            ? "bg-green-500/20"
+            ? "bg-green-100"
             : rideStatus === "CANCELLED"
-            ? "bg-red-500/20"
-            : "bg-blue-500/20"
+            ? "bg-red-100"
+            : "bg-blue-100"
         }`}
       >
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-gray-800">
             Ride Status: {rideStatus.replace(/_/g, " ")}
           </h3>
           <div className="flex items-center">
-            {loading && <FaSpinner className="animate-spin text-white mr-2" />}
+            {loading && (
+              <FaSpinner className="animate-spin text-gray-700 mr-2" />
+            )}
             <button
               onClick={fetchEvents}
-              className="bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+              className="bg-white hover:bg-gray-100 rounded-full p-2 transition-colors shadow-sm"
               disabled={loading}
             >
               <FaSpinner
-                className={`text-white ${loading ? "animate-spin" : ""}`}
+                className={`text-gray-700 ${loading ? "animate-spin" : ""}`}
               />
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="mt-2 p-2 bg-red-500/20 text-red-300 text-sm rounded">
+          <div className="mt-2 p-2 bg-red-100 text-red-700 text-sm rounded">
             {error}
           </div>
         )}
@@ -315,10 +315,10 @@ const RideTracking = ({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="p-4 border-b border-gray-700"
+              className="p-4 border-b border-gray-200"
             >
               <div className="flex items-center">
-                <div className="flex-shrink-0 w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                <div className="flex-shrink-0 w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300">
                   {driverDetails.photoUrl ? (
                     <img
                       src={driverDetails.photoUrl}
@@ -326,30 +326,30 @@ const RideTracking = ({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <FaUser className="text-2xl text-gray-400" />
+                    <FaUser className="text-2xl text-gray-500" />
                   )}
                 </div>
 
                 <div className="ml-4 flex-1">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-semibold text-white">
+                      <h4 className="font-semibold text-gray-800">
                         {driverDetails.name}
                       </h4>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-gray-600">
                         {driverDetails.phone}
                       </p>
                     </div>
                     {driverDetails.estimatedArrival && (
-                      <div className="bg-blue-500/20 py-1 px-3 rounded-full text-blue-300 text-sm">
+                      <div className="bg-blue-100 py-1 px-3 rounded-full text-blue-700 text-sm">
                         {getEstimatedArrival()}
                       </div>
                     )}
                   </div>
 
                   <div className="mt-2 flex items-center text-sm">
-                    <FaCarSide className="text-gray-400 mr-1" />
-                    <span className="text-gray-300">
+                    <FaCarSide className="text-gray-600 mr-1" />
+                    <span className="text-gray-700">
                       {driverDetails.vehicleDetails?.Make}{" "}
                       {driverDetails.vehicleDetails?.Model},{" "}
                       {driverDetails.vehicleDetails?.Color}
@@ -362,12 +362,12 @@ const RideTracking = ({
 
               {/* Quick Actions */}
               <div className="mt-4 flex space-x-2">
-                <button className="flex-1 py-2 rounded bg-blue-500/20 text-blue-300 flex items-center justify-center">
+                <button className="flex-1 py-2 rounded bg-blue-100 text-blue-700 flex items-center justify-center hover:bg-blue-200 transition-colors">
                   <FaLocationArrow className="mr-2" /> Live Location
                 </button>
                 <a
                   href={`tel:${driverDetails.phone}`}
-                  className="flex-1 py-2 rounded bg-green-500/20 text-green-300 flex items-center justify-center"
+                  className="flex-1 py-2 rounded bg-green-100 text-green-700 flex items-center justify-center hover:bg-green-200 transition-colors"
                 >
                   Call Driver
                 </a>
@@ -380,50 +380,50 @@ const RideTracking = ({
       <div className="p-4">
         <div className="relative">
           {/* Vertical Line */}
-          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-700" />
+          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200" />
 
           {/* Timeline Steps */}
           <div className="space-y-6">
             {/* Booking Confirmed */}
             <div className="relative pl-10">
-              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-white border-2 border-gray-200">
                 {getStatusIcon("BOOKED")}
               </div>
-              <h4 className="text-white font-medium">Booking Confirmed</h4>
-              <p className="text-sm text-gray-400">
+              <h4 className="text-gray-800 font-medium">Booking Confirmed</h4>
+              <p className="text-sm text-gray-600">
                 Your ride has been booked and payment confirmed
               </p>
             </div>
 
             {/* Ride Dispatched */}
             <div className="relative pl-10">
-              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-white border-2 border-gray-200">
                 {getStatusIcon("DISPATCHED")}
               </div>
-              <h4 className="text-white font-medium">Ride Dispatched</h4>
-              <p className="text-sm text-gray-400">
+              <h4 className="text-gray-800 font-medium">Ride Dispatched</h4>
+              <p className="text-sm text-gray-600">
                 Your ride request has been sent to nearby drivers
               </p>
             </div>
 
             {/* Vehicle Arrived */}
             <div className="relative pl-10">
-              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-white border-2 border-gray-200">
                 {getStatusIcon("VEHICLEARRIVED")}
               </div>
-              <h4 className="text-white font-medium">Vehicle Arrived</h4>
-              <p className="text-sm text-gray-400">
+              <h4 className="text-gray-800 font-medium">Vehicle Arrived</h4>
+              <p className="text-sm text-gray-600">
                 Your vehicle has arrived at the pickup location
               </p>
             </div>
 
             {/* Passenger On Board */}
             <div className="relative pl-10">
-              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+              <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-white border-2 border-gray-200">
                 {getStatusIcon("PASSENGERONBOARD")}
               </div>
-              <h4 className="text-white font-medium">Passenger On Board</h4>
-              <p className="text-sm text-gray-400">
+              <h4 className="text-gray-800 font-medium">Passenger On Board</h4>
+              <p className="text-sm text-gray-600">
                 Your passenger has boarded the vehicle
               </p>
             </div>
@@ -431,11 +431,11 @@ const RideTracking = ({
             {/* Ride Completed */}
             {rideStatus !== "CANCELLED" && (
               <div className="relative pl-10">
-                <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-gray-700">
+                <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-white border-2 border-gray-200">
                   {getStatusIcon("COMPLETED")}
                 </div>
-                <h4 className="text-white font-medium">Ride Completed</h4>
-                <p className="text-sm text-gray-400">
+                <h4 className="text-gray-800 font-medium">Ride Completed</h4>
+                <p className="text-sm text-gray-600">
                   You've arrived at your destination
                 </p>
               </div>
@@ -444,11 +444,11 @@ const RideTracking = ({
             {/* Cancelled Status (only shown if ride is cancelled) */}
             {rideStatus === "CANCELLED" && (
               <div className="relative pl-10">
-                <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-800 border-2 border-red-500">
+                <div className="absolute left-0 top-0 w-6 h-6 rounded-full flex items-center justify-center bg-white border-2 border-red-400">
                   {getStatusIcon(rideStatus)}
                 </div>
-                <h4 className="text-red-400 font-medium">Ride Cancelled</h4>
-                <p className="text-sm text-gray-400">
+                <h4 className="text-red-600 font-medium">Ride Cancelled</h4>
+                <p className="text-sm text-gray-600">
                   This ride has been cancelled
                 </p>
               </div>
@@ -459,23 +459,23 @@ const RideTracking = ({
 
       {/* Recent Events */}
       {events.length > 0 && (
-        <div className="p-4 border-t border-gray-700">
-          <h4 className="text-white font-medium mb-3">Recent Updates</h4>
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <h4 className="text-gray-800 font-medium mb-3">Recent Updates</h4>
           <div className="space-y-3 max-h-40 overflow-y-auto">
             {events
               .slice(-5)
               .reverse()
               .map((event, index) => (
                 <div key={index} className="flex items-start">
-                  <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-400 mr-2"></div>
+                  <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 mr-2"></div>
                   <div>
-                    <p className="text-sm text-white">
+                    <p className="text-sm text-gray-800">
                       {event.eventType
                         .replace(/Agent|Booking|Event|Request/g, "")
                         .replace(/([A-Z])/g, " $1")
                         .trim()}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-500">
                       {formatRelativeTime(event.timestamp)}
                     </p>
                   </div>
@@ -486,10 +486,10 @@ const RideTracking = ({
       )}
 
       {/* Help Info */}
-      <div className="p-4 border-t border-gray-700 bg-gray-800/50 flex items-center">
-        <FaInfoCircle className="text-gray-400 mr-2" />
-        <span className="text-sm text-gray-400">
-          Need help with your ride? Call our support at +1-800-TAXI-HELP
+      <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center">
+        <FaInfoCircle className="text-gray-500 mr-2" />
+        <span className="text-sm text-gray-600">
+          Need help with your ride? Call our support at Info@zappytaxis.com
         </span>
       </div>
     </div>

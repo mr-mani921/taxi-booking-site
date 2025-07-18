@@ -41,7 +41,6 @@ const PaymentSuccess = () => {
     if (!selectedQuote && !location.state?.selectedQuote) {
       navigate("/");
     }
-    console.log("the booking Refference is", bookingReference);
 
     // Reset payment state when component unmounts
     return () => {
@@ -73,10 +72,10 @@ const PaymentSuccess = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark pt-20">
+    <div className="min-h-screen bg-white pt-20">
       {/* Hero Section */}
-      <section className="relative py-12 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-dark/50" />
+      <section className="relative py-12 overflow-hidden bg-gray-50">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-white/50" />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -84,13 +83,13 @@ const PaymentSuccess = () => {
             transition={{ duration: 0.6 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 text-green-500">
+            <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600">
               <FaCheckCircle className="text-3xl" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
               Payment Successful!
             </h1>
-            <p className="text-lg text-lightGray">
+            <p className="text-lg text-gray-600">
               Your ride has been booked and payment processed successfully
             </p>
           </motion.div>
@@ -113,10 +112,6 @@ const PaymentSuccess = () => {
                     rideId={rideId}
                     bookingReference={bookingReference}
                     authorizationReference={authorizationReference}
-                    onRideComplete={() => {
-                      console.log("Ride completed!");
-                      // Optionally trigger any completion actions
-                    }}
                   />
                 </motion.div>
               </div>
@@ -128,9 +123,9 @@ const PaymentSuccess = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="glass-effect rounded-xl p-6 mb-8"
+                  className="bg-white rounded-xl p-6 mb-8 shadow-sm border border-gray-200"
                 >
-                  <h2 className="text-2xl font-bold text-white mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">
                     Ride Details
                   </h2>
 
@@ -139,10 +134,10 @@ const PaymentSuccess = () => {
                       <div className="flex items-start mb-2">
                         <FaMapMarkerAlt className="text-primary mt-1.5 mr-3" />
                         <div>
-                          <h3 className="text-lg font-semibold text-white">
+                          <h3 className="text-lg font-semibold text-gray-800">
                             Pickup
                           </h3>
-                          <p className="text-lightGray">
+                          <p className="text-gray-600">
                             {booking?.pickupLocation?.address || "N/A"}
                           </p>
                         </div>
@@ -151,24 +146,24 @@ const PaymentSuccess = () => {
                       <div className="flex items-start">
                         <FaMapMarkerAlt className="text-primary mt-1.5 mr-3" />
                         <div>
-                          <h3 className="text-lg font-semibold text-white">
+                          <h3 className="text-lg font-semibold text-gray-800">
                             Destination
                           </h3>
-                          <p className="text-lightGray">
+                          <p className="text-gray-600">
                             {booking?.dropoffLocation?.address || "N/A"}
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-gray-700">
+                    <div className="pt-4 border-t border-gray-200">
                       <div className="flex items-start mb-4">
                         <FaCalendarAlt className="text-primary mt-1 mr-3" />
                         <div>
-                          <h3 className="text-lg font-semibold text-white">
+                          <h3 className="text-lg font-semibold text-gray-800">
                             Date
                           </h3>
-                          <p className="text-lightGray">
+                          <p className="text-gray-600">
                             {formatDate(booking?.pickupTime)}
                           </p>
                         </div>
@@ -177,10 +172,10 @@ const PaymentSuccess = () => {
                       <div className="flex items-start">
                         <FaClock className="text-primary mt-1 mr-3" />
                         <div>
-                          <h3 className="text-lg font-semibold text-white">
+                          <h3 className="text-lg font-semibold text-gray-800">
                             Time
                           </h3>
-                          <p className="text-lightGray">
+                          <p className="text-gray-600">
                             {formatTime(booking?.pickupTime)}
                           </p>
                         </div>
@@ -194,17 +189,19 @@ const PaymentSuccess = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
-                  className="glass-effect rounded-xl p-6"
+                  className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
                 >
                   <div className="flex items-center mb-6">
                     <FaCreditCard className="text-2xl text-primary mr-3" />
-                    <h2 className="text-2xl font-bold text-white">Payment</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      Payment
+                    </h2>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center border-b border-gray-700 pb-2">
-                      <span className="text-lightGray">Fare</span>
-                      <span className="text-white font-medium">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                      <span className="text-gray-600">Fare</span>
+                      <span className="text-gray-800 font-medium">
                         £
                         {quote?.pricing?.priceNET?.toFixed(2) ||
                           quote?.price?.toFixed(2) ||
@@ -212,21 +209,21 @@ const PaymentSuccess = () => {
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center border-b border-gray-700 pb-2">
-                      <span className="text-lightGray">Payment Method</span>
-                      <span className="text-white font-medium">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                      <span className="text-gray-600">Payment Method</span>
+                      <span className="text-gray-800 font-medium">
                         {paymentData?.paymentMethod || "Credit Card"}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center border-b border-gray-700 pb-2">
-                      <span className="text-lightGray">Payment Status</span>
-                      <span className="text-green-400 font-medium">Paid</span>
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                      <span className="text-gray-600">Payment Status</span>
+                      <span className="text-green-600 font-medium">Paid</span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-lightGray">Transaction ID</span>
-                      <span className="text-white font-medium font-mono text-sm truncate max-w-[150px]">
+                      <span className="text-gray-600">Transaction ID</span>
+                      <span className="text-gray-800 font-medium font-mono text-sm truncate max-w-[150px]">
                         {paymentData?.paymentIntentId ||
                           paymentIntent?.id ||
                           "TX" +
@@ -250,13 +247,13 @@ const PaymentSuccess = () => {
             >
               <button
                 onClick={() => navigate("/")}
-                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-md text-white font-semibold transition-colors"
+                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-700 font-semibold transition-colors"
               >
                 Return Home
               </button>
               <button
-                onClick={() => navigate("/rides/history")}
-                className="px-6 py-3 bg-primary hover:bg-primary-dark rounded-md text-white font-semibold transition-colors"
+                onClick={() => navigate("/ride-history")}
+                className="px-6 py-3 bg-primary hover:bg-primary/90 rounded-md text-white font-semibold transition-colors"
               >
                 View Ride History
               </button>

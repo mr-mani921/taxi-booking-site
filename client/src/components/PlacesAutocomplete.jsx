@@ -155,7 +155,7 @@ const PlacesAutocomplete = ({
     <div className="relative w-full">
       <div className="relative flex items-center">
         {label && (
-          <span className="absolute left-4 text-gray-400 text-sm z-10 pointer-events-none">
+          <span className="absolute left-4 text-gray-600 text-sm z-10 pointer-events-none">
             {label}:
           </span>
         )}
@@ -171,24 +171,24 @@ const PlacesAutocomplete = ({
           }
           onFocus={() => value && value.length > 2 && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          className={`w-full bg-dark/50 border border-gray-600 rounded-lg ${
-            label === "From Location" ? "pl-[120px]" : "pl-[100px]"
-          }  pr-10 py-2 text-white focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all`}
+          className={`w-full bg-white border border-gray-300 rounded-lg ${
+            label === "From" ? "pl-[60px]" : "pl-[40px]"
+          }  pr-10 py-2 text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all`}
           readOnly={readOnly}
         />
         {loading ? (
-          <FaSpinner className="absolute right-4 animate-spin text-primary flex-shrink-0" />
+          <FaSpinner className="absolute right-4 animate-spin text-blue-500 flex-shrink-0" />
         ) : (
-          <FaMapMarkerAlt className="absolute right-4 text-primary flex-shrink-0" />
+          <FaMapMarkerAlt className="absolute right-4 text-blue-500 flex-shrink-0" />
         )}
       </div>
 
       {/* Suggestions dropdown */}
       {showSuggestions && (
-        <div className="absolute z-10 w-full mt-1 bg-dark border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {isGoogleLoaded ? (
             // Google Places API suggestions will be shown automatically
-            <div className="px-4 py-2 text-white text-sm">
+            <div className="px-4 py-2 text-gray-700 text-sm">
               Type to see suggestions...
             </div>
           ) : (
@@ -196,7 +196,7 @@ const PlacesAutocomplete = ({
             suggestions.map((suggestion) => (
               <div
                 key={suggestion.id}
-                className="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white text-sm truncate"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-gray-800 text-sm truncate"
                 onMouseDown={() => selectSuggestion(suggestion)}
               >
                 {suggestion.description}

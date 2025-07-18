@@ -3,13 +3,12 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { Navigate } from "react-router-dom";
 import BookingForm from "../components/BookingForm";
-import FeaturedRides from "../components/FeaturedRides";
 import RideBenefits from "../components/RideBenefits";
 import BookingTestimonials from "../components/BookingTestimonials";
-import CTABanner from "../components/CTABanner";
 import { resetBookingState, setUserLocation } from "../store/bookingSlice.js";
 import { resetQuoteState } from "../store/quoteSlice.js";
 import { getActiveRide } from "../store/thunks/bookingThunks";
+import { FaMapMarkerAlt, FaCalendarAlt, FaClock } from "react-icons/fa";
 
 function Booking() {
   const dispatch = useDispatch();
@@ -23,117 +22,112 @@ function Booking() {
 
     // Check for active ride
     dispatch(getActiveRide());
-
-    // Get user's location if available
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          dispatch(
-            setUserLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            })
-          );
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          // Set default location - New York City
-          dispatch(
-            setUserLocation({
-              lat: 40.7128,
-              lng: -74.006,
-            })
-          );
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
-      console.error("Geolocation is not supported by this browser.");
-      // Set default location - New York City
-      dispatch(
-        setUserLocation({
-          lat: 40.7128,
-          lng: -74.006,
-        })
-      );
-    }
   }, [dispatch]);
 
+  // Handle current location
   const handleGetLocation = () => {
-    return new Promise((resolve, reject) => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const location = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            };
-            dispatch(setUserLocation(location));
-            resolve(location);
-          },
-          (error) => {
-            console.error("Error getting location:", error);
-            reject(error);
-          },
-          { enableHighAccuracy: true, timeout: 10000 }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        dispatch(
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          })
         );
-      } else {
-        const error = new Error(
-          "Geolocation is not supported by this browser."
-        );
-        console.error(error);
-        reject(error);
-      }
-    });
+      });
+    }
   };
 
-  // If there's an active ride, redirect to the active ride page
-  if (activeRide) {
-    return <Navigate to="/active-ride" />;
+  // Redirect to active ride details if one is in progress
+  if (activeRide && activeRide.status !== "COMPLETED") {
+    return <Navigate to={`/ride/${activeRide.id}`} replace />;
   }
 
   return (
-    <div className="min-h-screen bg-dark pt-20">
+    <div className="min-h-screen bg-white pt-20">
       {/* Hero Section */}
-      <section className="relative py-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-dark/50" />
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center max-w-3xl mx-auto"
-          >
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Book Your Ride
-            </h1>
-            <p className="text-lg text-lightGray">
-              Fast, reliable transportation at your fingertips
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Booking Form Section */}
-      <section className="py-12">
+      <section className="bg-gray-50 py-12">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <BookingForm onGetLocation={handleGetLocation} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">
+                Book Your Taxi Online
+              </h1>
+              <p className="text-lg text-gray-600 mb-8">
+                Compare fares from over 1,000 taxi firms nationwide and save
+                money on your next trip!
+              </p>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start space-x-4">
+                  <div className="mt-1">
+                    <FaMapMarkerAlt className="text-primary text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-800">
+                      UK-wide Service
+                    </h3>
+                    <p className="text-gray-600">
+                      Available in over 550 towns and cities across the UK
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="mt-1">
+                    <FaCalendarAlt className="text-primary text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-800">
+                      Advance Booking
+                    </h3>
+                    <p className="text-gray-600">
+                      Book up to 12 months in advance
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="mt-1">
+                    <FaClock className="text-primary text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-800">
+                      24/7 Support
+                    </h3>
+                    <p className="text-gray-600">
+                      By email, live chat or phone, we're here to help
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Book a taxi
+                </h2>
+                <BookingForm onGetLocation={handleGetLocation} pageIs={'booking'} />
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
-
-      {/* Featured Rides */}
-      <FeaturedRides />
 
       {/* Benefits Section */}
       <RideBenefits />
 
       {/* Testimonials */}
       <BookingTestimonials />
-
-      {/* CTA Banner */}
-      <CTABanner />
     </div>
   );
 }

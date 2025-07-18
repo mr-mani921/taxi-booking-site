@@ -1,143 +1,185 @@
-import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { FaCheckCircle, FaClock, FaMapMarkerAlt, FaCar } from "react-icons/fa";
+import {
+  FaMapMarkerAlt,
+  FaArrowRight,
+  FaRegCalendarAlt,
+  FaUsers,
+  FaSuitcase,
+  FaCheck,
+} from "react-icons/fa";
+import { format } from "date-fns";
 
 function RideConfirmation() {
-  const currentBooking = useSelector((state) => state.booking.currentBooking);
-  const selectedQuote = useSelector((state) => state.quote.selectedQuote);
+  const { selectedQuote } = useSelector((state) => state.quote);
+  const { bookingData } = useSelector((state) => state.booking);
+  const { latestRide } = useSelector((state) => state.booking);
 
-  useEffect(() => {
-    // Scroll to top when component mounts
-    window.scrollTo(0, 0);
-  }, []);
+  // Use the latest ride data if available, otherwise use booking data
+  const ride = latestRide || {};
+  const pickupLocation =
+    ride.pickupLocation || bookingData?.pickupLocation || {};
+  const dropoffLocation =
+    ride.dropoffLocation || bookingData?.dropoffLocation || {};
+  const pickupTime = ride.pickupTime || bookingData?.pickupTime;
+  const passengers = ride.passengers || bookingData?.passengers || 1;
+  const luggage = ride.luggage || bookingData?.luggage || 0;
+  const fare = ride.fare || selectedQuote?.fare || "N/A";
+  const driverName =
+    ride.driverName || selectedQuote?.driverName || "Your driver";
+  const vendorName =
+    ride.vendorName || selectedQuote?.vendorName || "Taxi Service";
+  const vehicleType =
+    ride.vehicleType || selectedQuote?.vehicleType || "Standard";
 
-  if (!currentBooking || !selectedQuote) {
-    return null;
+  // Format date and time for display
+  let formattedDate = "Not available";
+  let formattedTime = "Not available";
+
+  if (pickupTime) {
+    try {
+      const dateObj = new Date(pickupTime);
+      formattedDate = format(dateObj, "EEE, MMM d, yyyy");
+      formattedTime = format(dateObj, "h:mm a");
+    } catch (error) {
+      console.error("Error formatting date:", error);
+    }
   }
 
+  // Format fare for display
+  const formattedFare =
+    typeof fare === "number"
+      ? new Intl.NumberFormat("en-GB", {
+          style: "currency",
+          currency: "GBP",
+        }).format(fare)
+      : fare;
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full max-w-4xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-2xl mx-auto"
+        className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden"
       >
-        {/* Success Message */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="inline-block"
-          >
-            <FaCheckCircle className="text-primary text-6xl mb-4" />
-          </motion.div>
-          <h1 className="text-3xl font-bold text-white mb-4">
-            Booking Confirmed!
-          </h1>
-          <p className="text-lightGray">
-            Your ride has been successfully booked. Here are your booking
-            details.
-          </p>
+        {/* Header */}
+        <div className="bg-primary bg-opacity-10 p-6 border-b border-primary border-opacity-20">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Booking Confirmation
+            </h2>
+            <div className="flex items-center">
+              <FaCheck className="text-green-500 mr-2" />
+              <span className="text-green-600 font-medium">
+                Booking Complete
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Booking Details */}
-        <div className="space-y-6">
-          {/* Booking Reference */}
-          <div className="bg-dark/30 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Booking Reference
-            </h3>
-            <p className="text-primary font-mono">{currentBooking.id}</p>
-          </div>
-
-          {/* Ride Details */}
-          <div className="bg-dark/30 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-4">
+        {/* Body */}
+        <div className="p-6">
+          {/* Ride Details Section */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Ride Details
             </h3>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <FaMapMarkerAlt className="text-primary text-xl" />
-                <div>
-                  <p className="text-lightGray">Pickup Location</p>
-                  <p className="text-white">
-                    {currentBooking.pickupLocation
-                      ? `${currentBooking.pickupLocation.lat.toFixed(
-                          4
-                        )}, ${currentBooking.pickupLocation.lng.toFixed(4)}`
-                      : "Not specified"}
-                  </p>
+
+            <div className="flex flex-col space-y-6">
+              {/* Locations */}
+              <div className="flex items-start">
+                <div className="flex flex-col items-center mr-4">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
+                    <FaMapMarkerAlt />
+                  </div>
+                  <div className="h-16 w-0.5 bg-gray-300 my-1"></div>
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
+                    <FaMapMarkerAlt />
+                  </div>
+                </div>
+
+                <div className="flex-1">
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-500">From</p>
+                    <p className="font-medium text-gray-800">
+                      {pickupLocation.address}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">To</p>
+                    <p className="font-medium text-gray-800">
+                      {dropoffLocation.address}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <FaMapMarkerAlt className="text-primary text-xl" />
-                <div>
-                  <p className="text-lightGray">Dropoff Location</p>
-                  <p className="text-white">
-                    {currentBooking.dropoffLocation || "Not specified"}
-                  </p>
+
+              {/* Date, Time and Passengers */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-200">
+                <div className="flex items-start">
+                  <FaRegCalendarAlt className="text-primary mt-1 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-500">Date & Time</p>
+                    <p className="font-medium text-gray-800">
+                      {formattedDate} at {formattedTime}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <FaClock className="text-primary text-xl" />
-                <div>
-                  <p className="text-lightGray">Pickup Time</p>
-                  <p className="text-white">
-                    {new Date(currentBooking.pickupTime).toLocaleString()}
-                  </p>
+
+                <div className="flex items-start">
+                  <FaUsers className="text-primary mt-1 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-500">Passengers</p>
+                    <p className="font-medium text-gray-800">
+                      {passengers} passenger{passengers !== 1 ? "s" : ""}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <FaCar className="text-primary text-xl" />
-                <div>
-                  <p className="text-lightGray">Vehicle Type</p>
-                  <p className="text-white">{selectedQuote.vehicleType.name}</p>
+
+                <div className="flex items-start">
+                  <FaSuitcase className="text-primary mt-1 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-500">Luggage</p>
+                    <p className="font-medium text-gray-800">
+                      {luggage} item{luggage !== 1 ? "s" : ""}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Payment Summary */}
-          <div className="bg-dark/30 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Payment Summary
+          {/* Service Details */}
+          <div className="mb-8 pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Service Details
             </h3>
-            <div className="space-y-2">
-              <div className="flex justify-between text-lightGray">
-                <span>Base Fare</span>
-                <span>${selectedQuote.price.toFixed(2)}</span>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <p className="text-sm text-gray-500">Cab Provider</p>
+                <p className="font-medium text-gray-800">{vendorName}</p>
               </div>
-              <div className="flex justify-between text-lightGray">
-                <span>Platform Fee</span>
-                <span>${(selectedQuote.price * 0.25).toFixed(2)}</span>
+
+              <div>
+                <p className="text-sm text-gray-500">Vehicle</p>
+                <p className="font-medium text-gray-800">{vehicleType}</p>
               </div>
-              <div className="border-t border-gray-600 pt-2 mt-2">
-                <div className="flex justify-between text-white font-semibold">
-                  <span>Total Amount</span>
-                  <span>${(selectedQuote.price * 1.25).toFixed(2)}</span>
-                </div>
+
+              <div>
+                <p className="text-sm text-gray-500">Fixed Price</p>
+                <p className="font-medium text-gray-800">{formattedFare}</p>
               </div>
             </div>
           </div>
 
-          {/* Next Steps */}
-          <div className="bg-dark/30 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Next Steps
-            </h3>
-            <div className="space-y-4">
-              <p className="text-lightGray">
-                You will receive a confirmation email with these details
-                shortly.
-              </p>
-              <p className="text-lightGray">
-                Your driver will contact you when they are on their way to pick
-                you up.
-              </p>
-            </div>
+          {/* Footer note */}
+          <div className="bg-gray-50 p-4 rounded-md text-sm text-gray-600">
+            <p>
+              Your ride confirmation has been sent to your email address. You
+              can also access this booking in your account under "My Rides".
+            </p>
           </div>
         </div>
       </motion.div>

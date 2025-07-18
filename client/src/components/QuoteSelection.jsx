@@ -3,6 +3,14 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setSelectedQuote, setSelectedVehicleType } from "../store/quoteSlice";
 import { setBookingStep } from "../store/bookingSlice";
+import {
+  FaCar,
+  FaUsers,
+  FaSuitcase,
+  FaLeaf,
+  FaCrown,
+  FaStar,
+} from "react-icons/fa";
 
 function QuoteSelection() {
   const dispatch = useDispatch();
@@ -24,78 +32,123 @@ function QuoteSelection() {
     }
   };
 
+  // Get vehicle icon based on type
+  const getVehicleIcon = (vehicleType) => {
+    if (!vehicleType) return <FaCar className="text-primary text-3xl" />;
+
+    const type = vehicleType.toLowerCase();
+    if (type.includes("executive") || type.includes("luxury")) {
+      return <FaCrown className="text-primary text-3xl" />;
+    } else if (type.includes("eco") || type.includes("electric")) {
+      return <FaLeaf className="text-primary text-3xl" />;
+    } else if (type.includes("mpv") || type.includes("minivan")) {
+      return <FaUsers className="text-primary text-3xl" />;
+    }
+    return <FaCar className="text-primary text-3xl" />;
+  };
+
+  // Get vehicle image based on type
+  const getVehicleImage = (vehicleType) => {
+    if (!vehicleType) return "https://via.placeholder.com/120x80?text=Standard";
+
+    const type = vehicleType.toLowerCase();
+    if (type.includes("executive") || type.includes("luxury")) {
+      return "https://via.placeholder.com/120x80?text=Executive";
+    } else if (type.includes("eco") || type.includes("electric")) {
+      return "https://via.placeholder.com/120x80?text=Eco";
+    } else if (type.includes("mpv") || type.includes("minivan")) {
+      return "https://via.placeholder.com/120x80?text=MPV";
+    }
+    return "https://via.placeholder.com/120x80?text=Standard";
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+    }).format(amount);
+  };
+
   return (
-    <div className="space-y-6 p-6 glass-effect rounded-xl shadow-lg">
-      <h2 className="text-2xl font-bold text-white mb-6">Select Your Ride</h2>
+    <div className="space-y-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Select Your Vehicle
+      </h2>
 
-      {/* Booking Summary */}
-      <div className="bg-dark/30 p-4 rounded-lg mb-6">
-        <h3 className="text-lg font-semibold text-white mb-4">
-          Booking Summary
-        </h3>
-        <div className="grid grid-cols-2 gap-4 text-white">
-          <div>
-            <p className="text-gray-400">Pickup Location</p>
-            <p>
-              {bookingData.pickupLocation
-                ? `${bookingData.pickupLocation.lat.toFixed(
-                    4
-                  )}, ${bookingData.pickupLocation.lng.toFixed(4)}`
-                : "Not selected"}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-400">Dropoff Location</p>
-            <p>{bookingData.dropoffLocation || "Not selected"}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Pickup Time</p>
-            <p>{bookingData.pickupTime || "Not selected"}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Passengers</p>
-            <p>{bookingData.passengers}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Vehicle Options */}
-      <div className="space-y-4">
-        {vehicleTypes.map((vehicle) => (
+      {/* Vehicle Types */}
+      <div className="grid grid-cols-1 gap-4">
+        {quotes.map((quote, index) => (
           <motion.div
-            key={vehicle.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={`p-4 rounded-lg cursor-pointer transition-all ${
-              selectedQuote?.vehicleType.id === vehicle.id
-                ? "bg-primary/20 border-2 border-primary"
-                : "bg-dark/30 border-2 border-transparent hover:border-primary/50"
+            key={quote.id || index}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+            className={`border rounded-lg p-5 cursor-pointer transition-all duration-300 ${
+              selectedQuote?.id === quote.id
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-primary/50"
             }`}
-            onClick={() =>
-              handleQuoteSelect({
-                vehicleType: vehicle,
-                price: quotes.find((q) => q.vehicleType.id === vehicle.id)
-                  ?.price,
-              })
-            }
+            onClick={() => handleQuoteSelect(quote)}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">{vehicle.icon}</span>
-                <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    {vehicle.name}
-                  </h3>
-                  <p className="text-gray-400">{vehicle.description}</p>
-                </div>
+            <div className="flex items-start">
+              <div className="mr-4 flex-shrink-0">
+                <img
+                  src={getVehicleImage(quote.vehicleType)}
+                  alt={quote.vehicleType || "Vehicle"}
+                  className="w-24 h-16 object-cover rounded"
+                />
               </div>
-              <div className="text-right">
-                <p className="text-xl font-bold text-white">
-                  $
-                  {quotes.find((q) => q.vehicleType.id === vehicle.id)?.price ||
-                    "---"}
-                </p>
-                <p className="text-sm text-gray-400">per ride</p>
+
+              <div className="flex-grow">
+                <div className="flex justify-between">
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-800">
+                      {quote.vehicleType || "Standard Vehicle"}
+                    </h3>
+
+                    <div className="flex items-center mt-1">
+                      <div className="flex mr-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <FaStar
+                            key={star}
+                            className={`w-3 h-3 ${
+                              star <= (quote.rating || 4)
+                                ? "text-primary"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {quote.vendorName}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-gray-800">
+                      {formatCurrency(quote.price || quote.fare || 0)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                  <div className="flex items-center">
+                    <FaUsers className="mr-1" /> Up to{" "}
+                    {quote.maxPassengers || 4} passengers
+                  </div>
+                  <div className="flex items-center">
+                    <FaSuitcase className="mr-1" /> {quote.maxLuggage || 2}{" "}
+                    luggage
+                  </div>
+                </div>
+
+                {quote.features && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    {quote.features.join(" • ")}
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -103,17 +156,19 @@ function QuoteSelection() {
       </div>
 
       {/* Continue Button */}
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={handleContinue}
-        disabled={!selectedQuote}
-        className={`w-full bg-primary text-dark font-semibold py-3 rounded-lg hover-glow ${
-          !selectedQuote ? "opacity-50 cursor-not-allowed" : ""
-        }`}
-      >
-        Continue to Payment
-      </motion.button>
+      <div className="pt-4 border-t border-gray-200">
+        <button
+          className={`w-full py-3 rounded-md font-medium ${
+            selectedQuote
+              ? "bg-primary text-white hover:bg-primary/90"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          } transition-colors`}
+          onClick={handleContinue}
+          disabled={!selectedQuote}
+        >
+          Continue to Payment
+        </button>
+      </div>
     </div>
   );
 }

@@ -85,21 +85,21 @@ const RideHistory = () => {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "completed":
-        return "bg-green-500/20 text-green-400";
+        return "bg-green-100 text-green-700";
       case "cancelled":
-        return "bg-red-500/20 text-red-400";
+        return "bg-red-100 text-red-700";
       case "in_progress":
-        return "bg-blue-500/20 text-blue-400";
+        return "bg-blue-100 text-blue-700";
       case "driver_assigned":
-        return "bg-purple-500/20 text-purple-400";
+        return "bg-purple-100 text-purple-700";
       case "driver_arrived":
-        return "bg-indigo-500/20 text-indigo-400";
+        return "bg-indigo-100 text-indigo-700";
       case "dispatched":
-        return "bg-yellow-500/20 text-yellow-400";
+        return "bg-yellow-100 text-yellow-700";
       case "booked":
-        return "bg-teal-500/20 text-teal-400";
+        return "bg-teal-100 text-teal-700";
       default:
-        return "bg-gray-500/20 text-gray-400";
+        return "bg-gray-100 text-gray-700";
     }
   };
 
@@ -133,13 +133,13 @@ const RideHistory = () => {
     : rides;
 
   return (
-    <div className="min-h-screen bg-dark pt-20 pb-20">
+    <div className="min-h-screen bg-white pt-32 pb-20">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">My Rides</h1>
-            <p className="text-lightGray">View and manage your ride history</p>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">My Rides</h1>
+            <p className="text-gray-600">View and manage your ride history</p>
           </div>
 
           {/* Search Bar */}
@@ -151,7 +151,7 @@ const RideHistory = () => {
                 placeholder="Search rides..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-charcoal border border-gray-700 rounded-lg py-3 pl-12 pr-4 text-white focus:outline-none focus:border-primary"
+                className="w-full bg-white border border-gray-300 rounded-lg py-3 pl-12 pr-4 text-gray-700 focus:outline-none focus:border-primary"
               />
             </div>
           </div>
@@ -160,36 +160,36 @@ const RideHistory = () => {
           {loading && rides.length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-4"></div>
-              <p className="text-lightGray">Loading your rides...</p>
+              <p className="text-gray-600">Loading your rides...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-12 glass-effect rounded-xl p-8">
+            <div className="text-center py-12 bg-white rounded-xl p-8 shadow-sm border border-gray-200">
               <FaTimes className="text-red-500 text-3xl mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-white mb-2">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
                 Error Loading Rides
               </h3>
-              <p className="text-lightGray mb-6">{error}</p>
+              <p className="text-gray-600 mb-6">{error}</p>
               <button
                 onClick={() => dispatch(fetchRides())}
-                className="px-6 py-3 bg-primary hover:bg-primary-dark rounded-md text-white font-medium transition-colors"
+                className="px-6 py-3 bg-primary hover:bg-primary/90 rounded-md text-white font-medium transition-colors"
               >
                 Try Again
               </button>
             </div>
           ) : filteredRides.length === 0 ? (
-            <div className="text-center py-12 glass-effect rounded-xl p-8">
+            <div className="text-center py-12 bg-white rounded-xl p-8 shadow-sm border border-gray-200">
               <FaCarSide className="text-gray-400 text-3xl mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-white mb-2">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
                 No Rides Found
               </h3>
-              <p className="text-lightGray mb-6">
+              <p className="text-gray-600 mb-6">
                 {searchTerm
                   ? "No rides match your search criteria."
                   : "You haven't taken any rides yet."}
               </p>
               <button
                 onClick={() => navigate("/")}
-                className="px-6 py-3 bg-primary hover:bg-primary-dark rounded-md text-white font-medium transition-colors"
+                className="px-6 py-3 bg-primary hover:bg-primary/90 rounded-md text-white font-medium transition-colors"
               >
                 Book a Ride
               </button>
@@ -199,23 +199,23 @@ const RideHistory = () => {
               {filteredRides.map((ride) => (
                 <div
                   key={ride._id}
-                  className="bg-charcoal rounded-xl overflow-hidden border border-gray-700"
+                  className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm"
                 >
                   {/* Ride Card Header */}
                   <div
-                    className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-gray-800/40 transition-colors"
+                    className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
                     // onClick={() => toggleExpandRide(ride._id)}
                   >
                     <div className="flex items-start md:items-center mb-4 md:mb-0">
-                      <div className="w-10 h-10 bg-dark rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
                         <FaCarSide className="text-primary" />
                       </div>
                       <div>
-                        <h3 className="text-white font-medium">
+                        <h3 className="text-gray-800 font-medium">
                           {ride.pickupLocation?.address?.split(",")[0]} to{" "}
                           {ride.dropoffLocation?.address?.split(",")[0]}
                         </h3>
-                        <div className="flex flex-wrap items-center text-sm text-lightGray mt-1">
+                        <div className="flex flex-wrap items-center text-sm text-gray-500 mt-1">
                           <span className="mr-4 flex items-center">
                             <FaCalendarAlt className="mr-1" />
                             {formatDate(ride.pickupTime)}
@@ -235,7 +235,7 @@ const RideHistory = () => {
                       >
                         {ride.status}
                       </div>
-                      <div className="text-white font-medium mr-4">
+                      <div className="text-gray-800 font-medium mr-4">
                         £{ride.fare?.toFixed(2) || "0.00"}
                       </div>
                       {/* <div className="text-gray-400">
@@ -258,7 +258,7 @@ const RideHistory = () => {
                         transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                       >
-                        <div className="border-t border-gray-700 p-0">
+                        <div className="border-t border-gray-200 p-0">
                           <RideTracking
                             rideId={ride._id}
                             bookingReference={ride.igoBookingId}
@@ -280,7 +280,7 @@ const RideHistory = () => {
                   <button
                     onClick={loadMoreRides}
                     disabled={loadingMore}
-                    className="px-6 py-3 bg-charcoal hover:bg-gray-700 border border-gray-700 rounded-lg text-white transition-colors flex items-center justify-center mx-auto"
+                    className="px-6 py-3 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg text-gray-700 transition-colors flex items-center justify-center mx-auto"
                   >
                     {loadingMore ? (
                       <>

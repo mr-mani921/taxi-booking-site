@@ -1,33 +1,35 @@
-import { motion } from 'framer-motion';
-import { FaMapMarkerAlt, FaCar, FaStar } from 'react-icons/fa';
+import { motion } from "framer-motion";
+import { FaMapMarkerAlt, FaCar, FaStar } from "react-icons/fa";
 
 const steps = [
   {
     icon: <FaMapMarkerAlt className="text-4xl text-primary" />,
     title: "Set Location",
-    description: "Choose your pickup location and destination with our easy-to-use interface"
+    description:
+      "Choose your pickup location and destination with our easy-to-use interface",
   },
   {
     icon: <FaCar className="text-4xl text-primary" />,
     title: "Select Ride",
-    description: "Pick from our premium fleet of vehicles tailored to your needs"
+    description:
+      "Pick from our premium fleet of vehicles tailored to your needs",
   },
   {
     icon: <FaStar className="text-4xl text-primary" />,
     title: "Enjoy Ride",
-    description: "Relax and enjoy your journey with our professional drivers"
-  }
+    description: "Relax and enjoy your journey with our professional drivers",
+  },
 ];
 
 function HowItWorks() {
   return (
-    <section className="py-20 bg-charcoal relative overflow-hidden">
+    <section className="py-20 bg-white relative overflow-hidden">
       <div className="container mx-auto px-4">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-3xl md:text-4xl font-bold text-center text-white mb-16"
+          className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-16"
         >
           How It Works
         </motion.h2>
@@ -51,7 +53,7 @@ function HowItWorks() {
                 </div>
 
                 {/* Icon Circle */}
-                <div className="relative z-10 w-20 h-20 mb-4 rounded-full bg-dark flex items-center justify-center glass-effect border border-primary/30 group-hover:border-primary transition-colors duration-300">
+                <div className="relative z-10 w-20 h-20 mb-4 rounded-full bg-gray-50 flex items-center justify-center shadow-sm border border-gray-200 group-hover:border-primary transition-colors duration-300">
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     className="transform transition-transform duration-300"
@@ -60,8 +62,10 @@ function HowItWorks() {
                   </motion.div>
                 </div>
 
-                <h3 className="text-xl font-semibold text-white pt-4 mb-3">{step.title}</h3>
-                <p className="text-lightGray max-w-xs">{step.description}</p>
+                <h3 className="text-xl font-semibold text-gray-800 pt-4 mb-3">
+                  {step.title}
+                </h3>
+                <p className="text-gray-600 max-w-xs">{step.description}</p>
               </motion.div>
             ))}
           </div>

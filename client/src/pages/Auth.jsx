@@ -116,13 +116,13 @@ function Auth() {
       <div className="hidden md:flex md:w-1/2 bg-cover bg-center relative ml-4">
         <img src={BackroundImage} alt="Background" className="rounded-lg " />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-dark/90 to-dark/50 flex items-center justify-center p-12">
+        <div className="absolute inset-0 bg-gradient-to-r from-white/90 to-white/50 flex items-center justify-center p-12">
           <div className="max-w-xl">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="text-4xl font-bold text-white mb-4"
+              className="text-4xl font-bold text-gray-800 mb-4"
             >
               Welcome to ZappyTaxi
             </motion.h1>
@@ -130,7 +130,7 @@ function Auth() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lightGray text-lg"
+              className="text-gray-600 text-lg"
             >
               Your premium ride-hailing service. Experience comfort and safety
               with every journey.
@@ -140,29 +140,29 @@ function Auth() {
       </div>
 
       {/* Right Side - Auth Form */}
-      <div className="w-full md:w-1/2 bg-dark flex items-center justify-center p-8">
+      <div className="w-full md:w-1/2 bg-white flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Error and Success Messages */}
           {error && (
-            <div className="bg-red-900/30 border border-red-500 text-red-300 px-4 py-3 mb-4 rounded-lg">
+            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded-lg">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="bg-green-900/30 border border-green-500 text-green-300 px-4 py-3 mb-4 rounded-lg">
+            <div className="bg-green-50 border border-green-400 text-green-700 px-4 py-3 mb-4 rounded-lg">
               {success}
             </div>
           )}
           {/* Toggle Buttons */}
           {!showOTPVerification && (
-            <div className="flex mb-8 bg-charcoal rounded-lg p-1">
+            <div className="flex mb-8 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setIsLogin(true)}
                 className={`w-1/2 py-3 text-center rounded-lg transition-all duration-300 ${
                   isLogin
-                    ? "bg-primary text-dark font-semibold"
-                    : "text-lightGray"
+                    ? "bg-primary text-white font-semibold"
+                    : "text-gray-600"
                 }`}
               >
                 Login
@@ -171,8 +171,8 @@ function Auth() {
                 onClick={() => setIsLogin(false)}
                 className={`w-1/2 py-3 text-center rounded-lg transition-all duration-300 ${
                   !isLogin
-                    ? "bg-primary text-dark font-semibold"
-                    : "text-lightGray"
+                    ? "bg-primary text-white font-semibold"
+                    : "text-gray-600"
                 }`}
               >
                 Sign Up
@@ -214,7 +214,7 @@ function Auth() {
                       value={formData.name}
                       onChange={handleInputChange}
                       placeholder="Full Name"
-                      className="w-full pl-10 pr-4 py-3 bg-charcoal border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-white placeholder-gray-400"
+                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-primary text-gray-700 placeholder-gray-500"
                     />
                   </div>
                 )}
@@ -230,7 +230,7 @@ function Auth() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="Email Address"
-                    className="w-full pl-10 pr-4 py-3 bg-charcoal border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-white placeholder-gray-400"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-primary text-gray-700 placeholder-gray-500"
                   />
                 </div>
 
@@ -245,7 +245,7 @@ function Auth() {
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="Password"
-                    className="w-full pl-10 pr-4 py-3 bg-charcoal border border-gray-700 rounded-lg focus:outline-none focus:border-primary text-white placeholder-gray-400"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-primary text-gray-700 placeholder-gray-500"
                   />
                   <button
                     type="button"
@@ -264,8 +264,8 @@ function Auth() {
                   disabled={loading?.user}
                   className={`w-full font-semibold py-3 rounded-lg transition-all duration-300 ${
                     loading?.user
-                      ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                      : "bg-primary text-dark hover:shadow-glow"
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-primary text-white hover:shadow-glow"
                   }`}
                 >
                   {loading?.user
@@ -278,10 +278,10 @@ function Auth() {
                 {/* Social Login */}
                 <div className="relative my-8">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-700"></div>
+                    <div className="w-full border-t border-gray-300"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-dark text-lightGray">
+                    <span className="px-2 bg-white text-gray-600">
                       Or continue with
                     </span>
                   </div>
@@ -291,7 +291,7 @@ function Auth() {
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
-                    className="flex items-center justify-center py-2 px-4 bg-charcoal rounded-lg text-white hover:bg-charcoal/70 transition-colors"
+                    className="flex items-center justify-center py-2 px-4 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors"
                   >
                     <FaGoogle className="mr-2 text-red-500" />
                     Continue with Google

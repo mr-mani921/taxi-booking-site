@@ -44,7 +44,7 @@ function App() {
     <Router>
       <Navbar />
       <Loader />
-      <div className="min-h-screen bg-dark text-lightGray">
+      <div className="min-h-screen bg-lightBg text-gray-800">
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth-success" element={<AuthSuccess />} />
@@ -79,7 +79,7 @@ function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme="light"
         className="toast-container"
         toastClassName="toast"
         bodyClassName="toast-body"

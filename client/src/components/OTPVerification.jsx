@@ -167,13 +167,13 @@ const OTPVerification = ({ onBack }) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full bg-charcoal rounded-lg p-8 shadow-lg"
+        className="w-full bg-white rounded-lg p-8 shadow-lg border border-gray-200"
       >
-        <h2 className="text-2xl font-bold text-white text-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">
           Verification Required
         </h2>
 
-        <p className="text-lightGray text-center mb-8">
+        <p className="text-gray-600 text-center mb-8">
           We've sent a verification code to{" "}
           <span className="text-primary font-medium">{pendingAuth.email}</span>.
           Please enter the 6-digit code below.
@@ -191,9 +191,9 @@ const OTPVerification = ({ onBack }) => {
               onChange={(e) => handleInputChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onFocus={() => setFocusedInput(index)}
-              className={`w-12 h-14 text-center text-xl font-bold rounded-md bg-dark text-white border-2 
+              className={`w-12 h-14 text-center text-xl font-bold rounded-md bg-gray-50 text-gray-800 border-2 
                 ${
-                  focusedInput === index ? "border-primary" : "border-gray-600"
+                  focusedInput === index ? "border-primary" : "border-gray-300"
                 } 
                 focus:outline-none focus:border-primary transition-colors`}
             />
@@ -202,14 +202,14 @@ const OTPVerification = ({ onBack }) => {
 
         {/* Error and Success Messages */}
         {error && (
-          <div className="flex items-center text-red-500 mb-4">
+          <div className="flex items-center text-red-600 mb-4">
             <FaExclamationCircle className="mr-2" />
             <p>{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="flex items-center text-green-500 mb-4">
+          <div className="flex items-center text-green-600 mb-4">
             <FaCheckCircle className="mr-2" />
             <p>{success}</p>
           </div>
@@ -223,8 +223,8 @@ const OTPVerification = ({ onBack }) => {
             className={`w-full py-3 rounded-lg font-semibold transition-colors 
               ${
                 loading?.user || otp.join("").length !== 6
-                  ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                  : "bg-primary text-dark hover:bg-primary-dark"
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-primary text-white hover:bg-primary/90"
               }`}
           >
             {loading?.user ? "Verifying..." : "Verify"}
@@ -233,7 +233,7 @@ const OTPVerification = ({ onBack }) => {
           <div className="flex items-center justify-between">
             <button
               onClick={onBack}
-              className="text-lightGray hover:text-white transition-colors"
+              className="text-gray-600 hover:text-gray-800 transition-colors"
             >
               Back to Login
             </button>
@@ -241,7 +241,7 @@ const OTPVerification = ({ onBack }) => {
             <button
               onClick={handleResendOTP}
               disabled={resendDisabled}
-              className={`flex items-center text-primary hover:text-primary-light transition-colors 
+              className={`flex items-center text-primary hover:text-primary/80 transition-colors 
                 ${resendDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <FaRedo className="mr-2" />

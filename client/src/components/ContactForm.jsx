@@ -1,40 +1,40 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from "react";
+import { motion } from "framer-motion";
 
 function ContactForm() {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: ''
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
   });
-  const [status, setStatus] = useState({ type: '', message: '' });
+  const [status, setStatus] = useState({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setStatus({ type: '', message: '' });
+    setStatus({ type: "", message: "" });
 
     // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       setStatus({
-        type: 'success',
-        message: 'Thank you for your message. We will get back to you soon!'
+        type: "success",
+        message: "Thank you for your message. We will get back to you soon!",
       });
-      setFormData({ name: '', email: '', phone: '', message: '' });
+      setFormData({ name: "", email: "", phone: "", message: "" });
     } catch (error) {
       setStatus({
-        type: 'error',
-        message: 'There was an error sending your message. Please try again.'
+        type: "error",
+        message: "There was an error sending your message. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -44,7 +44,10 @@ function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label htmlFor="name" className="block text-white text-sm font-medium mb-2">
+        <label
+          htmlFor="name"
+          className="block text-gray-700 text-sm font-medium mb-2"
+        >
           Full Name *
         </label>
         <input
@@ -54,13 +57,16 @@ function ContactForm() {
           value={formData.name}
           onChange={handleChange}
           required
-          className="w-full bg-dark/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+          className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-gray-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="John Doe"
         />
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-white text-sm font-medium mb-2">
+        <label
+          htmlFor="email"
+          className="block text-gray-700 text-sm font-medium mb-2"
+        >
           Email Address *
         </label>
         <input
@@ -70,13 +76,16 @@ function ContactForm() {
           value={formData.email}
           onChange={handleChange}
           required
-          className="w-full bg-dark/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+          className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-gray-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="john@example.com"
         />
       </div>
 
       <div>
-        <label htmlFor="phone" className="block text-white text-sm font-medium mb-2">
+        <label
+          htmlFor="phone"
+          className="block text-gray-700 text-sm font-medium mb-2"
+        >
           Phone Number
         </label>
         <input
@@ -85,13 +94,16 @@ function ContactForm() {
           name="phone"
           value={formData.phone}
           onChange={handleChange}
-          className="w-full bg-dark/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+          className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-gray-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="+1 (555) 123-4567"
         />
       </div>
 
       <div>
-        <label htmlFor="message" className="block text-white text-sm font-medium mb-2">
+        <label
+          htmlFor="message"
+          className="block text-gray-700 text-sm font-medium mb-2"
+        >
           Message *
         </label>
         <textarea
@@ -101,7 +113,7 @@ function ContactForm() {
           onChange={handleChange}
           required
           rows={4}
-          className="w-full bg-dark/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+          className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-gray-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="How can we help you?"
         />
       </div>
@@ -111,7 +123,9 @@ function ContactForm() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={`p-4 rounded-lg ${
-            status.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+            status.type === "success"
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
           }`}
         >
           {status.message}
@@ -123,11 +137,11 @@ function ContactForm() {
         disabled={isSubmitting}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className={`w-full bg-primary text-dark font-semibold py-3 rounded-lg transition-all duration-300 ${
-          isSubmitting ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-glow'
+        className={`w-full bg-primary text-white font-semibold py-3 rounded-lg transition-all duration-300 ${
+          isSubmitting ? "opacity-75 cursor-not-allowed" : "hover:shadow-md"
         }`}
       >
-        {isSubmitting ? 'Sending...' : 'Send Message'}
+        {isSubmitting ? "Sending..." : "Send Message"}
       </motion.button>
     </form>
   );

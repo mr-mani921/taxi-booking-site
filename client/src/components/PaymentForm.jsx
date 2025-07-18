@@ -28,13 +28,13 @@ const PaymentForm = () => {
     style: {
       base: {
         fontSize: "16px",
-        color: "#E0E0E0",
+        color: "#000000",
         fontFamily: "'Poppins', sans-serif",
         fontWeight: "400",
         "::placeholder": {
           color: "rgba(224, 224, 224, 0.6)",
         },
-        iconColor: "#FFC107",
+        iconColor: "#FF6600",
       },
       invalid: {
         color: "#f44336",
@@ -190,7 +190,7 @@ const PaymentForm = () => {
 
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <p className="text-lightGray text-lg">Total Amount:</p>
+          <p className="text-gray-500 text-lg">Total Amount:</p>
           <p className="text-primary text-xl font-bold">
             £{selectedQuote?.pricing?.priceNET?.toFixed(2) || "0.00"}
           </p>
@@ -200,10 +200,10 @@ const PaymentForm = () => {
 
       <form onSubmit={handleSubmit}>
         <div className="mb-6">
-          <label className="block text-lightGray text-sm font-medium mb-3">
+          <label className="block text-gray-600 text-sm font-medium mb-3">
             Card Information
           </label>
-          <div className="p-4 bg-charcoal border border-white/10 rounded-lg focus-within:border-primary/50 transition-all">
+          <div className="p-4 bg-lightBg text-gray-500 border border-gray/10 rounded-lg focus-within:border-primary/50 transition-all">
             <CardElement options={cardElementOptions} />
           </div>
           <p className="mt-2 text-xs text-lightGray/60">
