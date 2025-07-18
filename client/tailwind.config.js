@@ -3,7 +3,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#FF6600", // Minicabit orange
+        primary: "#031d49", // Minicabit orange
         secondary: "#0066CC", // Minicabit blue
         dark: "#121212", // Keep for reference but will be replaced in components
         charcoal: "#1E1E1E", // Keep for reference but will be replaced
@@ -11,7 +11,7 @@ export default {
         light: "#FFFFFF",
         lightBg: "#F8F9FA",
         minicabit: {
-          orange: "#FF6600",
+          orange: "#031d49",
           blue: "#0066CC",
           darkBlue: "#003366",
           lightGray: "#F5F5F5",
