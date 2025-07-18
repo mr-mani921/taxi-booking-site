@@ -8,6 +8,7 @@ import {
   FaUser,
   FaSuitcase,
   FaLocationArrow,
+  FaArrowRight,
 } from "react-icons/fa";
 import PropTypes from "prop-types";
 import PlacesAutocomplete from "./PlacesAutocomplete";
@@ -73,17 +74,6 @@ function BookingForm({ onGetLocation, pageIs }) {
     setPickupHour(String(now.getHours()).padStart(2, "0"));
     setPickupMinute(String(now.getMinutes()).padStart(2, "0"));
   }, []);
-
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -191,39 +181,43 @@ function BookingForm({ onGetLocation, pageIs }) {
   return (
     <form onSubmit={handleSubmit} className="w-full">
       {error && (
-        <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-2 rounded-md mb-4 text-sm">
+        <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm shadow-input animate-fade-in">
           {error}
         </div>
       )}
-      <div className={pageIs === "quote" ? "block" : "md:flex justify-evenly "}>
-        <div className={`${pageIs === "quote" ? "w-full" : "md:w-1/2"}`}>
+
+      <div className={pageIs === "quote" ? "block" : "md:flex md:gap-6"}>
+        <div
+          className={`${pageIs === "quote" ? "w-full" : "md:w-1/2"} space-y-5`}
+        >
           {/* Pickup Location */}
-          <div className="mb-4">
-            <div className="relative">
+          <div className="relative transition-all duration-250">
+            <div className="relative group">
               <PlacesAutocomplete
                 value={pickupAddress}
                 onChange={setPickupAddress}
                 onSelect={handlePickupSelect}
                 label="From"
                 isPickup={true}
-                className="border border-gray-300 rounded-md"
+                className="border border-gray-200 rounded-lg shadow-input focus:shadow-input-focus bg-white/90"
               />
               <button
                 type="button"
                 onClick={handleGetLocation}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary hover:text-primary/80 transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary p-2 hover:bg-primary/10 rounded-full transition-all duration-250"
                 aria-label="Use current location"
               >
-                <FaLocationArrow size={16} />
+                <FaLocationArrow size={14} />
               </button>
             </div>
           </div>
+
           {/* Swap Button */}
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center relative z-10">
             <button
               type="button"
               onClick={swapLocations}
-              className="flex items-center justify-center w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600"
+              className="flex items-center justify-center w-10 h-10 bg-white hover:bg-primary hover:text-white rounded-full text-primary border border-gray-200 shadow-input transition-all duration-250 transform hover:scale-110"
               aria-label="Swap locations"
             >
               <FaExchangeAlt size={14} />
@@ -231,155 +225,162 @@ function BookingForm({ onGetLocation, pageIs }) {
           </div>
 
           {/* Dropoff Location */}
-          <div className="mb-4 ">
+          <div className="relative transition-all duration-250">
             <PlacesAutocomplete
               value={dropoffAddress}
               onChange={setDropoffAddress}
               onSelect={handleDropoffSelect}
               label="To"
               isPickup={false}
-              className="border border-gray-300 rounded-md "
+              className="border border-gray-200 rounded-lg shadow-input focus:shadow-input-focus bg-white/90"
             />
           </div>
         </div>
 
         {/* Date and Time Row */}
-        {/* Combined Layout Container */}
         <div
-          className={`flex ${
-            pageIs === "home" ? "flex-row justify-evenly" : "flex-col gap-4"
-          } ${pageIs === "home" && "w-1/2"} mb-6`}
+          className={`mt-6 md:mt-0 ${
+            pageIs === "home"
+              ? "md:w-1/2 md:flex md:flex-col md:space-y-5"
+              : "space-y-5"
+          }`}
         >
-          {/* Date + Time Group */}
-          <div
-            className={`flex ${
-              pageIs === "booking" || pageIs === "quote"
-                ? "flex-row"
-                : "flex-col"
-            } ${pageIs === "home" ? "md:w-1/3" : "w-full justify-evenly"}  gap-2`}
-          >
-            {/* Date Picker */}
-            <div>
-              <div className="relative flex items-center border border-gray-300 rounded-md px-3 py-2   min-w-full bg-white">
-                <FaCalendarAlt className="text-gray-500 mr-2" size={16} />
-                <div className="flex-grow text-sm text-gray-700">
-                  {formatDate(pickupDate)}
-                </div>
-                <input
-                  type="date"
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full"
-                  value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                  required
-                  min={new Date().toISOString().split("T")[0]}
-                  onClick={(e) => e.currentTarget.showPicker()}
+          {/* Date Selector */}
+          <div className="relative group">
+            <label className="block text-sm font-medium mb-1 text-gray-100">
+              <FaCalendarAlt
+                className="inline-block mr-2 text-gray-400"
+                size={14}
+              />
+              Pickup Date
+            </label>
+            <input
+              type="date"
+              value={pickupDate}
+              onChange={(e) => setPickupDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+              required
+            />
+          </div>
+
+          {/* Time Selectors */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative group">
+              <label className="block text-sm font-medium mb-1 text-gray-100">
+                <FaClock
+                  className="inline-block mr-2 text-gray-400"
+                  size={14}
                 />
-              </div>
+                Hour
+              </label>
+              <select
+                value={pickupHour}
+                onChange={(e) => setPickupHour(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                required
+              >
+                {Array.from({ length: 24 }, (_, i) =>
+                  String(i).padStart(2, "0")
+                ).map((hour) => (
+                  <option key={hour} value={hour}>
+                    {hour}:00
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Time Picker */}
-            <div>
-              <div className="flex border border-gray-300 rounded-md overflow-hidden">
-                <div className="flex items-center bg-white px-3 py-2">
-                  <FaClock className="text-gray-500" size={16} />
-                </div>
-                <select
-                  value={pickupHour}
-                  onChange={(e) => setPickupHour(e.target.value)}
-                  required
-                  className="appearance-none bg-white py-2 px-2 border-r border-gray-300 text-sm text-gray-700 flex-1"
-                >
-                  {[...Array(24)].map((_, i) => (
-                    <option key={i} value={String(i).padStart(2, "0")}>
-                      {String(i).padStart(2, "0")}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={pickupMinute}
-                  onChange={(e) => setPickupMinute(e.target.value)}
-                  required
-                  className="appearance-none bg-white py-2 px-2 text-sm text-gray-700 flex-1"
-                >
-                  {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((min) => (
-                    <option key={min} value={String(min).padStart(2, "0")}>
-                      {String(min).padStart(2, "0")}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="relative group">
+              <label className="block text-sm font-medium mb-1 text-gray-100">
+                <FaClock
+                  className="inline-block mr-2 text-gray-400"
+                  size={14}
+                />
+                Minute
+              </label>
+              <select
+                value={pickupMinute}
+                onChange={(e) => setPickupMinute(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                required
+              >
+                {["00", "10", "20", "30", "40", "50"].map((minute) => (
+                  <option key={minute} value={minute}>
+                    :{minute}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Passengers + Luggage Group */}
-          <div
-            className={`flex ${
-              pageIs === "booking" ? "flex-row justify-evenly" : "flex-col"
-            } gap-2`}
-          >
-            {/* Passengers */}
-            <div>
-              <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                <div className="flex items-center bg-white px-3 py-2">
-                  <FaUser className="text-gray-500" size={16} />
-                </div>
-                <select
-                  value={passengers}
-                  onChange={(e) => setPassengers(Number(e.target.value))}
-                  className="appearance-none bg-white py-2 px-2 text-sm text-gray-700 flex-1"
-                >
-                  {[...Array(8)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {i + 1} {i === 0 ? "Passenger" : "Passengers"}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Passenger and Luggage Selectors */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative group">
+              <label className="block text-sm font-medium mb-1 text-gray-100">
+                <FaUser className="inline-block mr-2 text-gray-400" size={14} />
+                Passengers
+              </label>
+              <select
+                value={passengers}
+                onChange={(e) => setPassengers(parseInt(e.target.value))}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+              >
+                {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
+                  <option key={num} value={num}>
+                    {num} {num === 1 ? "person" : "people"}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Luggage */}
-            <div>
-              <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                <div className="flex items-center bg-white px-3 py-2">
-                  <FaSuitcase className="text-gray-500" size={16} />
-                </div>
-                <select
-                  value={luggage}
-                  onChange={(e) => setLuggage(Number(e.target.value))}
-                  className="appearance-none bg-white py-2 px-2 text-sm text-gray-700 flex-1"
-                >
-                  {[...Array(6)].map((_, i) => (
-                    <option key={i} value={i}>
-                      {i} {i === 1 ? "Luggage" : "Luggages"}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="relative group">
+              <label className="block text-sm font-medium mb-1 text-gray-100">
+                <FaSuitcase
+                  className="inline-block mr-2 text-gray-400"
+                  size={14}
+                />
+                Luggage
+              </label>
+              <select
+                value={luggage}
+                onChange={(e) => setLuggage(parseInt(e.target.value))}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+              >
+                {Array.from({ length: 11 }, (_, i) => i).map((num) => (
+                  <option key={num} value={num}>
+                    {num} {num === 1 ? "item" : "items"}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
       </div>
 
       {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={
-          isSubmitting || !pickupLocation || !dropoffLocation || !pickupTime
-        }
-        className={`w-full bg-primary text-white font-medium py-3 rounded-md transition-colors ${
-          isSubmitting || !pickupLocation || !dropoffLocation || !pickupTime
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:bg-primary/90"
-        }`}
-      >
-        {isSubmitting ? "Getting Quotes..." : "Get Quotes"}
-      </button>
+      <div className="mt-6">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`w-full flex items-center justify-center space-x-2 bg-primary text-white py-3 px-6 rounded-lg font-medium shadow-button
+          hover:shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-250 
+          ${
+            isSubmitting
+              ? "opacity-70 cursor-not-allowed"
+              : "transform active:scale-[0.98]"
+          }`}
+        >
+          <span>{isSubmitting ? "Getting Quotes..." : "Get Quotes"}</span>
+          {!isSubmitting && <FaArrowRight size={14} />}
+        </button>
+      </div>
     </form>
   );
 }
 
 BookingForm.propTypes = {
   onGetLocation: PropTypes.func.isRequired,
+  pageIs: PropTypes.string.isRequired,
 };
 
 export default BookingForm;

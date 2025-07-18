@@ -9,6 +9,7 @@ import {
 } from "../store/thunks";
 import { setPaymentIntent } from "../store/paymentSlice";
 import { setSelectedQuote } from "../store/quoteSlice";
+import { FaLock, FaCreditCard, FaCheckCircle } from "react-icons/fa";
 import api from "../api/api.js";
 
 const PaymentForm = () => {
@@ -28,17 +29,18 @@ const PaymentForm = () => {
     style: {
       base: {
         fontSize: "16px",
-        color: "#000000",
+        color: "#424770",
         fontFamily: "'Poppins', sans-serif",
         fontWeight: "400",
+        letterSpacing: "0.025em",
         "::placeholder": {
-          color: "rgba(224, 224, 224, 0.6)",
+          color: "#aab7c4",
         },
-        iconColor: "#FF6600",
+        iconColor: "#031d49",
       },
       invalid: {
-        color: "#f44336",
-        iconColor: "#f44336",
+        color: "#DC3545",
+        iconColor: "#DC3545",
       },
     },
     hidePostalCode: true,
@@ -146,8 +148,6 @@ const PaymentForm = () => {
                 .AgentBookingAuthorizationResponse.BookingReference,
           });
 
-
-
           navigate("/payment-success", {
             state: {
               paymentData: {
@@ -177,60 +177,89 @@ const PaymentForm = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-8 glass-effect rounded-xl shadow-lg transform transition-all hover-glow">
-      <h2 className="text-2xl font-bold mb-6 text-primary text-center">
+    <div className="max-w-lg mx-auto p-8 glass-effect rounded-2xl shadow-card transform transition-all hover-glow">
+      <div className="flex justify-center mb-6">
+        <div className="bg-primary/10 rounded-full p-3">
+          <FaCreditCard className="text-primary w-6 h-6" />
+        </div>
+      </div>
+      
+      <h2 className="text-2xl font-bold mb-8 text-primary text-center">
         Payment Details
       </h2>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 text-red-400 rounded-lg">
-          <p className="font-medium">{error}</p>
+        <div className="mb-6 p-5 bg-red-50 border border-red-200 text-red-600 rounded-xl shadow-subtle animate-fade-in">
+          <p className="font-medium flex items-center">
+            <span className="mr-2">⚠️</span> {error}
+          </p>
         </div>
       )}
 
-      <div className="mb-6">
+      <div className="mb-8 bg-primary/5 rounded-xl p-5">
         <div className="flex items-center justify-between">
-          <p className="text-gray-500 text-lg">Total Amount:</p>
+          <p className="text-gray-600 text-lg">Total Amount:</p>
           <p className="text-primary text-xl font-bold">
             £{selectedQuote?.pricing?.priceNET?.toFixed(2) || "0.00"}
           </p>
         </div>
-        <div className="mt-2 h-[1px] bg-white/10"></div>
+        <div className="mt-2 h-[1px] bg-primary/10"></div>
+        
+        <div className="mt-3 text-xs text-gray-500 flex items-center">
+          <FaCheckCircle className="text-minicabit-accent2 mr-2" />
+          <span>Price guaranteed - no hidden fees</span>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-6">
-          <label className="block text-gray-600 text-sm font-medium mb-3">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-gray-600 text-sm font-medium mb-3 flex items-center">
+            <FaCreditCard className="mr-2 text-primary/70" size={16} />
             Card Information
           </label>
-          <div className="p-4 bg-lightBg text-gray-500 border border-gray/10 rounded-lg focus-within:border-primary/50 transition-all">
+          <div className="p-4 bg-white border border-gray-200 rounded-xl focus-within:border-primary/50 focus-within:shadow-input-focus transition-all duration-250">
             <CardElement options={cardElementOptions} />
           </div>
-          <p className="mt-2 text-xs text-lightGray/60">
-            Your card information is encrypted and secure.
-          </p>
+          <div className="mt-3 text-xs text-gray-500 flex items-center">
+            <FaLock className="text-minicabit-accent2 mr-2" size={12} />
+            <span>Your payment information is encrypted and secure</span>
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={isProcessing || !stripe || !elements || !clientSecret}
-          className={`w-full bg-primary text-dark font-semibold py-3 px-4 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-opacity-50 transition-all transform active:scale-95 ${
-            isProcessing || !clientSecret ? "opacity-50 cursor-not-allowed" : ""
+          className={`w-full btn-primary py-4 flex items-center justify-center transition-all duration-250 ${
+            isProcessing || !clientSecret 
+              ? "opacity-60 cursor-not-allowed" 
+              : "hover:translate-y-[-2px]"
           }`}
         >
-          {isProcessing
-            ? "Processing..."
-            : clientSecret
-            ? "Complete Payment"
-            : "Initializing..."}
+          {isProcessing ? (
+            <div className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </div>
+          ) : clientSecret ? (
+            "Complete Payment"
+          ) : (
+            "Initializing..."
+          )}
         </button>
 
-        <p className="mt-4 text-center text-xs text-lightGray/60">
+        <div className="flex items-center justify-center space-x-4 pt-4">
+          <img src="/visa.svg" alt="Visa" className="h-6" />
+          <img src="/mastercard.svg" alt="Mastercard" className="h-6" />
+        </div>
+
+        <p className="text-center text-xs text-gray-500 pt-2">
           By completing this payment, you agree to our{" "}
           <a href="/terms" className="text-primary hover:underline">
             Terms of Service
           </a>
-          .
         </p>
       </form>
     </div>
