@@ -188,7 +188,13 @@ function BookingForm({ onGetLocation, pageIs }) {
 
       <div className={pageIs === "quote" ? "block" : "md:flex md:gap-6"}>
         <div
-          className={`${pageIs === "quote" ? "w-full" : "md:w-1/2"} space-y-5`}
+          className={`${
+            pageIs === "quote"
+              ? "w-full"
+              : pageIs === "home"
+              ? "md:w-1/3"
+              : "md:min-w-[15rem]"
+          } space-y-5`}
         >
           {/* Pickup Location */}
           <div className="relative transition-all duration-250">
@@ -206,9 +212,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 onClick={handleGetLocation}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary p-2 hover:bg-primary/10 rounded-full transition-all duration-250"
                 aria-label="Use current location"
-              >
-                <FaLocationArrow size={14} />
-              </button>
+              ></button>
             </div>
           </div>
 
@@ -237,116 +241,112 @@ function BookingForm({ onGetLocation, pageIs }) {
           </div>
         </div>
 
-        {/* Date and Time Row */}
+        <div className="w-full h-[.2px] bg-gray-300 my-6 md:hidden"></div>
+
+        {/* Date, Time & Passenger, Luggage Selectors */}
         <div
-          className={`mt-6 md:mt-0 ${
+          className={` mt-6 ${
             pageIs === "home"
-              ? "md:w-1/2 md:flex md:flex-col md:space-y-5"
+              ? " flex flex-col md:flex-row items-center md:items-start gap-4  md:mt-0"
+              : pageIs === "booking"
+              ? "flex flex-col gap-4  md:mt-0"
               : "space-y-5"
           }`}
         >
-          {/* Date Selector */}
-          <div className="relative group">
-            <label className="block text-sm font-medium mb-1 text-gray-100">
+          {/* Date and Time Row */}
+          <div
+            className={`flex  items-center md:items-start gap-4  md:mt-0 ${
+              pageIs === "home" ? "md:flex-row" : " flex-col"
+            }`}
+          >
+            <div className="relative group inline-block md:flex items-center ">
               <FaCalendarAlt
-                className="inline-block mr-2 text-gray-400"
-                size={14}
+                className="inline-block mr-2 text-gray-400 text-primary"
+                size={20}
               />
-              Pickup Date
-            </label>
-            <input
-              type="date"
-              value={pickupDate}
-              onChange={(e) => setPickupDate(e.target.value)}
-              min={new Date().toISOString().split("T")[0]}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
-              required
-            />
-          </div>
-
-          {/* Time Selectors */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative group">
-              <label className="block text-sm font-medium mb-1 text-gray-100">
-                <FaClock
-                  className="inline-block mr-2 text-gray-400"
-                  size={14}
-                />
-                Hour
-              </label>
-              <select
-                value={pickupHour}
-                onChange={(e) => setPickupHour(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+              <input
+                type="date"
+                value={pickupDate}
+                onChange={(e) => setPickupDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className={`w-[10rem]  px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90`}
                 required
-              >
-                {Array.from({ length: 24 }, (_, i) =>
-                  String(i).padStart(2, "0")
-                ).map((hour) => (
-                  <option key={hour} value={hour}>
-                    {hour}:00
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
-            <div className="relative group">
-              <label className="block text-sm font-medium mb-1 text-gray-100">
-                <FaClock
-                  className="inline-block mr-2 text-gray-400"
-                  size={14}
-                />
-                Minute
-              </label>
-              <select
-                value={pickupMinute}
-                onChange={(e) => setPickupMinute(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
-                required
-              >
-                {["00", "10", "20", "30", "40", "50"].map((minute) => (
-                  <option key={minute} value={minute}>
-                    :{minute}
-                  </option>
-                ))}
-              </select>
+            {/* Time Selectors */}
+            <div
+              className={` ${
+                pageIs === "home" ? "md:w-1/2 inline-block pl-4" : ""
+              }`}
+            >
+              <div className="relative group flex items-center">
+                <FaClock className="inline-block mr-2 text-primary" size={20} />
+                <select
+                  value={pickupHour}
+                  onChange={(e) => setPickupHour(e.target.value)}
+                  className=" px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                  required
+                >
+                  {Array.from({ length: 24 }, (_, i) =>
+                    String(i).padStart(2, "0")
+                  ).map((hour) => (
+                    <option key={hour} value={hour}>
+                      {hour}
+                    </option>
+                  ))}
+                </select>
+                <p className="px-2">:</p>
+                <select
+                  value={pickupMinute}
+                  onChange={(e) => setPickupMinute(e.target.value)}
+                  className=" px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                  required
+                >
+                  {["00", "10", "20", "30", "40", "50"].map((minute) => (
+                    <option key={minute} value={minute}>
+                      {minute}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
+          <div className="w-full h-[.2px] bg-gray-300 my-6 md:hidden"></div>
 
           {/* Passenger and Luggage Selectors */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative group">
-              <label className="block text-sm font-medium mb-1 text-gray-100">
-                <FaUser className="inline-block mr-2 text-gray-400" size={14} />
+          <div className={`grid gap-4 md:w-full  grid-cols-1`}>
+            <div className="relative group flex justify-between gap-2  items-center">
+              <label className="flex font-medium text-md mb-1 text-primary">
+                <FaUser className="inline-block mr-2" size={14} />
                 Passengers
               </label>
               <select
                 value={passengers}
                 onChange={(e) => setPassengers(parseInt(e.target.value))}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                className="w-[7rem] px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
               >
                 {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
                   <option key={num} value={num}>
-                    {num} {num === 1 ? "person" : "people"}
+                    {num}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="relative group">
-              <label className="block text-sm font-medium mb-1 text-gray-100">
-                <FaSuitcase
-                  className="inline-block mr-2 text-gray-400"
-                  size={14}
-                />
+            <div className="w-full relative group flex  gap-2 justify-between items-center">
+              <label className="flex font-medium text-md mb-1 text-primary">
+                <FaSuitcase className="inline-block mr-2" size={14} />
                 Luggage
               </label>
+
               <select
                 value={luggage}
                 onChange={(e) => setLuggage(parseInt(e.target.value))}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                className="w-full max-w-[7rem] px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
               >
-                {Array.from({ length: 11 }, (_, i) => i).map((num) => (
+                <option value="">None</option>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
                   <option key={num} value={num}>
                     {num} {num === 1 ? "item" : "items"}
                   </option>

@@ -14,23 +14,29 @@
 }
 
 @layer base {
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-poppins font-semibold tracking-tight;
   }
-  
+
   h1 {
     @apply text-3xl md:text-4xl lg:text-5xl;
   }
-  
+
   h2 {
     @apply text-2xl md:text-3xl lg:text-4xl;
   }
-  
+
   p {
     @apply leading-relaxed;
   }
-  
-  button, a.btn {
+
+  button,
+  a.btn {
     @apply transition-all duration-250 transform active:scale-[0.98];
   }
 }
@@ -40,17 +46,17 @@
     @apply bg-primary text-white py-3 px-6 rounded-lg font-medium shadow-button
     hover:shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30;
   }
-  
+
   .btn-secondary {
     @apply bg-white text-primary py-3 px-6 rounded-lg font-medium shadow-button border border-primary/10
     hover:shadow-lg hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30;
   }
-  
+
   .input-field {
     @apply w-full px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus
     focus:border-primary/40 focus:outline-none transition-all duration-250;
   }
-  
+
   .card {
     @apply bg-white rounded-xl shadow-card p-6 transition-all duration-250 hover:shadow-card-hover;
   }
@@ -114,4 +120,61 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+/* Swiper Carousel Styles */
+.car-type-swiper {
+  padding: 30px 10px;
+}
+
+.car-type-swiper .swiper-slide {
+  height: auto;
+}
+
+.car-type-swiper .swiper-button-next,
+.car-type-swiper .swiper-button-prev {
+  color: #2563eb;
+  background-color: rgba(255, 255, 255, 0.8);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.car-type-swiper .swiper-button-next:after,
+.car-type-swiper .swiper-button-prev:after {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.car-type-swiper .swiper-pagination-bullet {
+  background-color: #2563eb;
+}
+
+.car-type-swiper .swiper-pagination {
+  bottom: 0;
+}
+
+/* Ensure the cards have equal height */
+.car-type-swiper .swiper-slide > div {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.car-type-swiper .swiper-slide .p-5 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.car-type-swiper .swiper-slide .p-5 p.text-gray-600 {
+  flex: 1;
+}
+
+/* Add responsive padding */
+@media (max-width: 640px) {
+  .car-type-swiper {
+    padding: 20px 5px 40px;
+  }
 }

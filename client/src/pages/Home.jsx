@@ -1,11 +1,13 @@
-import React from "react";
+import { motion } from "framer-motion";
 import Hero from "../components/Hero";
 import FeatureHighlights from "../components/FeatureHighlights";
 import FeaturedRides from "../components/FeaturedRides";
 import Testimonials from "../components/Testimonials";
 import FAQ from "../components/FAQ";
-import { motion } from "framer-motion";
 import RideBenefits from "../components/RideBenefits";
+import HowItWorks from "../components/HowItWorks";
+import RideOptions from "../components/RideOptions";
+import LargeGroupOptions from "../components/LargeGroupOptions";
 
 const Home = () => {
   return (
@@ -16,9 +18,16 @@ const Home = () => {
     >
       {/* Hero Section with Booking Form */}
       <Hero />
+      <HowItWorks />
 
       {/* Stats Section */}
       <FeatureHighlights />
+
+      {/* Ride Options Section - Added from minicabit */}
+      <RideOptions />
+
+      {/* Large Group Options Section - Added from minicabit */}
+      <LargeGroupOptions />
 
       {/* Benefits Section */}
       <RideBenefits />
