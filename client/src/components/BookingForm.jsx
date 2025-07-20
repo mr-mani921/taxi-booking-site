@@ -256,7 +256,7 @@ function BookingForm({ onGetLocation, pageIs }) {
           <div
             className={`flex justify-between items-center md:items-start gap-4 ${
               pageIs === "home"
-                ? "w-full mx-auto md:flex-row gap-2"
+                ? "w-full mx-auto md:flex-row gap-0"
                 : "flex-col"
             } ${pageIs === "quote" && "mt-4"}`}
           >
