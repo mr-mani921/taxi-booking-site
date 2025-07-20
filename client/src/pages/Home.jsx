@@ -18,6 +18,7 @@ const Home = () => {
     >
       {/* Hero Section with Booking Form */}
       <Hero />
+      
       <HowItWorks />
 
       {/* Stats Section */}

@@ -7,7 +7,6 @@ import {
   FaCalendarAlt,
   FaUser,
   FaSuitcase,
-  FaLocationArrow,
   FaArrowRight,
 } from "react-icons/fa";
 import PropTypes from "prop-types";
@@ -192,7 +191,7 @@ function BookingForm({ onGetLocation, pageIs }) {
             pageIs === "quote"
               ? "w-full"
               : pageIs === "home"
-              ? "md:w-1/3"
+              ? "md:w-[40rem]"
               : "md:min-w-[15rem]"
           } space-y-5`}
         >
@@ -245,21 +244,21 @@ function BookingForm({ onGetLocation, pageIs }) {
 
         {/* Date, Time & Passenger, Luggage Selectors */}
         <div
-          className={` mt-6 ${
+          className={`${
             pageIs === "home"
-              ? " flex flex-col md:flex-row items-center md:items-start gap-4  md:mt-0"
+              ? "w-full flex flex-col md:flex-row items-center md:items-start gap-4 md:mt-0 "
               : pageIs === "booking"
-              ? "flex flex-col gap-4  md:mt-0"
+              ? "flex flex-col gap-4 md:mt-0"
               : "space-y-5"
           }`}
         >
           {/* Date and Time Row */}
           <div
-            className={`flex  items-center md:items-start gap-4  md:mt-0 ${
-              pageIs === "home" ? "flex-col md:flex-row" : " flex-col"
-            }`}
+            className={`flex items-center md:items-start gap-4 ${
+              pageIs === "home" ? "w-full mx-auto md:flex-row" : "flex-col"
+            } ${pageIs === "quote" && "mt-4"}`}
           >
-            <div className="relative group inline-block md:flex items-center ">
+            <div className="relative group inline-block flex items-center">
               <FaCalendarAlt
                 className="inline-block mr-2 text-gray-400 text-primary"
                 size={20}
@@ -269,7 +268,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 value={pickupDate}
                 onChange={(e) => setPickupDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                className={`w-[10rem]  px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90`}
+                className={`w-[9rem] md:w-[10rem] px-2 md:px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90`}
                 required
               />
             </div>
@@ -285,7 +284,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 <select
                   value={pickupHour}
                   onChange={(e) => setPickupHour(e.target.value)}
-                  className=" px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                  className="px-2 md:px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
                   required
                 >
                   {Array.from({ length: 24 }, (_, i) =>
@@ -300,7 +299,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 <select
                   value={pickupMinute}
                   onChange={(e) => setPickupMinute(e.target.value)}
-                  className=" px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                  className="px-2 md:px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
                   required
                 >
                   {["00", "10", "20", "30", "40", "50"].map((minute) => (
@@ -315,8 +314,12 @@ function BookingForm({ onGetLocation, pageIs }) {
           <div className="w-full h-[.2px] bg-gray-300 my-6 md:hidden"></div>
 
           {/* Passenger and Luggage Selectors */}
-          <div className={`grid gap-4 md:w-full  grid-cols-1`}>
-            <div className="relative group flex justify-between gap-2  items-center">
+          <div
+            className={`grid gap-4 w-fit md:w-full grid-cols-1 ${
+              pageIs === "home" ? "w-full place-items-center" : ""
+            }`}
+          >
+            <div className="relative group flex justify-between gap-2 items-center">
               <label className="flex font-medium text-md mb-1 text-primary">
                 <FaUser className="inline-block mr-2" size={14} />
                 Passengers
@@ -334,7 +337,7 @@ function BookingForm({ onGetLocation, pageIs }) {
               </select>
             </div>
 
-            <div className="w-full relative group flex  gap-2 justify-between items-center">
+            <div className="w-full relative group flex gap-2 justify-between items-center">
               <label className="flex font-medium text-md mb-1 text-primary">
                 <FaSuitcase className="inline-block mr-2" size={14} />
                 Luggage
@@ -345,7 +348,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 onChange={(e) => setLuggage(parseInt(e.target.value))}
                 className="w-full max-w-[7rem] px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
               >
-                <option value="">None</option>
+                <option value="0">None</option>
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
                   <option key={num} value={num}>
                     {num} {num === 1 ? "item" : "items"}
