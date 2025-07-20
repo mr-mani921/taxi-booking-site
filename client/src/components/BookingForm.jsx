@@ -256,7 +256,7 @@ function BookingForm({ onGetLocation, pageIs }) {
           <div
             className={`flex justify-between items-center md:items-start gap-4 ${
               pageIs === "home"
-                ? "w-full mx-auto md:flex-row gap-0"
+                ? "w-full mx-auto md:flex-row gap-1"
                 : "flex-col"
             } ${pageIs === "quote" && "mt-4"}`}
           >
@@ -278,7 +278,7 @@ function BookingForm({ onGetLocation, pageIs }) {
             {/* Time Selectors */}
             <div
               className={` ${
-                pageIs === "home" ? "md:w-1/2 inline-block pl-4" : ""
+                pageIs === "home" ? "md:w-1/2 inline-block" : ""
               }`}
             >
               <div className="relative group flex items-center">
