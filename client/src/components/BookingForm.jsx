@@ -256,7 +256,7 @@ function BookingForm({ onGetLocation, pageIs }) {
           {/* Date and Time Row */}
           <div
             className={`flex  items-center md:items-start gap-4  md:mt-0 ${
-              pageIs === "home" ? "md:flex-row" : " flex-col"
+              pageIs === "home" ? "flex-col md:flex-row" : " flex-col"
             }`}
           >
             <div className="relative group inline-block md:flex items-center ">
