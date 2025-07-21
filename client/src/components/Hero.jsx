@@ -31,7 +31,7 @@ function Hero() {
   return (
     <div className="relative overflow-hidden">
       {/* Hero Background */}
-      <div className="absolute top-10 left-0 w-full z-0 h-[350px] md:h-full">
+      <div className="absolute top-8 left-0 w-full z-0 h-[350px] md:h-full">
         <img
           src="https://www.minicabit.com/wp-content/themes/minicabit/assets/ac52a27e72def823d982.webp"
           alt="Professional taxi service"
