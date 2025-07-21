@@ -313,9 +313,73 @@ function BookingForm({ onGetLocation, pageIs }) {
           </div>
           <div className="w-full h-[.2px] bg-gray-300 my-6 md:hidden"></div>
 
+          {/* Passengers + Luggage - Mobile style only */}
+          <div
+            className={`w-full md:hidden ${
+              pageIs === "home" ? "md:flex md:items-start md:gap-4" : ""
+            }`}
+          >
+            <div
+              className={`
+      flex w-full justify-between items-center 
+      bg-[#EDF2F7] 
+      rounded-lg px-4 py-3 
+    `}
+            >
+              {/* Passenger */}
+              <div className="flex items-center gap-2">
+                <FaUser className="text-primary" size={16} />
+                <select
+                  value={passengers}
+                  onChange={(e) => setPassengers(parseInt(e.target.value))}
+                  className="bg-[#EDF2F7] focus:outline-none text-sm font-semibold text-gray-800"
+                >
+                  {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
+                    <option
+                      key={num}
+                      value={num}
+                      className="bg-[#EDF2F7] font-semibold text-gray-800"
+                    >
+                      {num} {num === 1 ? "Passenger" : "Passengers"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Divider */}
+              <div className="border-l h-5 border-gray-300 mx-4 hidden md:block"></div>
+
+              {/* Luggage */}
+              <div className="flex items-center gap-2">
+                <FaSuitcase className="text-primary" size={16} />
+                <select
+                  value={luggage}
+                  onChange={(e) => setLuggage(parseInt(e.target.value))}
+                  className="bg-[#EDF2F7] focus:outline-none text-sm font-semibold text-gray-800"
+                >
+                  <option
+                    value="0"
+                    className="bg-[#EDF2F7] font-semibold text-gray-800"
+                  >
+                    No Luggage
+                  </option>
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                    <option
+                      key={num}
+                      value={num}
+                      className="bg-[#EDF2F7] font-semibold text-gray-800"
+                    >
+                      {num} {num === 1 ? "item" : "items"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Passenger and Luggage Selectors */}
           <div
-            className={`grid gap-4 max-w-fit md:max-w-full grid-cols-2 md:grid-cols-1 ${
+            className={`hidden md:grid gap-4 max-w-fit md:max-w-full grid-cols-2 md:grid-cols-1 ${
               pageIs === "home" ? "w-full place-items-center " : ""
             }`}
           >
@@ -328,7 +392,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 value={passengers}
                 onChange={(e) => setPassengers(parseInt(e.target.value))}
                 className="md:w-[7rem] px-2 md:px-4 py-2 md:py-3 rounded-lg md:border md:border-gray-200 shadow-input md:focus:shadow-input-focus md:focus:border-primary/40 bg-[#EDF2F7] md:bg-white/90"
-                >
+              >
                 {/* // className="w-[7rem] px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90" */}
                 {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
                   <option key={num} value={num}>
@@ -347,7 +411,9 @@ function BookingForm({ onGetLocation, pageIs }) {
               <select
                 value={luggage}
                 onChange={(e) => setLuggage(parseInt(e.target.value))}
-                className={`${pageIs === "home" ? "md:ml-4" : ""} px-2 md:px-4 py-2 md:py-3 rounded-lg md:border md:border-gray-200 shadow-input md:focus:shadow-input-focus md:focus:border-primary/40 bg-[#EDF2F7] md:bg-white/90`}
+                className={`${
+                  pageIs === "home" ? "md:ml-4" : ""
+                } px-2 md:px-4 py-2 md:py-3 rounded-lg md:border md:border-gray-200 shadow-input md:focus:shadow-input-focus md:focus:border-primary/40 bg-[#EDF2F7] md:bg-white/90`}
               >
                 <option value="0">None</option>
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (

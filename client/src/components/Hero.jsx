@@ -61,7 +61,7 @@ function Hero() {
             <span className="font-bold text-white">millions of travellers</span>{" "}
             across the UK.
           </p>
-          <div className="flex items-center justify-center gap-2 my-4 md:my-0 text-sm md:text-md">
+          <div className="w-[80vw] md:w-full flex items-center justify-center flex-wrap gap-2 my-4 md:my-0 text-sm md:text-md">
             <span className="flex items-center gap-1 text-white text-sm md:text-md">
               Great{" "}
               <span className="bg-[#73cf11]  rounded-[.5px] p-[.5px] ">
