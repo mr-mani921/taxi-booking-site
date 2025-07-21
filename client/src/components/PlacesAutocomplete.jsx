@@ -155,8 +155,8 @@ const PlacesAutocomplete = ({
     <div className="relative w-full">
       <div className="relative flex items-center">
         {label && (
-          <span className="absolute left-4 text-gray-600 text-sm z-10 pointer-events-none">
-            {label}:
+          <span className="absolute left-4 text-primary font-semibold text-sm z-10 pointer-events-none">
+            {label}
           </span>
         )}
         <input
@@ -172,7 +172,7 @@ const PlacesAutocomplete = ({
           onFocus={() => value && value.length > 2 && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           className={`w-full bg-white border border-gray-300 rounded-lg ${
-            label === "From" ? "pl-[60px]" : "pl-[40px]"
+            label === "From Location" ? "pl-[120px]" : "pl-[100px]"
           }  pr-10 py-2 text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all`}
           readOnly={readOnly}
         />

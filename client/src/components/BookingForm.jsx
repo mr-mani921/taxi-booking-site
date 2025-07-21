@@ -202,7 +202,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 value={pickupAddress}
                 onChange={setPickupAddress}
                 onSelect={handlePickupSelect}
-                label="From"
+                label="From Location"
                 isPickup={true}
                 className="border border-gray-200 rounded-lg shadow-input focus:shadow-input-focus bg-white/90"
               />
@@ -233,7 +233,7 @@ function BookingForm({ onGetLocation, pageIs }) {
               value={dropoffAddress}
               onChange={setDropoffAddress}
               onSelect={handleDropoffSelect}
-              label="To"
+              label="To Location"
               isPickup={false}
               className="border border-gray-200 rounded-lg shadow-input focus:shadow-input-focus bg-white/90"
             />
