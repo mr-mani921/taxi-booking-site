@@ -185,7 +185,7 @@ function BookingForm({ onGetLocation, pageIs }) {
         </div>
       )}
 
-      <div className={pageIs === "quote" ? "block" : "md:flex md:gap-6"} >
+      <div className={pageIs === "quote" ? "block" : "md:flex md:gap-6"}>
         <div
           className={`${
             pageIs === "quote"
@@ -277,9 +277,7 @@ function BookingForm({ onGetLocation, pageIs }) {
 
             {/* Time Selectors */}
             <div
-              className={` ${
-                pageIs === "home" ? "md:w-1/2 inline-block" : ""
-              }`}
+              className={` ${pageIs === "home" ? "md:w-1/2 inline-block" : ""}`}
             >
               <div className="relative group flex items-center">
                 <FaClock className="inline-block mr-2 text-primary" size={20} />
@@ -317,48 +315,47 @@ function BookingForm({ onGetLocation, pageIs }) {
 
           {/* Passenger and Luggage Selectors */}
           <div
-            className={`grid gap-4 max-w-fit md:max-w-full grid-cols-1 ${
+            className={`grid gap-4 max-w-fit md:max-w-full grid-cols-2 md:grid-cols-1 ${
               pageIs === "home" ? "w-full place-items-center " : ""
             }`}
           >
-            <div className="w-fit">
-              <div className="relative group flex justify-between gap-2 items-center">
-                <label className="flex font-medium text-md mb-1 text-primary">
-                  <FaUser className="inline-block mr-2" size={14} />
-                  Passengers
-                </label>
-                <select
-                  value={passengers}
-                  onChange={(e) => setPassengers(parseInt(e.target.value))}
-                  className="w-[7rem] px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+            <div className="relative group flex justify-between md:gap-2 items-center">
+              <label className="flex font-medium text-sm md:text-md mb-1 text-primary">
+                <FaUser className="inline-block mr-2" size={14} />
+                Passengers
+              </label>
+              <select
+                value={passengers}
+                onChange={(e) => setPassengers(parseInt(e.target.value))}
+                className="md:w-[7rem] px-2 md:px-4 py-2 md:py-3 rounded-lg md:border md:border-gray-200 shadow-input md:focus:shadow-input-focus md:focus:border-primary/40 bg-[#EDF2F7] md:bg-white/90"
                 >
-                  {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                {/* // className="w-[7rem] px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90" */}
+                {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
+                  <option key={num} value={num}>
+                    {num}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className="relative group flex gap-2 justify-between items-center mt-2">
-                <label className="flex font-medium text-md mb-1 text-primary">
-                  <FaSuitcase className="inline-block mr-2" size={14} />
-                  Luggage
-                </label>
+            <div className="relative group flex md:gap-2 justify-between items-center mt-2">
+              <label className="flex font-medium text-sm md:text-md mb-1 text-primary">
+                <FaSuitcase className="inline-block mr-2" size={14} />
+                Luggage
+              </label>
 
-                <select
-                  value={luggage}
-                  onChange={(e) => setLuggage(parseInt(e.target.value))}
-                  className="w-full max-w-[7rem] px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
-                >
-                  <option value="0">None</option>
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                    <option key={num} value={num}>
-                      {num} {num === 1 ? "item" : "items"}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={luggage}
+                onChange={(e) => setLuggage(parseInt(e.target.value))}
+                className={`${pageIs === "home" ? "md:ml-4" : ""} px-2 md:px-4 py-2 md:py-3 rounded-lg md:border md:border-gray-200 shadow-input md:focus:shadow-input-focus md:focus:border-primary/40 bg-[#EDF2F7] md:bg-white/90`}
+              >
+                <option value="0">None</option>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                  <option key={num} value={num}>
+                    {num} {num === 1 ? "item" : "items"}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

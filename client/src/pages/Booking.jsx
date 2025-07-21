@@ -112,7 +112,7 @@ function Booking() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+              <div className="bg-[#EDF2F7] rounded-lg shadow-md border border-gray-200 p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">
                   Book a taxi
                 </h2>

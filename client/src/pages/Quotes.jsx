@@ -127,7 +127,7 @@ function Quotes() {
           </button>
 
           {formVisible && (
-            <div className="mt-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="mt-4 p-4 bg-[#EDF2F7] rounded-lg shadow-sm border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Update your search
               </h3>
