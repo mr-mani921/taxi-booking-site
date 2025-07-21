@@ -220,7 +220,7 @@ function BookingForm({ onGetLocation, pageIs }) {
             <button
               type="button"
               onClick={swapLocations}
-              className="flex items-center justify-center w-10 h-10 bg-white hover:bg-primary hover:text-white rounded-full text-primary border border-gray-200 shadow-input transition-all duration-250 transform hover:scale-110"
+              className="flex items-center justify-center w-10 h-10 bg-white hover:bg-[#C61859] hover:text-white rounded-full text-[#C61859] border border-gray-200 shadow-input transition-all duration-250 transform hover:scale-110 rotate-90"
               aria-label="Swap locations"
             >
               <FaExchangeAlt size={14} />
@@ -252,11 +252,19 @@ function BookingForm({ onGetLocation, pageIs }) {
               : "space-y-5"
           }`}
         >
+          <div className="h-12 w-full md:w-fit flex items-center  gap-2 md:mr-2 bg--600">
+            <div className="max-w-fit rounded-full bg-gray-50 border border-gray-400">
+              <p className="w-2 h-2 m-1 rounded-full bg-primary"></p>
+            </div>
+            <p className="text-sm font-semibold text-gray-800 text-nowrap">
+              One Way
+            </p>
+          </div>
           {/* Date and Time Row */}
           <div
             className={`flex justify-between items-center md:items-start gap-4 ${
               pageIs === "home"
-                ? "w-full mx-auto md:flex-row gap-1"
+                ? "w-full mx-auto md:flex-row gap-1 md:gap-4"
                 : "flex-col"
             } ${pageIs === "quote" && "mt-4"}`}
           >
@@ -284,7 +292,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 <select
                   value={pickupHour}
                   onChange={(e) => setPickupHour(e.target.value)}
-                  className="px-1 md:px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                  className="px-1 md:px-2 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
                   required
                 >
                   {Array.from({ length: 24 }, (_, i) =>
@@ -299,7 +307,7 @@ function BookingForm({ onGetLocation, pageIs }) {
                 <select
                   value={pickupMinute}
                   onChange={(e) => setPickupMinute(e.target.value)}
-                  className="px-1 md:px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
+                  className="px-1 md:px-2 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90"
                   required
                 >
                   {["00", "10", "20", "30", "40", "50"].map((minute) => (
@@ -432,8 +440,8 @@ function BookingForm({ onGetLocation, pageIs }) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`w-full flex items-center justify-center space-x-2 bg-primary text-white py-3 px-6 rounded-lg font-medium shadow-button
-          hover:shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-250 
+          className={`w-full flex items-center justify-center space-x-2 bg-[#C61859] text-white py-3 px-6 rounded-lg font-medium shadow-button
+          hover:shadow-lg hover:bg-[#C61859]/90 focus:outline-none focus:ring-2 focus:ring-[#C61859]/30 transition-all duration-250 
           ${
             isSubmitting
               ? "opacity-70 cursor-not-allowed"
