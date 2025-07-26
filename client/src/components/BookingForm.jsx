@@ -248,7 +248,7 @@ function BookingForm({ onGetLocation, pageIs }) {
             pageIs === "home"
               ? "w-full flex flex-col md:flex-row items-center md:items-start gap-4 md:mt-0 "
               : pageIs === "booking"
-              ? "flex flex-col gap-4 md:mt-0"
+              ? "flex flex-col gap-2 md:mt-0"
               : "space-y-5"
           }`}
         >

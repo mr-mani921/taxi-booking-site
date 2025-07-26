@@ -9,7 +9,7 @@ const PlacesAutocomplete = ({
   onSelect,
   label,
   isPickup = false, // New prop to determine if this is pickup or destination
-  country = "uk", // Restrict to United Kingdom by default
+  country = "uk", // No country restriction by default
   readOnly = false, // Add readOnly prop
 }) => {
   const [suggestions, setSuggestions] = useState([]);
@@ -78,18 +78,23 @@ const PlacesAutocomplete = ({
     ) {
       try {
         // Set up the autocomplete
+        const options = {
+          fields: [
+            "address_components",
+            "geometry",
+            "name",
+            "formatted_address",
+          ],
+        };
+
+        // Only add country restriction if a country is specified
+        if (country) {
+          options.componentRestrictions = { country };
+        }
+
         autocompleteRef.current = new window.google.maps.places.Autocomplete(
           inputRef.current,
-          {
-            componentRestrictions: { country },
-            fields: [
-              "address_components",
-              "geometry",
-              "name",
-              "formatted_address",
-            ],
-            types: ["address"],
-          }
+          options
         );
 
         // Add listener for place selection
