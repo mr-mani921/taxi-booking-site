@@ -3,9 +3,13 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { FaTimes, FaChevronDown } from "react-icons/fa";
 import PropTypes from "prop-types";
+import { useDispatch, useSelector } from "react-redux";
+import { logoutUser } from "../store/thunks";
 
 function NavbarMobileMenu({ isOpen, navLinks, setIsOpen }) {
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const { isAuthenticated } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
   const toggleDropdown = (label) => {
     if (activeDropdown === label) {
@@ -13,6 +17,12 @@ function NavbarMobileMenu({ isOpen, navLinks, setIsOpen }) {
     } else {
       setActiveDropdown(label);
     }
+  };
+  const handleLogout = () => {
+    // Dispatch logout action
+    dispatch(logoutUser());
+    // Close the menu
+    setIsOpen(false);
   };
 
   return (
@@ -44,14 +54,22 @@ function NavbarMobileMenu({ isOpen, navLinks, setIsOpen }) {
               {link.label}
             </Link>
           ))}
-
-          <Link
-            to="/auth"
-            onClick={() => setIsOpen(false)}
-            className="bg-primary text-white px-4 py-2 rounded-md font-medium hover:bg-opacity-90 transition-all text-center mt-4"
-          >
-            Login / Sign Up
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              onClick={() => handleLogout()}
+              className="bg-primary text-white px-4 py-2 rounded-md font-medium hover:bg-opacity-90 transition-all text-center mt-4"
+            >
+              Logout
+            </Link>
+          ) : (
+            <Link
+              to="/auth"
+              onClick={() => setIsOpen(false)}
+              className="bg-primary text-white px-4 py-2 rounded-md font-medium hover:bg-opacity-90 transition-all text-center mt-4"
+            >
+              Login / Sign Up
+            </Link>
+          )}
         </nav>
       </div>
     </motion.div>

@@ -11,7 +11,7 @@ import {
 } from "react-icons/fa";
 import PropTypes from "prop-types";
 import PlacesAutocomplete from "./PlacesAutocomplete";
-import { updateBookingData } from "../store/bookingSlice";
+import { updateBookingData, clearBookingData } from "../store/bookingSlice";
 import { getBids } from "../store/thunks/bookingThunks";
 
 function BookingForm({ onGetLocation, pageIs }) {
@@ -38,7 +38,12 @@ function BookingForm({ onGetLocation, pageIs }) {
   const [pickupLocation, setPickupLocation] = useState(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({
+    pickup: null,
+    dropoff: null,
+    datetime: null,
+  });
+  const [submitError, setSubmitError] = useState(null);
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
 
   // Handler for getting current location
@@ -91,24 +96,26 @@ function BookingForm({ onGetLocation, pageIs }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setFieldErrors({});
+    setSubmitError(null);
 
+    // Validate form fields
+    const errors = {};
     if (!pickupLocation) {
-      setError("Please set your pickup location");
-      return;
+      errors.pickup = "Please set your pickup location";
     }
-
     if (!dropoffLocation) {
-      setError("Please select a valid destination");
-      return;
+      errors.dropoff = "Please select a valid destination";
     }
-
     if (!pickupTime) {
-      setError("Please select a pickup time");
+      errors.datetime = "Please select a pickup date and time";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
-    // Save form data to Redux store regardless of authentication status
     const rideData = {
       pickupLocation: {
         ...pickupLocation,
@@ -124,12 +131,8 @@ function BookingForm({ onGetLocation, pageIs }) {
       isOneWay,
     };
 
-    // Update booking data in Redux
-    dispatch(updateBookingData(rideData));
-
     if (!isAuthenticated) {
-      // Save the current path to return to after authentication
-      localStorage.setItem("returnPath", window.location.pathname);
+      dispatch(updateBookingData(rideData)); // Save temporarily for after auth
       navigate("/auth");
       return;
     }
@@ -137,43 +140,33 @@ function BookingForm({ onGetLocation, pageIs }) {
     setIsSubmitting(true);
 
     try {
-      // Prepare booking data with complete location objects
-      const rideData = {
-        pickupLocation: {
-          ...pickupLocation,
-          address: pickupAddress,
-        },
-        dropoffLocation: {
-          ...dropoffLocation,
-          address: dropoffAddress,
-        },
-        pickupTime,
-        passengers,
-        luggage,
-        isOneWay,
-      };
-
-      // Update booking data in Redux
-      dispatch(updateBookingData(rideData));
-
-      // Call the completeBookingFlow thunk to get vendor quotes
       const result = await dispatch(getBids(rideData));
 
       if (result.error) {
-        // Handle the error response
-        const errorMessage =
+        const errorMsg =
           typeof result.payload === "string"
             ? result.payload
-            : result.payload?.message || "Failed to get quotes";
-        setError(errorMessage);
+            : result.payload?.message;
+
+        // Map error messages to user-friendly versions
+        const friendlyError = errorMsg?.toLowerCase().includes("timeout")
+          ? "Request timed out. Please try again."
+          : errorMsg?.toLowerCase().includes("network")
+          ? "Network error. Please check your connection and try again."
+          : errorMsg?.toLowerCase().includes("failed")
+          ? "Unable to fetch quotes right now. Please try again later."
+          : "Something went wrong. Please try again.";
+
+        setSubmitError(friendlyError);
         return;
       }
 
-      // Navigate to the quotes page if successful
+      // Clear booking data and navigate on success
+      dispatch(clearBookingData());
       navigate("/quotes");
     } catch (err) {
-      setError(
-        err.message || "An unexpected error occurred while getting quotes"
+      setSubmitError(
+        "Unable to fetch quotes right now. Please try again later."
       );
     } finally {
       setIsSubmitting(false);
@@ -214,9 +207,9 @@ function BookingForm({ onGetLocation, pageIs }) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      {error && (
+      {submitError && (
         <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm shadow-input animate-fade-in">
-          {error}
+          {submitError}
         </div>
       )}
 
@@ -239,8 +232,15 @@ function BookingForm({ onGetLocation, pageIs }) {
                 onSelect={handlePickupSelect}
                 label="From Location"
                 isPickup={true}
-                className="border border-gray-200 rounded-lg shadow-input focus:shadow-input-focus bg-white/90"
+                className={`border ${
+                  fieldErrors.pickup ? "border-red-400" : "border-gray-200"
+                } rounded-lg shadow-input focus:shadow-input-focus bg-white/90`}
               />
+              {fieldErrors.pickup && (
+                <p className="text-red-500 text-sm mt-1 pl-2">
+                  {fieldErrors.pickup}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={handleGetLocation}
@@ -270,8 +270,15 @@ function BookingForm({ onGetLocation, pageIs }) {
               onSelect={handleDropoffSelect}
               label="To Location"
               isPickup={false}
-              className="border border-gray-200 rounded-lg shadow-input focus:shadow-input-focus bg-white/90"
+              className={`border ${
+                fieldErrors.dropoff ? "border-red-400" : "border-gray-200"
+              } rounded-lg shadow-input focus:shadow-input-focus bg-white/90`}
             />
+            {fieldErrors.dropoff && (
+              <p className="text-red-500 text-sm mt-1 pl-2">
+                {fieldErrors.dropoff}
+              </p>
+            )}
           </div>
         </div>
 
@@ -283,12 +290,12 @@ function BookingForm({ onGetLocation, pageIs }) {
             pageIs === "home"
               ? "w-full flex flex-col md:flex-row items-center md:items-start gap-4 md:mt-0 "
               : pageIs === "booking"
-              ? "flex flex-col gap-2 md:mt-0"
+              ? "md:hidden"
               : "space-y-5"
-          }`}
+          }  `}
         >
           <div className="h-12 w-full md:w-fit flex items-center  gap-2 md:mr-2 bg--600">
-            <div className="max-w-fit rounded-full bg-gray-50 border border-gray-400">
+            <div className="max-w-fit rounded-full cursor-pointer bg-gray-50 border border-gray-400">
               <p className="w-2 h-2 m-1 rounded-full bg-primary"></p>
             </div>
             <p className="text-sm font-semibold text-gray-800 text-nowrap">
@@ -298,7 +305,9 @@ function BookingForm({ onGetLocation, pageIs }) {
           {/* Date and Time Row */}
           <div
             className={`flex justify-between items-center md:items-start gap-4 w-full mx-auto md:flex-row md:gap-4 
-            } ${pageIs === "quote" && "mt-4"}`}
+            } ${pageIs === "quote" && "mt-4 md:flex-col w-full"} ${
+              pageIs === "booking" && "md:flex-col"
+            }`}
           >
             <div className="relative group flex items-center">
               <FaCalendarAlt
@@ -310,13 +319,20 @@ function BookingForm({ onGetLocation, pageIs }) {
                 value={pickupDate}
                 onChange={(e) => setPickupDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                className={`w-[8rem] md:w-[10rem] px-2 md:px-4 py-3 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90`}
+                className={`w-[8rem] md:w-[10rem] px-2 md:px-4 py-3 rounded-lg border ${
+                  fieldErrors.datetime ? "border-red-400" : "border-gray-200"
+                } shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90`}
                 required
               />
+              {fieldErrors.datetime && (
+                <p className="text-red-500 text-sm mt-1 absolute left-0 -bottom-6">
+                  {fieldErrors.datetime}
+                </p>
+              )}
             </div>
 
             {/* Time Selectors */}
-            <div className={` md:w-1/2 inline-block`}>
+            <div className={` inline-block`}>
               <div className="relative group flex items-center">
                 <FaClock className="inline-block mr-2 text-primary" size={20} />
                 <select
@@ -463,6 +479,139 @@ function BookingForm({ onGetLocation, pageIs }) {
             </div>
           </div>
         </div>
+        {/* Date & Time and Passengers and Luggage For Only Booking Page */}
+        {pageIs === "booking" && (
+          <div className="hidden w-[45%] md:grid grid-cols-1 items-center gap-4 bg-white rounded-xl border border-gray-200 p-4 shadow-md">
+            {/* One Way Badge */}
+            <div className="mx-auto flex items-center gap-2 col-span-2">
+              <div className=" w-full md:w-fit flex items-center  gap-2 ">
+                <div className="max-w-fit cursor-pointer rounded-full bg-gray-50 border border-gray-400">
+                  <p className="w-2 h-2 m-1 rounded-full bg-primary"></p>
+                </div>
+                <p className="text-sm font-semibold text-gray-800 text-nowrap">
+                  One Way
+                </p>
+              </div>
+            </div>
+
+            {/* Date and Time Row */}
+            <div className={"w-full mx-auto flex flex-col items-center gap-2"}>
+              <div className="relative group flex items-center">
+                <FaCalendarAlt
+                  className="inline-block mr-2 text-primary"
+                  size={20}
+                />
+                <input
+                  type="date"
+                  value={pickupDate}
+                  onChange={(e) => setPickupDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                  className={`w-[8.2rem] p-2 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90 cursor-pointer
+`}
+                  required
+                />
+              </div>
+
+              {/* Time Selectors */}
+              <div className={`inline-block`}>
+                <div className="relative group flex items-center">
+                  <FaClock
+                    className="inline-block mr-2 text-primary"
+                    size={20}
+                  />
+                  <select
+                    value={pickupHour}
+                    onChange={(e) => setPickupHour(e.target.value)}
+                    className="px-1 p-2 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90 cursor-pointer"
+                    required
+                  >
+                    {Array.from({ length: 24 }, (_, i) =>
+                      String(i).padStart(2, "0")
+                    ).map((hour) => (
+                      <option key={hour} value={hour}>
+                        {hour}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="px-2">:</p>
+                  <select
+                    value={pickupMinute}
+                    onChange={(e) => setPickupMinute(e.target.value)}
+                    className="px-1 p-2 rounded-lg border border-gray-200 shadow-input focus:shadow-input-focus focus:border-primary/40 bg-white/90 cursor-pointer"
+                    required
+                  >
+                    {["00", "10", "20", "30", "40", "50"].map((minute) => (
+                      <option key={minute} value={minute}>
+                        {minute}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`flex w-full justify-center col-span-2 md:items-start md:gap-4`}
+            >
+              <div
+                className={`
+      flex flex-col w-full justify-between items-center 
+       
+      rounded-lg px-4 py-3 
+    `}
+              >
+                {/* Passenger */}
+                <div className="flex items-center gap-2 cursor-pointer">
+                  <FaUser className="text-primary" size={16} />
+                  <select
+                    value={passengers}
+                    onChange={(e) => setPassengers(parseInt(e.target.value))}
+                    className=" focus:outline-none text-sm font-semibold cursor-pointer text-gray-800"
+                  >
+                    {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
+                      <option
+                        key={num}
+                        value={num}
+                        className="bg-[#EDF2F7] font-semibold text-gray-800"
+                      >
+                        {num} {num === 1 ? "Passenger" : "Passengers"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Divider */}
+                <div className="border-b w-full my-2 border-gray-300 mx-4 hidden md:block"></div>
+
+                {/* Luggage */}
+                <div className="flex items-center gap-2 cursor-pointer">
+                  <FaSuitcase className="text-primary" size={16} />
+                  <select
+                    value={luggage}
+                    onChange={(e) => setLuggage(parseInt(e.target.value))}
+                    className=" focus:outline-none text-sm font-semibold cursor-pointer text-gray-800"
+                  >
+                    <option
+                      value="0"
+                      className="bg-[#EDF2F7] font-semibold text-gray-800"
+                    >
+                      No Luggage
+                    </option>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                      <option
+                        key={num}
+                        value={num}
+                        className="bg-[#EDF2F7] font-semibold text-gray-800"
+                      >
+                        {num} {num === 1 ? "item" : "items"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Submit Button */}

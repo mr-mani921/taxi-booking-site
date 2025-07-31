@@ -61,38 +61,6 @@ function Navbar() {
         isScrolled ? "bg-white shadow-minicabit" : "bg-white"
       }`}
     >
-      {/* Top bar with contact info and app download */}
-      {/* <div className="hidden md:block bg-minicabit-lightGray border-b border-gray-200">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-10">
-            <div className="flex items-center space-x-4">
-              <a
-                href="tel:+123456789"
-                className="flex items-center space-x-1 text-sm text-minicabit-darkGray hover:text-primary"
-              >
-                <FaPhone className="text-xs" />
-                <span>+123 456 789</span>
-              </a>
-            </div>
-            <div className="flex items-center space-x-4">
-              <a
-                href="#"
-                className="flex items-center space-x-1 text-sm text-minicabit-darkGray hover:text-primary"
-              >
-                <FaMobileAlt className="text-xs" />
-                <span>Download our app</span>
-              </a>
-              <Link
-                to="/contact"
-                className="text-sm text-minicabit-darkGray hover:text-primary"
-              >
-                Contact Us
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div> */}
-
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}

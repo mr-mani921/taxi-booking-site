@@ -48,6 +48,14 @@ const bookingSlice = createSlice({
     setRideStatus: (state, action) => {
       state.rideStatus = action.payload;
     },
+
+    clearBookingData: (state) => {
+      state.bookingData = initialState.bookingData;
+      state.selectedQuote = null;
+      state.estimatedPrice = null;
+      state.selectedVehicleType = null;
+      state.error = null;
+    },
     setBookingStep: (state, action) => {
       state.bookingStep = action.payload;
     },
@@ -138,11 +146,12 @@ export const {
   setBookingHistory,
   setActiveRide,
   setRideStatus,
-  setBookingStep,
   updateBookingData,
+  clearBookingData,
+  setBookingStep,
   resetBookingData,
-  resetBookingState,
   setAvailabilityReference,
+  resetBookingState,
 } = bookingSlice.actions;
 
 export default bookingSlice.reducer;

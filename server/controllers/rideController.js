@@ -18,6 +18,7 @@ const igoConfig = require("../config/igoConfig.js");
 const Bid = require("../models/Bid.js");
 const Stripe = require("stripe");
 const User = require("../models/User.js");
+const emailService = require("../utils/emailService.js");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -1262,6 +1263,36 @@ const requestVendorBids = async (req, res) => {
     });
 
     await newBid.save();
+
+    // Get user details for the email
+    const user = await User.findById(userId);
+    if (user && user.email) {
+      try {
+        // Prepare quote details for email
+        const quoteDetails = {
+          pickupLocation: pickupLocation.address,
+          dropoffLocation: dropoffLocation.address,
+          pickupTime: new Date(pickupTime).toLocaleString(),
+          numberOfQuotes: formattedBids.length,
+          lowestPrice:
+            formattedBids.length > 0
+              ? Math.min(...formattedBids.map((bid) => bid.pricing.price))
+              : 0,
+          bidReference: bidsResponse.AgentBidResponse?.BidReference,
+          expiresAt: expiresAt.toLocaleString(),
+          vehicleType: normalizedVehicleType,
+        };
+
+        // Send quote email asynchronously
+        emailService.sendQuoteEmail(user, quoteDetails).catch((error) => {
+          console.error("Error sending quote email:", error);
+          // Don't throw error as this shouldn't affect the API response
+        });
+      } catch (error) {
+        console.error("Error preparing quote email:", error);
+        // Don't throw error as this shouldn't affect the API response
+      }
+    }
 
     return res.status(200).json({
       success: true,

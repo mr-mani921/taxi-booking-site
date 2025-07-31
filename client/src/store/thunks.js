@@ -10,6 +10,7 @@ import {
 import { setLoading, setGlobalLoading } from "./apiSlice";
 import { setAvailabilityReference } from "./bookingSlice";
 
+
 // Auth thunks
 export const loginUser = createAsyncThunk(
   "auth/login",

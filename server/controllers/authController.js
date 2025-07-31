@@ -4,6 +4,7 @@ const {
   generateVerificationCode,
   sendVerificationEmail,
 } = require("../utils/emailVerification.js");
+const emailService = require("../utils/emailService.js");
 
 // Store temporary user data with OTP (in memory - for production, use Redis or a database)
 const pendingUsers = new Map();
@@ -130,6 +131,7 @@ const loginUser = async (req, res) => {
 // @access  Public
 const verifyOTP = async (req, res) => {
   try {
+    console.log("Verifying OTP for user:", req.body.email);
     const { email, otp, isRegistration } = req.body;
 
     if (!email || !otp) {
@@ -139,7 +141,6 @@ const verifyOTP = async (req, res) => {
       });
     }
 
-    // Handle signup verification
     if (isRegistration) {
       const pendingUser = pendingUsers.get(email);
 
@@ -170,23 +171,25 @@ const verifyOTP = async (req, res) => {
         name: pendingUser.name,
         email: pendingUser.email,
         password: pendingUser.password,
-        isEmailVerified: true, // User is verified since they confirmed their email
+        isEmailVerified: true,
       });
+      console.log("User registered successfully:", user);
+      // Send welcome email after successful verification
+      await emailService
+        .sendWelcomeEmail(user)
+        .catch((err) => console.error("Failed to send welcome email:", err));
 
       // Clean up pending registration
       pendingUsers.delete(email);
 
-      // Get token and cookie info from generateToken
+      // Generate token and set cookie
       const { token, cookieName, cookieOptions } = generateToken(
         user,
         "User registered and verified successfully",
         201
       );
-
-      // Set the cookie
       res.cookie(cookieName, token, cookieOptions);
 
-      // Send response with token
       return res.status(201).json({
         success: true,
         message: "Registration successful! Your email has been verified.",
@@ -196,9 +199,7 @@ const verifyOTP = async (req, res) => {
         isAdmin: user.isAdmin,
         token,
       });
-    }
-    // Handle login verification
-    else {
+    } else {
       const pendingLogin = pendingLogins.get(email);
 
       if (!pendingLogin) {
@@ -211,7 +212,6 @@ const verifyOTP = async (req, res) => {
       // Increment attempts
       pendingLogin.attempts += 1;
 
-      // Check if max attempts reached (3 attempts)
       if (pendingLogin.attempts > 3) {
         pendingLogins.delete(email);
         return res.status(400).json({
@@ -238,7 +238,6 @@ const verifyOTP = async (req, res) => {
         });
       }
 
-      // Get the user
       const user = await User.findById(pendingLogin.userId);
       if (!user) {
         pendingLogins.delete(email);
@@ -248,26 +247,20 @@ const verifyOTP = async (req, res) => {
         });
       }
 
-      // Clean up pending login
       pendingLogins.delete(email);
 
-      // Set user as email verified if not already
       if (!user.isEmailVerified) {
         user.isEmailVerified = true;
         await user.save();
       }
 
-      // Get token and cookie info from generateToken
       const { token, cookieName, cookieOptions } = generateToken(
         user,
         "Login successful",
         200
       );
-
-      // Set the cookie
       res.cookie(cookieName, token, cookieOptions);
 
-      // Send response with token
       return res.status(200).json({
         success: true,
         message: "Login successful!",

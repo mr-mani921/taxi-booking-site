@@ -47,12 +47,13 @@ function Booking() {
     <div className="min-h-screen bg-white pt-20">
       {/* Hero Section */}
       <section className="bg-gray-50 py-12">
-        <div className="container mx-auto px-4">
+        <div className="md:container md:mx-auto md:px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
+              className="container mx-auto px-4"
             >
               <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">
                 Book Your Taxi Online
@@ -116,7 +117,10 @@ function Booking() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">
                   Book a taxi
                 </h2>
-                <BookingForm onGetLocation={handleGetLocation} pageIs={'booking'} />
+                <BookingForm
+                  onGetLocation={handleGetLocation}
+                  pageIs={"booking"}
+                />
               </div>
             </motion.div>
           </div>

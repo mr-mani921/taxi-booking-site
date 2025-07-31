@@ -5,6 +5,7 @@ const {
   generateVerificationCode,
   sendVerificationEmail,
 } = require("../utils/emailVerification.js");
+const emailService = require("../utils/emailService.js");
 
 // Store temporary user data with OTP (in memory - for production, use Redis or a database)
 const pendingUsers = new Map();
@@ -106,6 +107,7 @@ const authUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/verify-otp
 // @access  Public
 const verifyOTP = asyncHandler(async (req, res) => {
+  console.log("Verifying OTP for user:", req.body.email);
   const { email, otp, isRegistration } = req.body;
 
   if (!email || !otp) {
@@ -148,6 +150,14 @@ const verifyOTP = asyncHandler(async (req, res) => {
       password: pendingUser.password,
       isEmailVerified: true, // User is verified since they confirmed their email
     });
+
+    // Send welcome email after successful verification
+    console.log("going to send welcome email to:", user.email);
+    await emailService
+      .sendWelcomeEmail(user)
+      .catch((err) => console.error("Failed to send welcome email:", err));
+    console.log("Welcome email sent successfully to:", user.email);
+    // Clean up pending registration
 
     // Clean up pending registration
     pendingUsers.delete(email);
@@ -222,7 +232,12 @@ const verifyOTP = asyncHandler(async (req, res) => {
         message: "User not found",
       });
     }
-
+    // Send welcome email after successful verification
+    console.log("going to send welcome email to:", user.email);
+    await emailService
+      .sendWelcomeEmail(user)
+      .catch((err) => console.error("Failed to send welcome email:", err));
+    console.log("Welcome email sent successfully to:", user.email);
     // Clean up pending login
     pendingLogins.delete(email);
 

@@ -10,6 +10,7 @@ const passport = require("./config/passport.js"); // Import Passport config
 const authRoutes = require("./routes/authRoutes.js"); // Authentication routes
 const rideRoutes = require("./routes/rideRoutes.js"); // Ride routes
 const userRoutes = require("./routes/userRoutes.js"); // User routes
+const quoteRoutes = require("./routes/quoteRoutes.js"); // Quote routes with email notifications
 // const driverRoutes = require("./routes/driverRoutes.js"); // Driver routes
 const paymentRoutes = require("./routes/paymentRoutes.js"); // Payment routes
 const igoEventRoutes = require("./routes/igoEventRoutes.js"); // iGo event routes

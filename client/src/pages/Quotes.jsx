@@ -92,9 +92,9 @@ function Quotes() {
 
   return (
     <div className="min-h-screen bg-lightBg pt-20">
-      <div className="container mx-auto px-4 py-10">
+      <div className="md:container md:mx-auto md:px-4 py-10">
         {/* Title Section */}
-        <div className="mb-10 text-center md:text-left">
+        <div className="container mx-auto px-4 mb-10 text-center md:text-left">
           <h1 className="text-2xl md:text-4xl font-bold text-gray-800 mb-2">
             Available Quotes
           </h1>
