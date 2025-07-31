@@ -18,9 +18,12 @@ function BookingForm({ onGetLocation, pageIs }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const userLocation = useSelector((state) => state.booking.userLocation);
+  const savedBookingData = useSelector((state) => state.booking.bookingData);
   const [isOneWay] = useState(true);
-  const [passengers, setPassengers] = useState(1);
-  const [luggage, setLuggage] = useState(0);
+  const [passengers, setPassengers] = useState(
+    savedBookingData?.passengers || 1
+  );
+  const [luggage, setLuggage] = useState(savedBookingData?.luggage || 0);
 
   // New date and time state variables
   const [pickupDate, setPickupDate] = useState("");
@@ -43,16 +46,28 @@ function BookingForm({ onGetLocation, pageIs }) {
     onGetLocation();
   }, [onGetLocation]);
 
-  // Update pickup address when user location changes
+  // Initialize form data from saved state or user location
   useEffect(() => {
-    if (userLocation) {
+    if (savedBookingData?.pickupLocation) {
+      setPickupAddress(savedBookingData.pickupLocation.address);
+      setPickupLocation(savedBookingData.pickupLocation);
+      setDropoffAddress(savedBookingData.dropoffLocation.address);
+      setDropoffLocation(savedBookingData.dropoffLocation);
+
+      if (savedBookingData.pickupTime) {
+        const date = new Date(savedBookingData.pickupTime);
+        setPickupDate(date.toISOString().split("T")[0]);
+        setPickupHour(String(date.getHours()).padStart(2, "0"));
+        setPickupMinute(String(date.getMinutes()).padStart(2, "0"));
+      }
+    } else if (userLocation) {
       setPickupAddress(
         userLocation.address ||
           `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`
       );
       setPickupLocation(userLocation);
     }
-  }, [userLocation]);
+  }, [userLocation, savedBookingData]);
 
   // Update pickupTime when date or time components change
   useEffect(() => {
@@ -78,12 +93,6 @@ function BookingForm({ onGetLocation, pageIs }) {
     e.preventDefault();
     setError(null);
 
-    if (!isAuthenticated) {
-      setError("Please login to continue");
-      navigate("/auth");
-      return;
-    }
-
     if (!pickupLocation) {
       setError("Please set your pickup location");
       return;
@@ -96,6 +105,32 @@ function BookingForm({ onGetLocation, pageIs }) {
 
     if (!pickupTime) {
       setError("Please select a pickup time");
+      return;
+    }
+
+    // Save form data to Redux store regardless of authentication status
+    const rideData = {
+      pickupLocation: {
+        ...pickupLocation,
+        address: pickupAddress,
+      },
+      dropoffLocation: {
+        ...dropoffLocation,
+        address: dropoffAddress,
+      },
+      pickupTime,
+      passengers,
+      luggage,
+      isOneWay,
+    };
+
+    // Update booking data in Redux
+    dispatch(updateBookingData(rideData));
+
+    if (!isAuthenticated) {
+      // Save the current path to return to after authentication
+      localStorage.setItem("returnPath", window.location.pathname);
+      navigate("/auth");
       return;
     }
 
@@ -262,15 +297,12 @@ function BookingForm({ onGetLocation, pageIs }) {
           </div>
           {/* Date and Time Row */}
           <div
-            className={`flex justify-between items-center md:items-start gap-4 ${
-              pageIs === "home"
-                ? "w-full mx-auto md:flex-row gap-1 md:gap-4"
-                : "flex-col"
+            className={`flex justify-between items-center md:items-start gap-4 w-full mx-auto md:flex-row md:gap-4 
             } ${pageIs === "quote" && "mt-4"}`}
           >
-            <div className="relative group inline-block flex items-center">
+            <div className="relative group flex items-center">
               <FaCalendarAlt
-                className="inline-block mr-2 text-gray-400 text-primary"
+                className="inline-block mr-2 text-primary"
                 size={20}
               />
               <input
@@ -284,9 +316,7 @@ function BookingForm({ onGetLocation, pageIs }) {
             </div>
 
             {/* Time Selectors */}
-            <div
-              className={` ${pageIs === "home" ? "md:w-1/2 inline-block" : ""}`}
-            >
+            <div className={` md:w-1/2 inline-block`}>
               <div className="relative group flex items-center">
                 <FaClock className="inline-block mr-2 text-primary" size={20} />
                 <select

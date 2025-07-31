@@ -40,11 +40,17 @@ function Auth() {
 
   // This useEffect runs on component mount to check authentication
   useEffect(() => {
-    // If user is already authenticated, redirect to home
+    // If user is already authenticated, redirect to return path or home
     if (isAuthenticated) {
-      navigate("/");
+      const returnPath = localStorage.getItem("returnPath");
+      if (returnPath) {
+        localStorage.removeItem("returnPath");
+        navigate(returnPath);
+      } else {
+        navigate("/");
+      }
     }
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   // This useEffect runs whenever isAuthenticated changes
   useEffect(() => {
