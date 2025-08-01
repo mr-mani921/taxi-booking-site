@@ -13,6 +13,10 @@ import PropTypes from "prop-types";
 import PlacesAutocomplete from "./PlacesAutocomplete";
 import { updateBookingData, clearBookingData } from "../store/bookingSlice";
 import { getBids } from "../store/thunks/bookingThunks";
+import {
+  saveBookingDataToStorage,
+  clearBookingDataFromStorage,
+} from "../utils/authUtils";
 
 function BookingForm({ onGetLocation, pageIs }) {
   const dispatch = useDispatch();
@@ -133,6 +137,7 @@ function BookingForm({ onGetLocation, pageIs }) {
 
     if (!isAuthenticated) {
       dispatch(updateBookingData(rideData)); // Save temporarily for after auth
+      saveBookingDataToStorage(rideData); // Save to localStorage for persistence
       navigate("/auth");
       return;
     }
@@ -163,8 +168,9 @@ function BookingForm({ onGetLocation, pageIs }) {
 
       // Clear booking data and navigate on success
       dispatch(clearBookingData());
+      clearBookingDataFromStorage(); // Clear from localStorage
       navigate("/quotes");
-    } catch (err) {
+    } catch {
       setSubmitError(
         "Unable to fetch quotes right now. Please try again later."
       );

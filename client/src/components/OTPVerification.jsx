@@ -180,7 +180,7 @@ const OTPVerification = ({ onBack }) => {
         </p>
 
         {/* OTP Input Fields */}
-        <div className="flex justify-between mb-8 gap-2">
+        <div className="flex justify-between mb-8 gap-1 md:gap-2">
           {otp.map((digit, index) => (
             <input
               key={index}
@@ -191,7 +191,7 @@ const OTPVerification = ({ onBack }) => {
               onChange={(e) => handleInputChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onFocus={() => setFocusedInput(index)}
-              className={`w-12 h-14 text-center text-xl font-bold rounded-md bg-gray-50 text-gray-800 border-2 
+              className={`w-9 h-12 md:w-12 md:h-14 text-center text-xl font-bold rounded-md bg-gray-50 text-gray-800 border-2 
                 ${
                   focusedInput === index ? "border-primary" : "border-gray-300"
                 } 

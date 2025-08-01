@@ -6,10 +6,14 @@ import {
   setIsEmailVerified,
   setPendingAuth,
   clearPendingAuth,
+  setProfile,
 } from "./userSlice";
 import { setLoading, setGlobalLoading } from "./apiSlice";
-import { setAvailabilityReference } from "./bookingSlice";
-
+import { setAvailabilityReference, updateBookingData } from "./bookingSlice";
+import {
+  loadBookingDataFromStorage,
+  clearBookingDataFromStorage,
+} from "../utils/authUtils";
 
 // Auth thunks
 export const loginUser = createAsyncThunk(
@@ -134,6 +138,28 @@ export const verifyOTP = createAsyncThunk(
         dispatch(setIsEmailVerified(true));
         dispatch(clearPendingAuth());
 
+        // Fetch user profile
+        try {
+          const profileResponse = await api.getUserProfile();
+          dispatch(setProfile(profileResponse.data));
+        } catch (profileError) {
+          console.warn("Failed to fetch user profile:", profileError);
+          // Don't fail the entire login process if profile fetch fails
+        }
+
+        // Load saved booking data from localStorage
+        try {
+          const savedBookingData = loadBookingDataFromStorage();
+          if (savedBookingData) {
+            dispatch(updateBookingData(savedBookingData));
+            // Clear the data from localStorage after loading it into the store
+            clearBookingDataFromStorage();
+          }
+        } catch (bookingError) {
+          console.warn("Failed to load saved booking data:", bookingError);
+          // Don't fail the entire login process if booking data load fails
+        }
+
         return {
           message: response.data.message || "Authentication successful!",
         };
@@ -188,10 +214,12 @@ export const logoutUser = createAsyncThunk(
       dispatch(setGlobalLoading(true));
       await api.logout();
       localStorage.removeItem("token");
+      clearBookingDataFromStorage(); // Clear saved booking data
       dispatch(setIsAuthenticated(false));
       return { success: true };
     } catch (error) {
       localStorage.removeItem("token"); // Still remove token even if API call fails
+      clearBookingDataFromStorage(); // Clear saved booking data even if API call fails
       dispatch(setIsAuthenticated(false));
       return rejectWithValue(
         error.response?.data || { message: error.message }
@@ -700,6 +728,28 @@ export const handleGoogleAuthSuccess = createAsyncThunk(
       // Set authentication state
       dispatch(setIsAuthenticated(true));
       dispatch(setIsEmailVerified(true)); // Google users are always email verified
+
+      // Fetch user profile
+      try {
+        const profileResponse = await api.getUserProfile();
+        dispatch(setProfile(profileResponse.data));
+      } catch (profileError) {
+        console.warn("Failed to fetch user profile:", profileError);
+        // Don't fail the entire login process if profile fetch fails
+      }
+
+      // Load saved booking data from localStorage
+      try {
+        const savedBookingData = loadBookingDataFromStorage();
+        if (savedBookingData) {
+          dispatch(updateBookingData(savedBookingData));
+          // Clear the data from localStorage after loading it into the store
+          clearBookingDataFromStorage();
+        }
+      } catch (bookingError) {
+        console.warn("Failed to load saved booking data:", bookingError);
+        // Don't fail the entire login process if booking data load fails
+      }
 
       return {
         message: "Google authentication successful!",

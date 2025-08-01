@@ -28,3 +28,30 @@ export const handleOAuthSuccess = (token) => {
   }
   return false;
 };
+
+// Booking data persistence utilities
+export const saveBookingDataToStorage = (bookingData) => {
+  try {
+    localStorage.setItem("savedBookingData", JSON.stringify(bookingData));
+  } catch (error) {
+    console.warn("Failed to save booking data to localStorage:", error);
+  }
+};
+
+export const loadBookingDataFromStorage = () => {
+  try {
+    const savedData = localStorage.getItem("savedBookingData");
+    return savedData ? JSON.parse(savedData) : null;
+  } catch (error) {
+    console.warn("Failed to load booking data from localStorage:", error);
+    return null;
+  }
+};
+
+export const clearBookingDataFromStorage = () => {
+  try {
+    localStorage.removeItem("savedBookingData");
+  } catch (error) {
+    console.warn("Failed to clear booking data from localStorage:", error);
+  }
+};
