@@ -4,6 +4,7 @@ import { FaCheck } from "react-icons/fa";
 import { IoMdStar } from "react-icons/io";
 import { setUserLocation } from "../store/bookingSlice";
 import BookingForm from "./BookingForm";
+import HeroImage from "../assets/hero-image.jpg";
 
 function Hero() {
   const dispatch = useDispatch();
@@ -33,7 +34,7 @@ function Hero() {
       {/* Hero Background */}
       <div className="absolute top-8 left-0 w-full z-0 h-[350px] md:h-full">
         <img
-          src="https://www.minicabit.com/wp-content/themes/minicabit/assets/ac52a27e72def823d982.webp"
+          src= {HeroImage}
           alt="Professional taxi service"
           className="w-full h-full object-contain md:object-cover object-center"
         />
