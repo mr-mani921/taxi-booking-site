@@ -29,7 +29,7 @@ const AuthSuccess = () => {
           navigate("/login", {
             state: {
               error: "Authentication failed. Please try again.",
-            },
+            },  
           });
         }
       } else {

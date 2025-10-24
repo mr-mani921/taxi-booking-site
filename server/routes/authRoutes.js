@@ -36,7 +36,7 @@ router.get(
     const redirectUrl =
       process.env.NODE_ENV === "production"
         ? `${process.env.FRONTEND_URL}/auth-success?token=${token}`
-        : `http://localhost:3000/auth-success?token=${token}`;
+        : `http://localhost:5173/auth-success?token=${token}`;
 
     // Redirect to frontend with token
     res.redirect(redirectUrl);

@@ -82,8 +82,7 @@ app.use(Sentry.Handlers.requestHandler());
 // Middleware setup
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production" ? process.env.FRONTEND_URL : "*", // Restrict CORS in production
+    origin:process.env.FRONTEND_URL , // Restrict CORS in production
     credentials: true,
   })
 );

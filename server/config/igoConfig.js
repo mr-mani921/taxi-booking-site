@@ -19,6 +19,7 @@ const defaults = {
   AGENT_ID: process.env.IGO_AGENT_ID,
   AGENT_PASSWORD: process.env.IGO_AGENT_PASSWORD,
   VENDOR_ID: process.env.IGO_VENDOR_ID,
+  APP_ID: process.env.IGO_APP_ID,
 
   // Request configuration
   API_TIMEOUT: 30000, // 30 seconds
@@ -37,6 +38,7 @@ const igoConfig = {
   agentId: process.env.IGO_AGENT_ID || defaults.AGENT_ID,
   agentPassword: process.env.IGO_AGENT_PASSWORD || defaults.AGENT_PASSWORD,
   vendorId: process.env.IGO_VENDOR_ID || defaults.VENDOR_ID,
+  appId: process.env.IGO_APP_ID || defaults.APP_ID,
 
   // Request configuration
   apiTimeout: parseInt(process.env.IGO_API_TIMEOUT || defaults.API_TIMEOUT),
@@ -122,6 +124,57 @@ const igoConfig = {
     return `${baseUrl}${defaults.EVENT_WEBHOOK_PATH}`;
   },
 
+  // Generate proper UTC time for iGo API requests (within 5 minutes of current time)
+  generateValidTime: () => {
+    const now = new Date();
+    // Ensure time is within 5 minutes of current time
+    // Convert to UTC ISO string format as required by iGo API
+    return now.toISOString();
+  },
+
+  // Convert UK time to UTC for iGo API requests
+  convertUKTimeToUTC: (ukTime) => {
+    // If ukTime is already a Date object, use it directly
+    if (ukTime instanceof Date) {
+      return ukTime.toISOString();
+    }
+    
+    // If ukTime is a string, parse it and convert to UTC
+    const date = new Date(ukTime);
+    return date.toISOString();
+  },
+
+  // Generate all required headers for iGo API requests
+  generateApiHeaders: () => {
+    const headers = {
+      "Content-Type": "text/xml",
+      "Accept": "application/xml",
+      "X-Authorization-Reference": `${igoConfig.agentId}:${igoConfig.agentPassword}`,
+      "X-Agent-Booking-Reference": igoConfig.vendorId,
+    };
+
+    // Add App ID header if available
+    if (igoConfig.appId) {
+      headers["X-API-Application-Id"] = igoConfig.appId;
+    }
+
+    return headers;
+  },
+
+  // Validate credentials are loaded
+  validateCredentials: () => {
+    const missing = [];
+    if (!igoConfig.agentId) missing.push("IGO_AGENT_ID");
+    if (!igoConfig.agentPassword) missing.push("IGO_AGENT_PASSWORD");
+    if (!igoConfig.vendorId) missing.push("IGO_VENDOR_ID");
+    
+    if (missing.length > 0) {
+      throw new Error(`Missing required iGo credentials: ${missing.join(", ")}`);
+    }
+    
+    return true;
+  },
+
   // XML request builders
   buildXmlRequest: (jsonData) => {
     const builder = new Builder({
@@ -144,7 +197,7 @@ const igoConfig = {
     $: { Id: igoConfig.agentId }, // sets attribute
     Password: igoConfig.agentPassword,
     Reference: `AgentRef_${Date.now()}`,
-    Time: new Date().toISOString(),
+    Time: igoConfig.generateValidTime(),
   }),
 
   buildVendorSection: () => ({
@@ -181,13 +234,32 @@ const igoConfig = {
     };
   },
 
-  buildPassengerSection: (passengers) => ({
-    PassengerDetails: passengers.map((passenger) => ({
-      $: { IsLead: passenger.isLead ? "true" : "false" },
-      Name: passenger.name,
-      TelephoneNumber: passenger.phone,
-      EmailAddress: passenger.email,
-    })),
+  buildPassengerSection: (passengers) => {
+    // For the new schema, we expect a single passenger with IsLead attribute
+    const leadPassenger = passengers.find(p => p.isLead) || passengers[0] || {
+      name: "Default Passenger",
+      phone: "",
+      email: "",
+      isLead: true
+    };
+    
+    return {
+      PassengerDetails: {
+        $: { IsLead: leadPassenger.isLead ? "true" : "false" },
+        Name: leadPassenger.name,
+        TelephoneNumber: leadPassenger.phone || "",
+        EmailAddress: leadPassenger.email || "",
+      }
+    };
+  },
+
+  buildRideSection: ({ vehicleTypeEnum, vehicleCategory, passengerCount = 1 }) => ({
+    $: { Type: "Passenger" }, // Type as attribute instead of child node
+    Count: passengerCount.toString(),
+    VehicleType: vehicleTypeEnum,
+    VehicleCategory: vehicleCategory,
+    Facilities: "None",
+    DriverType: "Any",
   }),
 
   // Update the igoConfig object to include bid statuses and bid types

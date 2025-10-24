@@ -33,13 +33,17 @@ const PAYMENT_POINTS = igoConfig.paymentPoints;
 const PRICING_FLAGS = igoConfig.pricingFlags;
 
 /**
- * Send a request to the iGo API with XML payload.
- * Basic version without retries.
+ * Send a request to the iGo API with proper authentication and error handling.
+ * This is the main function that all other iGo API calls should use.
  */
-const sendIgoRequestBasic = async (xmlBody) => {
+const sendIgoRequest = async (xmlBody, requestType = "Unknown") => {
   try {
+    // Validate credentials before making request
+    igoConfig.validateCredentials();
+
     // Log outgoing requests in development
     if (!igoConfig.isProduction) {
+      console.log(`iGo API ${requestType} Request:`, xmlBody);
     }
 
     // Determine if we should use mock mode
@@ -48,26 +52,20 @@ const sendIgoRequestBasic = async (xmlBody) => {
     // Use mock response in mock mode
     if (useMockMode) {
       const mockResponse = getMockResponse(xmlBody);
-
-      // Log mock response
+      
       if (!igoConfig.isProduction) {
-        console.log(
-          "iGo API Mock Response:",
-          JSON.stringify(mockResponse, null, 2)
-        );
+        console.log(`iGo API ${requestType} Mock Response:`, JSON.stringify(mockResponse, null, 2));
       }
-
+      
       return mockResponse;
     }
 
-    // We're using real mode, send actual request to iGo API
+    // Generate proper headers
+    const headers = igoConfig.generateApiHeaders();
 
+    // Send actual request to iGo API
     const response = await axios.post(igoConfig.apiUrl, xmlBody, {
-      headers: {
-        "Content-Type": "application/xml",
-        "X-Authorization-Reference": `${igoConfig.agentId}:${igoConfig.agentPassword}`,
-        "X-Agent-Booking-Reference": igoConfig.vendorId,
-      },
+      headers,
       timeout: igoConfig.apiTimeout,
     });
 
@@ -80,26 +78,43 @@ const sendIgoRequestBasic = async (xmlBody) => {
 
     // Log responses in development
     if (!igoConfig.isProduction) {
+      console.log(`iGo API ${requestType} Response:`, JSON.stringify(parsedResponse, null, 2));
     }
 
     // Check for error responses
     if (parsedResponse.Error) {
-      throw new Error(
-        `iGo API Error: ${parsedResponse.Error.Message || "Unknown error"}`
-      );
+      throw new Error(`iGo API Error: ${parsedResponse.Error.Message || "Unknown error"}`);
     }
 
     return parsedResponse;
   } catch (error) {
-    console.error("iGo API Request Error:", error.message);
+    console.error(`iGo API ${requestType} Request Error:`, error.message);
+    
+    // Log additional error details in development
+    if (!igoConfig.isProduction && error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+      console.error("Response data:", error.response.data);
+    }
 
     // Check if we're in mock mode and should fall back to mock response
     if (!shouldUseMockMode() && process.env.FALLBACK_TO_MOCK === "true") {
+      console.log(`Falling back to mock response for ${requestType}`);
       return getMockResponse(xmlBody);
     }
 
     throw error;
   }
+};
+
+/**
+ * Send a request to the iGo API with XML payload.
+ * Basic version without retries.
+ * @deprecated Use sendIgoRequest instead
+ */
+const sendIgoRequestBasic = async (xmlBody) => {
+  // Delegate to the new sendIgoRequest function
+  return sendIgoRequest(xmlBody, "Basic");
 };
 
 /**
@@ -113,7 +128,7 @@ const sendIgoRequestBasic = async (xmlBody) => {
  * @param {boolean} options.exponentialBackoff - Whether to use exponential backoff (default: true)
  * @returns {Promise<Object>} The parsed response from the iGo API
  */
-const sendIgoRequest = async (xmlBody, options = {}) => {
+const sendIgoRequestWithRetry = async (xmlBody, options = {}) => {
   const {
     maxRetries = 3,
     baseDelay = 1000,
@@ -137,13 +152,13 @@ const sendIgoRequest = async (xmlBody, options = {}) => {
 
   // If not a critical operation, just send once
   if (!shouldRetry) {
-    return sendIgoRequestBasic(xmlBody);
+    return sendIgoRequest(xmlBody, "Non-Critical");
   }
 
   // For critical operations, use retry logic
   while (attempts <= maxRetries) {
     try {
-      return await sendIgoRequestBasic(xmlBody);
+      return await sendIgoRequest(xmlBody, "Critical");
     } catch (error) {
       lastError = error;
       attempts++;
@@ -561,19 +576,18 @@ const getEstimatedPrice = async (
             time: pickupTime,
           }),
 
-          Ride: {
-            Type: "Passenger",
-            Count: (passengers.length || 1).toString(),
-            VehicleType: vehicleTypeEnum,
-            VehicleCategory: vehicleCategory,
-          },
+          Ride: igoConfig.buildRideSection({
+            vehicleTypeEnum,
+            vehicleCategory,
+            passengerCount: passengers.length || 1,
+          }),
         },
       },
     };
 
     const xmlString = igoConfig.buildXmlRequest(xmlRequest);
 
-    const response = await sendIgoRequest(xmlString);
+    const response = await sendIgoRequest(xmlString, "Price Request");
     return response;
   } catch (error) {
     console.error("Price request error:", error);
@@ -644,17 +658,16 @@ const checkAvailability = async (
               igoConfig.pricingFlags.ALLOW_PARKING,
             ],
           }),
-          Ride: {
-            Type: "Passenger",
-            Count: (passengers.length || 1).toString(),
-            VehicleType: vehicleTypeEnum,
-            VehicleCategory: vehicleCategory,
-          },
+          Ride: igoConfig.buildRideSection({
+            vehicleTypeEnum,
+            vehicleCategory,
+            passengerCount: passengers.length || 1,
+          }),
         },
       },
     });
 
-    const response = await sendIgoRequest(xmlRequest);
+    const response = await sendIgoRequest(xmlRequest, "Availability Check");
     return response;
   } catch (error) {
     console.error("Availability check error:", error);
@@ -725,7 +738,7 @@ const sendRideAuthorizationRequest = async ({
       },
     });
 
-    const response = await sendIgoRequest(xmlRequest);
+    const response = await sendIgoRequest(xmlRequest, "Booking Authorization");
     return response;
   } catch (error) {
     console.error("Booking error:", error);
@@ -746,7 +759,7 @@ const getRideStatus = async (authorizationReference) => {
       },
     });
 
-    const response = await sendIgoRequest(xmlRequest);
+    const response = await sendIgoRequest(xmlRequest, "Ride Status");
     return response;
   } catch (error) {
     console.error("Status check error:", error);
@@ -768,7 +781,7 @@ const cancelRide = async (authorizationReference, cancellationReason) => {
       },
     });
 
-    const response = await sendIgoRequest(xmlRequest);
+    const response = await sendIgoRequest(xmlRequest, "Ride Cancellation");
     return response;
   } catch (error) {
     console.error("Cancellation error:", error);
@@ -1053,19 +1066,18 @@ const requestBids = async (
             time: pickupTime,
           }),
 
-          Ride: {
-            Type: "Passenger",
-            Count: (passengers || 1).toString(),
-            VehicleType: vehicleTypeEnum,
-            VehicleCategory: vehicleCategory,
-          },
+          Ride: igoConfig.buildRideSection({
+            vehicleTypeEnum,
+            vehicleCategory,
+            passengerCount: passengers || 1,
+          }),
         },
       },
     };
 
     const xmlString = igoConfig.buildXmlRequest(xmlRequest);
 
-    const response = await sendIgoRequest(xmlString);
+    const response = await sendIgoRequest(xmlString, "Price Request");
     return response;
   } catch (error) {
     console.error("Bid request error:", error);
@@ -1110,7 +1122,7 @@ const processPayment = async (
       },
     });
 
-    const response = await sendIgoRequest(request);
+    const response = await sendIgoRequest(request, "Payment Processing");
     return response.AgentPaymentResponse;
   } catch (error) {
     console.error("Error processing payment:", error);
@@ -1133,7 +1145,7 @@ const requestBill = async (authorizationReference) => {
       },
     });
 
-    const response = await sendIgoRequest(request);
+    const response = await sendIgoRequest(request, "Bill Request");
     return response.AgentBillResponse;
   } catch (error) {
     console.error("Error requesting bill:", error);
@@ -1156,7 +1168,7 @@ const getReceipt = async (authorizationReference) => {
       },
     });
 
-    const response = await sendIgoRequest(request);
+    const response = await sendIgoRequest(request, "Receipt Request");
     return response.AgentReceiptResponse;
   } catch (error) {
     console.error("Error getting receipt:", error);
