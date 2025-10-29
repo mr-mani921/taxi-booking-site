@@ -555,7 +555,7 @@ const getEstimatedPrice = async (
     const xmlRequest = {
       AgentPriceRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(),
         PriceParameters: {
           Source: "Other",
           BookingTimeMode: "Fixed",
@@ -639,7 +639,7 @@ const checkAvailability = async (
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAvailabilityRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(),
         BidReference: bidReference,
         BookingParameters: {
           Journey: igoConfig.buildJourneySection({
@@ -706,7 +706,7 @@ const sendRideAuthorizationRequest = async ({
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAuthorizationRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(),
         AvailabilityReference: availabilityReference,
         AgentBookingReference:
           agentBookingReference || igoConfig.generateBookingReference(),
@@ -754,7 +754,7 @@ const getRideStatus = async (authorizationReference) => {
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingStatusRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(),
         AuthorizationReference: authorizationReference,
       },
     });
@@ -775,7 +775,7 @@ const cancelRide = async (authorizationReference, cancellationReason) => {
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingCancellationRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(),
         AuthorizationReference: authorizationReference,
         CancellationReason: cancellationReason,
       },
@@ -1045,13 +1045,13 @@ const requestBids = async (
     const xmlRequest = {
       AgentBidRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendor(),
         BidParameters: {
           Source: "Other",
           BookingTimeMode: "Fixed",
           BookingTime: bookingTime,
           Availability: "Any",
-          ...igoConfig.buildPassengerSection(passengerDetails),
+          ...igoConfig.buildBidPassengerSection(passengerDetails),
 
           Pricing: {
             Currency: "GBP",
@@ -1060,13 +1060,13 @@ const requestBids = async (
             MarketPlace: "IGO",
           },
 
-          Journey: igoConfig.buildJourneySection({
+          Journey: igoConfig.buildBidJourneySection({
             pickup: pickupLocation,
             dropoff: dropoffLocation,
             time: pickupTime,
           }),
 
-          Ride: igoConfig.buildRideSection({
+          Ride: igoConfig.buildBidRideSection({
             vehicleTypeEnum,
             vehicleCategory,
             passengerCount: passengers || 1,
@@ -1076,8 +1076,8 @@ const requestBids = async (
     };
 
     const xmlString = igoConfig.buildXmlRequest(xmlRequest);
-
-    const response = await sendIgoRequest(xmlString, "Price Request");
+    console.log("the bid request xmlString is: ", xmlString);
+    const response = await sendIgoRequest(xmlString, "Bid Request");
     return response;
   } catch (error) {
     console.error("Bid request error:", error);
@@ -1105,7 +1105,7 @@ const processPayment = async (
     const request = igoConfig.buildXmlRequest({
       AgentPaymentRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(),
         AuthorizationReference: authorizationReference,
         Amount: paymentAmount,
         PaymentMethod: paymentMethod,
@@ -1140,7 +1140,7 @@ const requestBill = async (authorizationReference) => {
     const request = igoConfig.buildXmlRequest({
       AgentBillRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(),
         AuthorizationReference: authorizationReference,
       },
     });
@@ -1163,7 +1163,7 @@ const getReceipt = async (authorizationReference) => {
     const request = igoConfig.buildXmlRequest({
       AgentReceiptRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(),
         AuthorizationReference: authorizationReference,
       },
     });

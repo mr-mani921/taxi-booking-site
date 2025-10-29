@@ -12,7 +12,7 @@ console.log("IGO_AGENT_ID:", process.env.IGO_AGENT_ID);
 // Default values for testing environment
 const defaults = {
   // API URLs
-  API_URL: "https://cxs-staging.autocab.net/api/agent",
+  API_URL: process.env.IGO_API_URL,
   EVENT_BASE_URL: process.env.IGO_EVENT_BASE_URL,
 
   // Credentials
@@ -200,9 +200,13 @@ const igoConfig = {
     Time: igoConfig.generateValidTime(),
   }),
 
-  buildVendorSection: () => ({
-    $: { Id: igoConfig.vendorId },
-  }),
+  buildVendorSection: () => [
+    {
+      Vendor: {
+        $: { Id: igoConfig.vendorId },
+      },
+    },
+  ],
 
   buildPricingSection: ({ pricingModel, paymentPoint, price, flags = [] }) => ({
     Model: pricingModel,
@@ -211,31 +215,67 @@ const igoConfig = {
     Flags: flags,
   }),
 
-  buildJourneySection: ({ pickup, dropoff, time }) => {
+  buildJourneySection: ({ pickup, dropoff, vias = [] }) => {
     // Build the journey section in the format required by iGo Protocol V1.41
-    return {
+    const journey = {
       From: {
-        Type: "Coordinate",
+        Type: "Address",
+        Data: pickup.address || "",
         Coordinate: {
           Latitude: pickup.lat,
           Longitude: pickup.lng,
         },
-        ...(pickup.address ? { Address: pickup.address } : {}),
       },
       To: {
-        Type: "Coordinate",
+        Type: "Address",
+        Data: dropoff.address || "",
         Coordinate: {
           Latitude: dropoff.lat,
           Longitude: dropoff.lng,
         },
-        ...(dropoff.address ? { Address: dropoff.address } : {}),
       },
-      Time: new Date(time).toISOString(),
     };
+
+    // Add Vias if any are provided
+    if (vias.length > 0) {
+      journey.Vias = {
+        Via: vias.map(via => ({
+          Type: "Address",
+          Data: via.address || "",
+          Coordinate: {
+            Latitude: via.lat,
+            Longitude: via.lng,
+          },
+        })),
+      };
+    }
+
+    return journey;
   },
 
+  // Bid-specific journey builder to match Coordinate + Address + Time
+  buildBidJourneySection: ({ pickup, dropoff, time }) => ({
+    From: {
+      Type: "Coordinate",
+      Coordinate: {
+        Latitude: pickup.lat,
+        Longitude: pickup.lng,
+      },
+      ...(pickup.address ? { Address: pickup.address } : {}),
+    },
+    To: {
+      Type: "Coordinate",
+      Coordinate: {
+        Latitude: dropoff.lat,
+        Longitude: dropoff.lng,
+      },
+      ...(dropoff.address ? { Address: dropoff.address } : {}),
+    },
+    Time: new Date(time).toISOString(),
+  }),
+
   buildPassengerSection: (passengers) => {
-    // For the new schema, we expect a single passenger with IsLead attribute
+    // For the new schema, we expect a single passenger without IsLead attribute
     const leadPassenger = passengers.find(p => p.isLead) || passengers[0] || {
       name: "Default Passenger",
       phone: "",
@@ -245,7 +285,6 @@ const igoConfig = {
     
     return {
       PassengerDetails: {
-        $: { IsLead: leadPassenger.isLead ? "true" : "false" },
         Name: leadPassenger.name,
         TelephoneNumber: leadPassenger.phone || "",
         EmailAddress: leadPassenger.email || "",
@@ -253,13 +292,48 @@ const igoConfig = {
     };
   },
 
-  buildRideSection: ({ vehicleTypeEnum, vehicleCategory, passengerCount = 1 }) => ({
+  // Bid-specific passenger section with IsLead attribute
+  buildBidPassengerSection: (passengers) => {
+    const leadPassenger = passengers.find(p => p.isLead) || passengers[0] || {
+      name: "Default Passenger",
+      phone: "",
+      email: "",
+      isLead: true,
+    };
+
+    return {
+      PassengerDetails: {
+        $: { IsLead: leadPassenger.isLead ? "true" : "false" },
+        Name: leadPassenger.name,
+        TelephoneNumber: leadPassenger.phone || "",
+        EmailAddress: leadPassenger.email || "",
+      },
+    };
+  },
+
+  buildRideSection: ({ vehicleTypeEnum, vehicleCategory, passengerCount = 1, luggage = 0, facilities = "None" }) => ({
     $: { Type: "Passenger" }, // Type as attribute instead of child node
+    Count: passengerCount.toString(),
+    Luggage: luggage.toString(),
+    Facilities: facilities,
+    DriverType: "Any",
+    VehicleType: vehicleTypeEnum,
+    VehicleCategory: vehicleCategory,
+  }),
+
+  // Bid-specific ride section (no Luggage; exact order)
+  buildBidRideSection: ({ vehicleTypeEnum, vehicleCategory, passengerCount = 1, facilities = "None" }) => ({
+    $: { Type: "Passenger" },
     Count: passengerCount.toString(),
     VehicleType: vehicleTypeEnum,
     VehicleCategory: vehicleCategory,
-    Facilities: "None",
+    Facilities: facilities,
     DriverType: "Any",
+  }),
+
+  // Single vendor element for <Vendor Id="..."/>
+  buildSingleVendor: () => ({
+    $: { Id: igoConfig.vendorId },
   }),
 
   // Update the igoConfig object to include bid statuses and bid types
