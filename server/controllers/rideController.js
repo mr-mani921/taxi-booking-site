@@ -123,12 +123,20 @@ const getPriceEstimate = async (req, res) => {
       }
     }
 
+    // Get user information for passenger details
+    const userInfo = req.user ? {
+      name: req.user.name,
+      email: req.user.email,
+      phone: req.user.phone || "", // User model doesn't have phone, but handle if added
+    } : null;
+
     const response = await getEstimatedPrice(
       formattedPickup,
       formattedDropoff,
       formattedPickupTime,
       undefined, // Use default vehicle type
-      passengerDetails
+      passengerDetails,
+      userInfo // Pass user info for fallback
     );
 
     // Process the AgentBidResponse (different from AgentPriceEstimateResponse)
@@ -552,10 +560,34 @@ const bookRide = async (req, res) => {
       });
     }
 
+    // Get user information for passenger details
+    const currentUserForBooking = await User.findById(userObjectId);
+    const userInfo = currentUserForBooking ? {
+      name: currentUserForBooking.name,
+      email: currentUserForBooking.email,
+      phone: currentUserForBooking.phone || "", // User model doesn't have phone, but handle if added
+    } : null;
+
     // Format passenger details
-    const passengerDetails = Array.isArray(passengers)
+    let passengerDetails = Array.isArray(passengers)
       ? passengers
       : [passengers];
+
+    // If passenger details are empty or missing name/email, populate with user info
+    if (passengerDetails.length === 0 || 
+        !passengerDetails[0] || 
+        !passengerDetails[0].name || 
+        passengerDetails[0].name === "Guest User" ||
+        passengerDetails[0].name === "Default Passenger") {
+      if (userInfo) {
+        passengerDetails = [{
+          name: userInfo.name,
+          phone: userInfo.phone || "",
+          email: userInfo.email,
+          isLead: true,
+        }];
+      }
+    }
 
     // Ensure at least one passenger is marked as lead
     const hasLeadPassenger = passengerDetails.some((p) => p.isLead === true);
@@ -579,7 +611,7 @@ const bookRide = async (req, res) => {
       user: userObjectId,
       pickupLocation,
       dropoffLocation,
-      pickupTime: new Date(time),
+      pickupTime: new Date(pickupTime),
       fare: markedUpPrice,
       status: igoConfig.rideStatuses.BOOKED,
       pricingModel: finalPricingModel,
@@ -607,6 +639,7 @@ const bookRide = async (req, res) => {
       specialInstructions,
       availabilityReference,
       agentBookingReference,
+      userInfo, // Pass user info for fallback
     });
 
     // Update ride with iGo booking response
@@ -1179,12 +1212,32 @@ const requestVendorBids = async (req, res) => {
 
     const normalizedVehicleType = normalizeVehicleType(vehicleType);
 
+    // Get user information for passenger details
+    const currentUser = await User.findById(userId);
+    const userInfo = currentUser ? {
+      name: currentUser.name,
+      email: currentUser.email,
+      phone: currentUser.phone || "", // User model doesn't have phone, but handle if added
+    } : null;
+
+    // Format passengers array with user info if not already provided
+    let formattedPassengers = passengers;
+    if (!formattedPassengers || formattedPassengers.length === 0) {
+      formattedPassengers = userInfo ? [{
+        name: userInfo.name,
+        phone: userInfo.phone || "",
+        email: userInfo.email,
+        isLead: true,
+      }] : [];
+    }
+
     const bidsResponse = await requestBids(
       pickupLocation,
       dropoffLocation,
       pickupTime,
       normalizedVehicleType,
-      passengers
+      formattedPassengers,
+      userInfo // Pass user info for fallback
     );
 
     const formattedBids = [];
@@ -1370,6 +1423,25 @@ const authorizeBooking = async (req, res) => {
       });
     }
 
+    // Get user information for passenger details
+    const currentUserForAuth = await User.findById(userId);
+    const userInfo = currentUserForAuth ? {
+      name: currentUserForAuth.name,
+      email: currentUserForAuth.email,
+      phone: currentUserForAuth.phone || "", // User model doesn't have phone, but handle if added
+    } : null;
+
+    // Format passengers array - use provided passengers or create from user info
+    let formattedPassengers = passengers;
+    if (!formattedPassengers || formattedPassengers.length === 0) {
+      formattedPassengers = userInfo ? [{
+        name: userInfo.name,
+        phone: userInfo.phone || "",
+        email: userInfo.email,
+        isLead: true,
+      }] : [];
+    }
+
     // Send the XML to iGo
     const igoResponse = await sendRideAuthorizationRequest({
       pickupLocation: finalPickupLocation,
@@ -1379,10 +1451,11 @@ const authorizeBooking = async (req, res) => {
       pricingModel,
       paymentPoint,
       price,
-      passengers,
+      passengers: formattedPassengers,
       specialInstructions,
       availabilityReference,
       agentBookingReference,
+      userInfo, // Pass user info for fallback
     });
 
     // Update bid with authorization reference (bid already validated above)
@@ -1417,29 +1490,27 @@ const authorizeBooking = async (req, res) => {
       const originalPrice = price || selectedBid?.pricing?.priceNET || 0;
       const markedUpPrice = parseFloat((originalPrice * 1.25).toFixed(2));
 
-      // Create passenger information
+      // Create passenger information using userInfo passed from above
       let passengerDetails = [];
       if (Array.isArray(passengers) && passengers.length > 0) {
         passengerDetails = passengers;
       } else if (passengers && typeof passengers === "number") {
-        // If passengers is just a number, create a default passenger
-        const user = await User.findById(userId);
-        if (user) {
+        // If passengers is just a number, use userInfo
+        if (userInfo) {
           passengerDetails.push({
-            name: user.name || "Unknown",
-            phone: user.phone || "Unknown",
-            email: user.email || "Unknown",
+            name: userInfo.name || "Unknown",
+            phone: userInfo.phone || "",
+            email: userInfo.email || "Unknown",
             isLead: true,
           });
         }
       } else {
-        // Default passenger from user data
-        const user = await User.findById(userId);
-        if (user) {
+        // Default passenger from userInfo
+        if (userInfo) {
           passengerDetails.push({
-            name: user.name || "Unknown",
-            phone: user.phone || "Unknown",
-            email: user.email || "Unknown",
+            name: userInfo.name || "Unknown",
+            phone: userInfo.phone || "",
+            email: userInfo.email || "Unknown",
             isLead: true,
           });
         }
@@ -1616,6 +1687,14 @@ const selectBid = async (req, res) => {
     bid.selectedBid = selectedBid;
     await bid.save();
 
+    // Get user information for passenger details
+    const currentUserForSelect = await User.findById(userId);
+    const userInfo = currentUserForSelect ? {
+      name: currentUserForSelect.name,
+      email: currentUserForSelect.email,
+      phone: currentUserForSelect.phone || "", // User model doesn't have phone, but handle if added
+    } : null;
+
     // Proceed with availability check using the selected bid - use checkAvailability directly from imports
     // Pass quotedPrice from the selected bid (required for AgentBookingAvailabilityRequest)
     const quotedPrice = selectedBid.pricing?.estimatedPrice || selectedBid.pricing?.price || null;
@@ -1626,8 +1705,9 @@ const selectBid = async (req, res) => {
       bid.requestedTime,
       bid.bidReference,
       normalizeVehicleType(selectedBid.vehicleType), // Normalize vehicle type for API request
-      [], // Passengers (can be retrieved from bid if needed)
-      quotedPrice // Pass quoted price from bid
+      [], // Passengers (will use userInfo if empty)
+      quotedPrice, // Pass quoted price from bid
+      userInfo // Pass user info for passenger details
     );
 
     // Return the availability reference for booking

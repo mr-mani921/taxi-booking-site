@@ -485,26 +485,46 @@ const handleIgoEvent = async (eventType, eventData) => {
 
 /**
  * Get estimated price for a ride (AgentPriceRequest)
+ * @param {Object} pickupLocation - Pickup location
+ * @param {Object} dropoffLocation - Dropoff location
+ * @param {Date|string} pickupTime - Pickup time
+ * @param {string} vehicleType - Vehicle type
+ * @param {Array} passengers - Passengers array (optional, will use user info if empty)
+ * @param {Object} userInfo - User information object with name, email, phone (optional)
  */
 const getEstimatedPrice = async (
   pickupLocation,
   dropoffLocation,
   pickupTime,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
-  passengers = []
+  passengers = [],
+  userInfo = null
 ) => {
   try {
-    const passengerDetails =
-      passengers.length > 0
-        ? passengers
-        : [
-            {
-              name: "Default Passenger",
-              phone: "",
-              email: "",
-              isLead: true,
-            },
-          ];
+    // Use provided passengers, or create from user info, or use minimal default
+    let passengerDetails;
+    if (passengers.length > 0) {
+      passengerDetails = passengers;
+    } else if (userInfo) {
+      passengerDetails = [
+        {
+          name: userInfo.name || "Guest User",
+          phone: userInfo.phone || "",
+          email: userInfo.email || "",
+          isLead: true,
+        },
+      ];
+    } else {
+      // Last resort fallback
+      passengerDetails = [
+        {
+          name: "Guest User",
+          phone: "",
+          email: "",
+          isLead: true,
+        },
+      ];
+    }
 
     // Format pickup time as local vendor time without timezone suffix
     const bookingTime = igoConfig.convertToLocalVendorTime(pickupTime);
@@ -572,8 +592,9 @@ const getEstimatedPrice = async (
  * @param {Date|string} pickupTime - Pickup time
  * @param {string} bidReference - Bid reference from AgentBidRequest
  * @param {string} vehicleType - Vehicle type
- * @param {Array} passengers - Passengers array
+ * @param {Array} passengers - Passengers array (optional)
  * @param {number|string} quotedPrice - Quoted price from bid (required for AgentBookingAvailabilityRequest)
+ * @param {Object} userInfo - User information object with name, email, phone (optional)
  */
 const checkAvailability = async (
   pickupLocation,
@@ -582,20 +603,34 @@ const checkAvailability = async (
   bidReference,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
   passengers = [],
-  quotedPrice = null
+  quotedPrice = null,
+  userInfo = null
 ) => {
   try {
-    const passengerDetails =
-      passengers.length > 0
-        ? passengers
-        : [
-            {
-              name: "Default Passenger",
-              phone: "",
-              email: "",
-              isLead: true,
-            },
-          ];
+    // Use provided passengers, or create from user info, or use minimal default
+    let passengerDetails;
+    if (passengers.length > 0) {
+      passengerDetails = passengers;
+    } else if (userInfo) {
+      passengerDetails = [
+        {
+          name: userInfo.name || "Guest User",
+          phone: userInfo.phone || "",
+          email: userInfo.email || "",
+          isLead: true,
+        },
+      ];
+    } else {
+      // Last resort fallback
+      passengerDetails = [
+        {
+          name: "Guest User",
+          phone: "",
+          email: "",
+          isLead: true,
+        },
+      ];
+    }
 
     // Map vehicle type to appropriate category and type enums
     let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
@@ -652,6 +687,19 @@ const checkAvailability = async (
 
 /**
  * Book a ride
+ * @param {Object} params - Booking parameters
+ * @param {Object} params.pickupLocation - Pickup location
+ * @param {Object} params.dropoffLocation - Dropoff location
+ * @param {Date|string} params.pickupTime - Pickup time
+ * @param {string} params.vehicleType - Vehicle type
+ * @param {string} params.pricingModel - Pricing model
+ * @param {string} params.paymentPoint - Payment point
+ * @param {number} params.price - Price
+ * @param {Array} params.passengers - Passengers array (optional)
+ * @param {string} params.specialInstructions - Special instructions
+ * @param {string} params.availabilityReference - Availability reference
+ * @param {string} params.agentBookingReference - Agent booking reference
+ * @param {Object} params.userInfo - User information object with name, email, phone (optional)
  */
 const sendRideAuthorizationRequest = async ({
   pickupLocation,
@@ -661,23 +709,37 @@ const sendRideAuthorizationRequest = async ({
   pricingModel,
   paymentPoint,
   price,
-  passengers,
+  passengers = [],
   specialInstructions,
   availabilityReference,
   agentBookingReference,
+  userInfo = null,
 }) => {
   try {
-    const passengerDetails =
-      passengers.length > 0
-        ? passengers
-        : [
-            {
-              name: "Default Passenger",
-              phone: "",
-              email: "",
-              isLead: true,
-            },
-          ];
+    // Use provided passengers, or create from user info, or use minimal default
+    let passengerDetails;
+    if (passengers.length > 0) {
+      passengerDetails = passengers;
+    } else if (userInfo) {
+      passengerDetails = [
+        {
+          name: userInfo.name || "Guest User",
+          phone: userInfo.phone || "",
+          email: userInfo.email || "",
+          isLead: true,
+        },
+      ];
+    } else {
+      // Last resort fallback
+      passengerDetails = [
+        {
+          name: "Guest User",
+          phone: "",
+          email: "",
+          isLead: true,
+        },
+      ];
+    }
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAuthorizationRequest: {
         Agent: igoConfig.buildAgentSection(),
@@ -969,26 +1031,46 @@ const handlePassengerOnBoard = async (ride, eventData) => {
 
 /**
  * Request bids from all available vendors (AgentBidRequest)
+ * @param {Object} pickupLocation - Pickup location
+ * @param {Object} dropoffLocation - Dropoff location
+ * @param {Date|string} pickupTime - Pickup time
+ * @param {string} vehicleType - Vehicle type
+ * @param {Array} passengers - Passengers array (optional)
+ * @param {Object} userInfo - User information object with name, email, phone (optional)
  */
 const requestBids = async (
   pickupLocation,
   dropoffLocation,
   pickupTime,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
-  passengers
+  passengers = [],
+  userInfo = null
 ) => {
   try {
-    const passengerDetails =
-      passengers.length > 0
-        ? passengers
-        : [
-            {
-              name: "Default Passenger",
-              phone: "",
-              email: "",
-              isLead: true,
-            },
-          ];
+    // Use provided passengers, or create from user info, or use minimal default
+    let passengerDetails;
+    if (passengers && passengers.length > 0) {
+      passengerDetails = passengers;
+    } else if (userInfo) {
+      passengerDetails = [
+        {
+          name: userInfo.name || "Guest User",
+          phone: userInfo.phone || "",
+          email: userInfo.email || "",
+          isLead: true,
+        },
+      ];
+    } else {
+      // Last resort fallback
+      passengerDetails = [
+        {
+          name: "Guest User",
+          phone: "",
+          email: "",
+          isLead: true,
+        },
+      ];
+    }
 
     // Format pickup time as local vendor time without timezone suffix
     const bookingTime = igoConfig.convertToLocalVendorTime(pickupTime);
