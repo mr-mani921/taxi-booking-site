@@ -91,6 +91,14 @@ const bidSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    passengersCount: {
+      type: Number,
+      default: 1,
+    },
+    luggageCount: {
+      type: Number,
+      default: 0,
+    },
     receivedAt: {
       type: Date,
       default: Date.now,

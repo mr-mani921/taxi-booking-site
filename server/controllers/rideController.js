@@ -29,9 +29,13 @@ const getPriceEstimate = async (req, res) => {
       dropoffLocation,
       pickupTime,
       passengers = 1,
-      luggage,
+      luggage = 0,
       isOneWay,
     } = req.body;
+
+    // Calculate passenger count (can be number or array length)
+    const passengersCount = typeof passengers === 'number' ? passengers : (Array.isArray(passengers) ? passengers.length : 1);
+    const luggageCount = luggage || 0;
 
     // Validate required inputs
     if (!pickupLocation || !dropoffLocation || !pickupTime) {
@@ -136,7 +140,9 @@ const getPriceEstimate = async (req, res) => {
       formattedPickupTime,
       undefined, // Use default vehicle type
       passengerDetails,
-      userInfo // Pass user info for fallback
+      userInfo, // Pass user info for fallback
+      passengersCount, // Pass passenger count
+      luggageCount // Pass luggage count
     );
 
     // Process the AgentBidResponse (different from AgentPriceEstimateResponse)
@@ -567,6 +573,12 @@ const bookRide = async (req, res) => {
       email: currentUserForBooking.email,
       phone: currentUserForBooking.phone || "", // User model doesn't have phone, but handle if added
     } : null;
+
+    // Calculate passenger count (can be number or array length)
+    const passengersCount = typeof passengers === 'number' 
+      ? passengers 
+      : (Array.isArray(passengers) ? passengers.length : 1);
+    const luggageCount = luggage || 0;
 
     // Format passenger details
     let passengerDetails = Array.isArray(passengers)
@@ -1161,8 +1173,13 @@ const requestVendorBids = async (req, res) => {
       pickupTime,
       vehicleType,
       passengers,
+      luggage,
       bidType = igoConfig.bidTypes.BOTH,
     } = req.body;
+    console.log("the luggage is ", luggage);
+    // Calculate passenger count (can be number or array length)
+    const passengersCount = typeof passengers === 'number' ? passengers : (Array.isArray(passengers) ? passengers.length : 1);
+    const luggageCount = luggage || 0;
 
     const userId = req.user?._id;
 
@@ -1237,7 +1254,9 @@ const requestVendorBids = async (req, res) => {
       pickupTime,
       normalizedVehicleType,
       formattedPassengers,
-      userInfo // Pass user info for fallback
+      userInfo, // Pass user info for fallback
+      passengersCount,
+      luggageCount,
     );
 
     const formattedBids = [];
@@ -1319,6 +1338,8 @@ const requestVendorBids = async (req, res) => {
       expiresAt,
       bids: formattedBids,
       igoResponseLog: JSON.stringify(bidsResponse),
+      passengersCount,
+      luggageCount,
     });
 
     await newBid.save();
@@ -1697,7 +1718,10 @@ const selectBid = async (req, res) => {
 
     // Proceed with availability check using the selected bid - use checkAvailability directly from imports
     // Pass quotedPrice from the selected bid (required for AgentBookingAvailabilityRequest)
+    // Retrieve passenger and luggage counts from bid to maintain consistency with bid request
     const quotedPrice = selectedBid.pricing?.estimatedPrice || selectedBid.pricing?.price || null;
+    const passengersCount = bid.passengersCount || 1;
+    const luggageCount = bid.luggageCount || 0;
     
     const availabilityResponse = await checkAvailability(
       bid.pickup,
@@ -1705,9 +1729,11 @@ const selectBid = async (req, res) => {
       bid.requestedTime,
       bid.bidReference,
       normalizeVehicleType(selectedBid.vehicleType), // Normalize vehicle type for API request
-      [], // Passengers (will use userInfo if empty)
+      [], // Passengers array (will use userInfo if empty)
       quotedPrice, // Pass quoted price from bid
-      userInfo // Pass user info for passenger details
+      userInfo, // Pass user info for passenger details
+      passengersCount, // Pass passenger count from bid to maintain consistency
+      luggageCount // Pass luggage count from bid to maintain consistency
     );
 
     // Return the availability reference for booking

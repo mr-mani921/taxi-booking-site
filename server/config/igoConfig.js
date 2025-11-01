@@ -464,15 +464,17 @@ const igoConfig = {
     VehicleCategory: vehicleCategory,
   }),
 
-  // Bid-specific ride section (no Luggage; exact order)
+  // Bid-specific ride section with Luggage support
   buildBidRideSection: ({
     vehicleTypeEnum,
     vehicleCategory,
     passengerCount = 1,
+    luggage = 0,
     facilities = "None",
   }) => ({
     $: { Type: "Passenger" },
     Count: passengerCount.toString(),
+    Luggage: luggage.toString(),
     VehicleType: vehicleTypeEnum,
     VehicleCategory: vehicleCategory,
     Facilities: facilities,

@@ -491,6 +491,8 @@ const handleIgoEvent = async (eventType, eventData) => {
  * @param {string} vehicleType - Vehicle type
  * @param {Array} passengers - Passengers array (optional, will use user info if empty)
  * @param {Object} userInfo - User information object with name, email, phone (optional)
+ * @param {number} passengersCount - Number of passengers (optional, defaults to passengers.length || 1)
+ * @param {number} luggageCount - Number of luggage items (optional, defaults to 0)
  */
 const getEstimatedPrice = async (
   pickupLocation,
@@ -498,7 +500,9 @@ const getEstimatedPrice = async (
   pickupTime,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
   passengers = [],
-  userInfo = null
+  userInfo = null,
+  passengersCount = null,
+  luggageCount = null
 ) => {
   try {
     // Use provided passengers, or create from user info, or use minimal default
@@ -569,7 +573,12 @@ const getEstimatedPrice = async (
           Ride: igoConfig.buildRideSection({
             vehicleTypeEnum,
             vehicleCategory,
-            passengerCount: passengers.length || 1,
+            passengerCount: passengersCount !== null && passengersCount !== undefined 
+              ? passengersCount 
+              : (passengers.length || 1),
+            luggage: luggageCount !== null && luggageCount !== undefined 
+              ? luggageCount 
+              : 0,
           }),
         },
       },
@@ -595,6 +604,8 @@ const getEstimatedPrice = async (
  * @param {Array} passengers - Passengers array (optional)
  * @param {number|string} quotedPrice - Quoted price from bid (required for AgentBookingAvailabilityRequest)
  * @param {Object} userInfo - User information object with name, email, phone (optional)
+ * @param {number} passengersCount - Number of passengers (optional, defaults to passengers.length || 1)
+ * @param {number} luggageCount - Number of luggage items (optional, defaults to 0)
  */
 const checkAvailability = async (
   pickupLocation,
@@ -604,7 +615,9 @@ const checkAvailability = async (
   vehicleType = igoConfig.vehicleTypes.STANDARD,
   passengers = [],
   quotedPrice = null,
-  userInfo = null
+  userInfo = null,
+  passengersCount = null,
+  luggageCount = null
 ) => {
   try {
     // Use provided passengers, or create from user info, or use minimal default
@@ -645,6 +658,14 @@ const checkAvailability = async (
       vehicleTypeEnum = igoConfig.vehicleTypeEnums.MINIBUS;
     }
 
+    // Calculate final passenger and luggage counts - prioritize passed values, then fallback
+    const finalPassengersCount = passengersCount !== null && passengersCount !== undefined 
+      ? passengersCount 
+      : (passengers.length || 1);
+    const finalLuggageCount = luggageCount !== null && luggageCount !== undefined 
+      ? luggageCount 
+      : 0;
+
     // Build XML request with single Vendor element (not Vendors wrapper)
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAvailabilityRequest: {
@@ -657,6 +678,7 @@ const checkAvailability = async (
             dropoff: dropoffLocation,
             time: pickupTime,
           }),
+          ...igoConfig.buildPassengerSection(passengerDetails), // Include Passengers element
           Pricing: igoConfig.buildPricingSection({
             pricingModel: igoConfig.pricingModels.UP_FRONT,
             paymentPoint: igoConfig.paymentPoints.TIME_OF_BOOKING,
@@ -671,7 +693,8 @@ const checkAvailability = async (
           Ride: igoConfig.buildRideSection({
             vehicleTypeEnum,
             vehicleCategory,
-            passengerCount: passengers.length || 1,
+            passengerCount: finalPassengersCount,
+            luggage: finalLuggageCount,
           }),
         },
       },
@@ -700,6 +723,8 @@ const checkAvailability = async (
  * @param {string} params.availabilityReference - Availability reference
  * @param {string} params.agentBookingReference - Agent booking reference
  * @param {Object} params.userInfo - User information object with name, email, phone (optional)
+ * @param {number} params.passengersCount - Number of passengers (optional, defaults to passengers.length || 1)
+ * @param {number} params.luggageCount - Number of luggage items (optional, defaults to 0)
  */
 const sendRideAuthorizationRequest = async ({
   pickupLocation,
@@ -714,6 +739,7 @@ const sendRideAuthorizationRequest = async ({
   availabilityReference,
   agentBookingReference,
   userInfo = null,
+
 }) => {
   try {
     // Use provided passengers, or create from user info, or use minimal default
@@ -740,6 +766,18 @@ const sendRideAuthorizationRequest = async ({
         },
       ];
     }
+    // Map vehicle type to appropriate category and type enums
+    let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
+    let vehicleTypeEnum = igoConfig.vehicleTypeEnums.SALOON;
+
+    if (vehicleType === igoConfig.vehicleTypes.EXECUTIVE) {
+      vehicleCategory = igoConfig.vehicleCategories.EXECUTIVE;
+    } else if (vehicleType === igoConfig.vehicleTypes.LUXURY) {
+      vehicleCategory = igoConfig.vehicleCategories.LUXURY;
+    } else if (vehicleType === igoConfig.vehicleTypes.MINIBUS) {
+      vehicleTypeEnum = igoConfig.vehicleTypeEnums.MINIBUS;
+    }
+
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAuthorizationRequest: {
         Agent: igoConfig.buildAgentSection(),
@@ -752,9 +790,6 @@ const sendRideAuthorizationRequest = async ({
           dropoff: dropoffLocation,
           time: pickupTime,
         }),
-        VehicleType: igoConfig.vehicleTypeEnums.SALOON,
-        VehicleCategory: igoConfig.vehicleCategories.STANDARD,
-
         Passengers: igoConfig.buildPassengerSection(passengerDetails),
         DriverNote: specialInstructions || "",
         Notifications: {
@@ -1037,6 +1072,8 @@ const handlePassengerOnBoard = async (ride, eventData) => {
  * @param {string} vehicleType - Vehicle type
  * @param {Array} passengers - Passengers array (optional)
  * @param {Object} userInfo - User information object with name, email, phone (optional)
+ * @param {number} passengersCount - Number of passengers (optional, defaults to passengers.length || 1)
+ * @param {number} luggageCount - Number of luggage items (optional, defaults to 0)
  */
 const requestBids = async (
   pickupLocation,
@@ -1044,7 +1081,9 @@ const requestBids = async (
   pickupTime,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
   passengers = [],
-  userInfo = null
+  userInfo = null,
+  passengersCount = null,
+  luggageCount = null
 ) => {
   try {
     // Use provided passengers, or create from user info, or use minimal default
@@ -1115,7 +1154,12 @@ const requestBids = async (
           Ride: igoConfig.buildBidRideSection({
             vehicleTypeEnum,
             vehicleCategory,
-            passengerCount: passengers || 1,
+            passengerCount: passengersCount !== null && passengersCount !== undefined 
+              ? passengersCount 
+              : (passengers && passengers.length ? passengers.length : (typeof passengers === 'number' ? passengers : 1)),
+            luggage: luggageCount !== null && luggageCount !== undefined 
+              ? luggageCount 
+              : 0,
           }),
         },
       },
