@@ -13,6 +13,7 @@ function Payment() {
     if (!selectedQuote) {
       navigate("/quotes");
     }
+    console.log("the selected quote is ", selectedQuote);
   }, [selectedQuote, navigate]);
 
   if (!selectedQuote) {
@@ -59,25 +60,13 @@ function Payment() {
                 <div>
                   <p className="mb-2">Driver</p>
                   <p className="text-gray-800 font-semibold">
-                    {selectedQuote.driverName}
+                    {selectedQuote.vendorName}
                   </p>
                 </div>
                 <div>
-                  <p className="mb-2">Vehicle</p>
-                  <p className="text-gray-800 font-semibold">
-                    {selectedQuote.vehicleModel}
-                  </p>
-                </div>
-                <div>
-                  <p className="mb-2">Type</p>
+                  <p className="mb-2">Vehicle Type</p>
                   <p className="text-gray-800 font-semibold">
                     {selectedQuote.vehicleType}
-                  </p>
-                </div>
-                <div>
-                  <p className="mb-2">Total Price</p>
-                  <p className="text-gray-800 font-semibold">
-                    ${selectedQuote.price?.toFixed(2)}
                   </p>
                 </div>
               </div>
