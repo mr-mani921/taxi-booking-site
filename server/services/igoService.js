@@ -407,39 +407,9 @@ const buildAgentSection = () => ({
   Time: new Date().toISOString(),
 });
 
-/**
- * Build the common Vendor section for all requests
- */
-const buildVendorSection = () => ({
-  Id: igoConfig.vendorId,
-});
-
-/**
- * Build pricing section for booking requests
- */
-const buildPricingSection = ({
-  pricingModel = PRICING_MODELS.UP_FRONT,
-  paymentPoint = PAYMENT_POINTS.TIME_OF_BOOKING,
-  price,
-  flags = [],
-}) => {
-  const pricingObj = {
-    PricingModel: pricingModel,
-    PaymentPoint: paymentPoint,
-  };
-
-  // Add price only if it's provided and not undefined
-  if (price !== undefined) {
-    pricingObj.Price = price;
-  }
-
-  // Add flags if there are any
-  if (flags && flags.length > 0) {
-    pricingObj.PricingFlags = { Flag: flags };
-  }
-
-  return pricingObj;
-};
+// Note: These local functions are deprecated. Use igoConfig.buildPricingSection() and 
+// igoConfig.buildSingleVendorForAvailability() or igoConfig.buildVendorSection() instead.
+// Keeping them here for backwards compatibility but they should not be used in new code.
 
 /**
  * Handle incoming iGo events
@@ -536,8 +506,8 @@ const getEstimatedPrice = async (
             },
           ];
 
-    // Format pickup time
-    const bookingTime = new Date(pickupTime).toISOString();
+    // Format pickup time as local vendor time without timezone suffix
+    const bookingTime = igoConfig.convertToLocalVendorTime(pickupTime);
 
     // Map vehicle type to appropriate category and type enums
     let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
@@ -555,11 +525,11 @@ const getEstimatedPrice = async (
     const xmlRequest = {
       AgentPriceRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendors: igoConfig.buildVendorSection(),
+        Vendors: igoConfig.buildVendorSection(), // Keep Vendors for AgentPriceRequest
         PriceParameters: {
           Source: "Other",
           BookingTimeMode: "Fixed",
-          BookingTime: bookingTime,
+          BookingTime: bookingTime, // Local vendor time format without Z
           Availability: "Any",
           ...igoConfig.buildPassengerSection(passengerDetails),
 
@@ -597,6 +567,13 @@ const getEstimatedPrice = async (
 
 /**
  * Check ride availability
+ * @param {Object} pickupLocation - Pickup location
+ * @param {Object} dropoffLocation - Dropoff location
+ * @param {Date|string} pickupTime - Pickup time
+ * @param {string} bidReference - Bid reference from AgentBidRequest
+ * @param {string} vehicleType - Vehicle type
+ * @param {Array} passengers - Passengers array
+ * @param {number|string} quotedPrice - Quoted price from bid (required for AgentBookingAvailabilityRequest)
  */
 const checkAvailability = async (
   pickupLocation,
@@ -604,7 +581,8 @@ const checkAvailability = async (
   pickupTime,
   bidReference,
   vehicleType = igoConfig.vehicleTypes.STANDARD,
-  passengers = []
+  passengers = [],
+  quotedPrice = null
 ) => {
   try {
     const passengerDetails =
@@ -618,10 +596,6 @@ const checkAvailability = async (
               isLead: true,
             },
           ];
-    "Checking availability with bid reference:",
-      bidReference,
-      "and vehicle type:",
-      vehicleType;
 
     // Map vehicle type to appropriate category and type enums
     let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
@@ -636,10 +610,11 @@ const checkAvailability = async (
       vehicleTypeEnum = igoConfig.vehicleTypeEnums.MINIBUS;
     }
 
+    // Build XML request with single Vendor element (not Vendors wrapper)
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAvailabilityRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendors: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Single Vendor element, not Vendors
         BidReference: bidReference,
         BookingParameters: {
           Journey: igoConfig.buildJourneySection({
@@ -647,15 +622,15 @@ const checkAvailability = async (
             dropoff: dropoffLocation,
             time: pickupTime,
           }),
-          VehicleCategory: vehicleCategory,
           Pricing: igoConfig.buildPricingSection({
             pricingModel: igoConfig.pricingModels.UP_FRONT,
             paymentPoint: igoConfig.paymentPoints.TIME_OF_BOOKING,
+            quotedPrice: quotedPrice, // Required for AgentBookingAvailabilityRequest
             flags: [
               igoConfig.pricingFlags.ALLOW_WAITING_TIME,
               igoConfig.pricingFlags.ALLOW_EXTRAS,
-              igoConfig.pricingFlags.ALLOW_TOLLS,
-              igoConfig.pricingFlags.ALLOW_PARKING,
+              // Removed ALLOW_TOLLS and ALLOW_PARKING as they are invalid
+              // They will be filtered out by convertFlagsToAllowedAddons
             ],
           }),
           Ride: igoConfig.buildRideSection({
@@ -706,11 +681,10 @@ const sendRideAuthorizationRequest = async ({
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingAuthorizationRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendors: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor (not Vendors)
         AvailabilityReference: availabilityReference,
         AgentBookingReference:
           agentBookingReference || igoConfig.generateBookingReference(),
-        AvailabilityReference: availabilityReference,
         Journey: igoConfig.buildJourneySection({
           pickup: pickupLocation,
           dropoff: dropoffLocation,
@@ -718,17 +692,7 @@ const sendRideAuthorizationRequest = async ({
         }),
         VehicleType: igoConfig.vehicleTypeEnums.SALOON,
         VehicleCategory: igoConfig.vehicleCategories.STANDARD,
-        Pricing: igoConfig.buildPricingSection({
-          pricingModel,
-          paymentPoint,
-          price,
-          flags: [
-            igoConfig.pricingFlags.ALLOW_WAITING_TIME,
-            igoConfig.pricingFlags.ALLOW_EXTRAS,
-            igoConfig.pricingFlags.ALLOW_TOLLS,
-            igoConfig.pricingFlags.ALLOW_PARKING,
-          ],
-        }),
+
         Passengers: igoConfig.buildPassengerSection(passengerDetails),
         DriverNote: specialInstructions || "",
         Notifications: {
@@ -754,7 +718,7 @@ const getRideStatus = async (authorizationReference) => {
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingStatusRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendors: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
         AuthorizationReference: authorizationReference,
       },
     });
@@ -775,7 +739,7 @@ const cancelRide = async (authorizationReference, cancellationReason) => {
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingCancellationRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendors: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
         AuthorizationReference: authorizationReference,
         CancellationReason: cancellationReason,
       },
@@ -1026,8 +990,8 @@ const requestBids = async (
             },
           ];
 
-    // Format pickup time
-    const bookingTime = new Date(pickupTime).toISOString();
+    // Format pickup time as local vendor time without timezone suffix
+    const bookingTime = igoConfig.convertToLocalVendorTime(pickupTime);
 
     // Map vehicle type to appropriate category and type enums
     let vehicleCategory = igoConfig.vehicleCategories.STANDARD;
@@ -1045,11 +1009,11 @@ const requestBids = async (
     const xmlRequest = {
       AgentBidRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildSingleVendor(),
+        Vendor: igoConfig.buildSingleVendor(), // Keep Vendor (not Vendors) for AgentBidRequest
         BidParameters: {
           Source: "Other",
           BookingTimeMode: "Fixed",
-          BookingTime: bookingTime,
+          BookingTime: bookingTime, // Already formatted as local vendor time without Z
           Availability: "Any",
           ...igoConfig.buildBidPassengerSection(passengerDetails),
 
@@ -1063,7 +1027,7 @@ const requestBids = async (
           Journey: igoConfig.buildBidJourneySection({
             pickup: pickupLocation,
             dropoff: dropoffLocation,
-            time: pickupTime,
+            time: pickupTime, // buildBidJourneySection handles local vendor time conversion
           }),
 
           Ride: igoConfig.buildBidRideSection({
@@ -1105,7 +1069,7 @@ const processPayment = async (
     const request = igoConfig.buildXmlRequest({
       AgentPaymentRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendors: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
         AuthorizationReference: authorizationReference,
         Amount: paymentAmount,
         PaymentMethod: paymentMethod,
@@ -1140,7 +1104,7 @@ const requestBill = async (authorizationReference) => {
     const request = igoConfig.buildXmlRequest({
       AgentBillRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendors: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
         AuthorizationReference: authorizationReference,
       },
     });
@@ -1163,7 +1127,7 @@ const getReceipt = async (authorizationReference) => {
     const request = igoConfig.buildXmlRequest({
       AgentReceiptRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendors: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
         AuthorizationReference: authorizationReference,
       },
     });
@@ -1207,9 +1171,6 @@ module.exports = {
   PRICING_FLAGS,
   sendIgoRequest,
   buildXmlRequest,
-  buildAgentSection,
-  buildVendorSection,
-  buildPricingSection,
   handleIgoEvent,
   getEstimatedPrice,
   checkAvailability,

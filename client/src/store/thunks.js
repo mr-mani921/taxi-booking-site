@@ -526,17 +526,20 @@ export const authorizeBid = createAsyncThunk(
         throw new Error("No quote selected");
       }
 
-      if (!bookingData.availabilityReference) {
+      if (!selectedQuote.availabilityReference) {
         throw new Error("Missing availability reference");
       }
 
       // Prepare the data for authorization request
+      // Note: Locations and pickupTime will be retrieved from the bid on the backend if not provided
+      // This ensures we don't fail if bookingData is missing or incomplete
       const requestData = {
         // Required booking data
         bidReference,
-        pickupLocation: bookingData.pickupLocation,
-        dropoffLocation: bookingData.dropoffLocation,
-        pickupTime: bookingData.pickupTime,
+        // Include location data if available in bookingData, otherwise backend will use bid data
+        pickupLocation: bookingData.pickupLocation || null,
+        dropoffLocation: bookingData.dropoffLocation || null,
+        pickupTime: bookingData.pickupTime || null,
         vehicleType: selectedQuote.vehicleType || bookingData.vehicleType,
         pricingModel: selectedQuote.pricing?.pricingMethod || "FixedPrice",
         paymentPoint: "TimeOfBooking", // Assuming pre-payment
@@ -548,6 +551,10 @@ export const authorizeBid = createAsyncThunk(
         // Additional bid data
         vendorId: selectedQuote.vendorId,
       };
+
+      console.log("the booking data is ", bookingData);
+      console.log("the selected quote is ", selectedQuote);
+      console.log("the request data is ", requestData);
 
       // Make the API call to authorize the bid
       const response = await api.authorizeBid(requestData);

@@ -1,9 +1,6 @@
 const {
   sendIgoRequest,
   buildXmlRequest,
-  buildAgentSection,
-  buildVendorSection,
-  buildPricingSection,
   handleIgoEvent,
   getEstimatedPrice,
   PRICING_MODELS,
@@ -727,7 +724,7 @@ const processUpfrontPayment = async (ride, paymentToken) => {
         igoConfig.buildXmlRequest({
           AgentPaymentRequest: {
             Agent: igoConfig.buildAgentSection(),
-            Vendor: igoConfig.buildVendorSection(),
+            Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
             AuthorizationReference: ride.igoAuthorizationReference,
             Amount: ride.fare,
             PaymentMethod: "CARD",
@@ -779,7 +776,7 @@ const getRideStatus = async (req, res) => {
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingStatusRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
         AuthorizationReference: ride.igoAuthorizationReference,
       },
     });
@@ -979,7 +976,7 @@ const cancelRide = async (req, res) => {
     const xmlRequest = igoConfig.buildXmlRequest({
       AgentBookingCancellationRequest: {
         Agent: igoConfig.buildAgentSection(),
-        Vendor: igoConfig.buildVendorSection(),
+        Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
         AuthorizationReference: ride.igoAuthorizationReference,
         CancellationReason:
           cancellationReason || "Customer requested cancellation",
@@ -1057,7 +1054,7 @@ const handleIgoWebhook = async (req, res) => {
             igoConfig.buildXmlRequest({
               AgentBillRequest: {
                 Agent: igoConfig.buildAgentSection(),
-                Vendor: igoConfig.buildVendorSection(),
+                Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
                 AuthorizationReference: ride.igoAuthorizationReference,
               },
             })
@@ -1198,15 +1195,19 @@ const requestVendorBids = async (req, res) => {
       const pricing = bid.Pricing || {};
       const vendor = bid.VendorDetails || {};
       const journey = bid.EstimatedJourney || {};
+      const vendorData = bid.Vendor || {};
 
       // Apply profit markup to pricing
       const originalPrice = parseFloat(pricing.Price || 0);
       const profitMargin = 0.25; // 25% markup
       const priceWithProfit = originalPrice * (1 + profitMargin);
 
+      // Safely extract vendor ID (handle both attribute format and direct format)
+      const vendorId = vendorData.$?.Id || vendorData.Id || "unknown";
+
       formattedBids.push({
         bidReference: bidsResponse.AgentBidResponse?.BidReference,
-        vendorId: bid.Vendor.$.Id,
+        vendorId: vendorId,
         vendorName: vendor.Name || "Unknown Vendor",
         vendorAddress: vendor.Address || "",
         vendorCity: vendor.City || "",
@@ -1249,10 +1250,15 @@ const requestVendorBids = async (req, res) => {
 
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
+    // Determine bid status based on whether we have any successful bids
+    const bidStatus = formattedBids.length > 0 
+      ? igoConfig.bidStatuses.AVAILABLE 
+      : igoConfig.bidStatuses.UNAVAILABLE;
+
     const newBid = new Bid({
       user: userId,
       bidReference: bidsResponse.AgentBidResponse?.BidReference,
-      status: igoConfig.bidStatuses.AVAILABLE,
+      status: bidStatus,
       bidType,
       pickup: pickupLocation,
       dropoff: dropoffLocation,
@@ -1266,7 +1272,7 @@ const requestVendorBids = async (req, res) => {
 
     // Get user details for the email
     const user = await User.findById(userId);
-    if (user && user.email) {
+    if (user && user.email && formattedBids.length > 0) {
       try {
         // Prepare quote details for email
         const quoteDetails = {
@@ -1326,19 +1332,49 @@ const authorizeBooking = async (req, res) => {
       availabilityReference,
       agentBookingReference,
     } = req.body;
+    console.log("the req.body is ", req.body);
+    const userId = req.user?._id;
 
+    // Validate required fields
     if (!availabilityReference) {
       return res
         .status(400)
         .json({ error: "Availability reference is required" });
     }
-    const userId = req.user?._id;
+
+    // Fetch the bid to get location data if not provided in request
+    const bid = await Bid.findOne({ bidReference, user: userId });
+
+    if (!bid) {
+      return res.status(404).json({
+        success: false,
+        message: "Bid not found",
+      });
+    }
+
+    // Use location from request body, or fallback to bid location data
+    const finalPickupLocation = pickupLocation || bid.pickup;
+    const finalDropoffLocation = dropoffLocation || bid.dropoff;
+    const finalPickupTime = pickupTime || bid.requestedTime;
+
+    // Validate location coordinates
+    if (!finalPickupLocation || !finalPickupLocation.lat || !finalPickupLocation.lng) {
+      return res.status(400).json({
+        error: "Pickup location must include lat and lng coordinates",
+      });
+    }
+
+    if (!finalDropoffLocation || !finalDropoffLocation.lat || !finalDropoffLocation.lng) {
+      return res.status(400).json({
+        error: "Dropoff location must include lat and lng coordinates",
+      });
+    }
 
     // Send the XML to iGo
     const igoResponse = await sendRideAuthorizationRequest({
-      pickupLocation,
-      dropoffLocation,
-      pickupTime,
+      pickupLocation: finalPickupLocation,
+      dropoffLocation: finalDropoffLocation,
+      pickupTime: finalPickupTime,
       vehicleType,
       pricingModel,
       paymentPoint,
@@ -1349,15 +1385,7 @@ const authorizeBooking = async (req, res) => {
       agentBookingReference,
     });
 
-    const bid = await Bid.findOne({ bidReference, user: userId });
-
-    if (!bid) {
-      return res.status(404).json({
-        success: false,
-        message: "Bid not found",
-      });
-    }
-
+    // Update bid with authorization reference (bid already validated above)
     bid.authorizationReference =
       igoResponse.AgentBookingAuthorizationResponse.AuthorizationReference;
     await bid.save();
@@ -1372,17 +1400,17 @@ const authorizeBooking = async (req, res) => {
         console.error("No selected bid found in the bid document");
       }
 
-      // Format locations to match Ride schema
+      // Format locations to match Ride schema (use final locations from above)
       const formattedPickupLocation = {
-        address: pickupLocation.address,
-        latitude: pickupLocation.lat,
-        longitude: pickupLocation.lng,
+        address: finalPickupLocation.address,
+        latitude: finalPickupLocation.lat,
+        longitude: finalPickupLocation.lng,
       };
 
       const formattedDropoffLocation = {
-        address: dropoffLocation.address,
-        latitude: dropoffLocation.lat,
-        longitude: dropoffLocation.lng,
+        address: finalDropoffLocation.address,
+        latitude: finalDropoffLocation.lat,
+        longitude: finalDropoffLocation.lng,
       };
 
       // Calculate price with markup if available
@@ -1422,7 +1450,7 @@ const authorizeBooking = async (req, res) => {
         user: userId,
         pickupLocation: formattedPickupLocation,
         dropoffLocation: formattedDropoffLocation,
-        pickupTime: new Date(pickupTime),
+        pickupTime: new Date(finalPickupTime),
         fare: markedUpPrice,
         originalFare: originalPrice,
         status: igoConfig.rideStatuses.BOOKED,
@@ -1589,12 +1617,17 @@ const selectBid = async (req, res) => {
     await bid.save();
 
     // Proceed with availability check using the selected bid - use checkAvailability directly from imports
+    // Pass quotedPrice from the selected bid (required for AgentBookingAvailabilityRequest)
+    const quotedPrice = selectedBid.pricing?.estimatedPrice || selectedBid.pricing?.price || null;
+    
     const availabilityResponse = await checkAvailability(
       bid.pickup,
       bid.dropoff,
       bid.requestedTime,
       bid.bidReference,
-      normalizeVehicleType(selectedBid.vehicleType) // Normalize vehicle type for API request
+      normalizeVehicleType(selectedBid.vehicleType), // Normalize vehicle type for API request
+      [], // Passengers (can be retrieved from bid if needed)
+      quotedPrice // Pass quoted price from bid
     );
 
     // Return the availability reference for booking
@@ -1687,7 +1720,7 @@ const processPayment = async (req, res) => {
       igoConfig.buildXmlRequest({
         AgentPaymentRequest: {
           Agent: igoConfig.buildAgentSection(),
-          Vendor: igoConfig.buildVendorSection(),
+          Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
           AuthorizationReference: ride.igoAuthorizationReference,
           Amount: ride.finalFare || ride.fare,
           PaymentMethod: paymentMethod,
@@ -1835,7 +1868,7 @@ const requestBill = async (req, res) => {
       igoConfig.buildXmlRequest({
         AgentBillRequest: {
           Agent: igoConfig.buildAgentSection(),
-          Vendor: igoConfig.buildVendorSection(),
+          Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
           AuthorizationReference: ride.igoAuthorizationReference,
         },
       })
@@ -1912,7 +1945,7 @@ const getReceipt = async (req, res) => {
       igoConfig.buildXmlRequest({
         AgentReceiptRequest: {
           Agent: igoConfig.buildAgentSection(),
-          Vendor: igoConfig.buildVendorSection(),
+          Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
           AuthorizationReference: ride.igoAuthorizationReference,
         },
       })

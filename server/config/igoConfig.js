@@ -138,19 +138,70 @@ const igoConfig = {
     if (ukTime instanceof Date) {
       return ukTime.toISOString();
     }
-    
+
     // If ukTime is a string, parse it and convert to UTC
     const date = new Date(ukTime);
     return date.toISOString();
+  },
+
+  // Convert date to local vendor time without timezone suffix (ISO 8601 format, no Z)
+  // Used for BookingTime elements in XML requests
+  convertToLocalVendorTime: (dateTime) => {
+    let date;
+    if (dateTime instanceof Date) {
+      date = new Date(dateTime);
+    } else {
+      date = new Date(dateTime);
+    }
+
+    // Get local time components and format as ISO 8601 without Z
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+  },
+
+  // Convert old flags format to AllowedAddons format (space-separated string)
+  // Valid values: "Extras" and/or "WaitingTime"
+  convertFlagsToAllowedAddons: (flags = []) => {
+    const allowedAddons = [];
+
+    // Map old flag names to new AllowedAddons values
+    if (Array.isArray(flags)) {
+      flags.forEach((flag) => {
+        if (
+          flag === igoConfig.pricingFlags.ALLOW_EXTRAS ||
+          flag === "AllowExtras"
+        ) {
+          if (!allowedAddons.includes("Extras")) {
+            allowedAddons.push("Extras");
+          }
+        } else if (
+          flag === igoConfig.pricingFlags.ALLOW_WAITING_TIME ||
+          flag === "AllowWaitingTime"
+        ) {
+          if (!allowedAddons.includes("WaitingTime")) {
+            allowedAddons.push("WaitingTime");
+          }
+        }
+        // Ignore AllowTolls and AllowParking as they are invalid
+      });
+    }
+
+    return allowedAddons.join(" "); // Return space-separated string
   },
 
   // Generate all required headers for iGo API requests
   generateApiHeaders: () => {
     const headers = {
       "Content-Type": "text/xml",
-      "Accept": "application/xml",
+      Accept: "application/xml",
       "X-Authorization-Reference": `${igoConfig.agentId}:${igoConfig.agentPassword}`,
-      "X-Agent-Booking-Reference": igoConfig.vendorId,
     };
 
     // Add App ID header if available
@@ -167,11 +218,13 @@ const igoConfig = {
     if (!igoConfig.agentId) missing.push("IGO_AGENT_ID");
     if (!igoConfig.agentPassword) missing.push("IGO_AGENT_PASSWORD");
     if (!igoConfig.vendorId) missing.push("IGO_VENDOR_ID");
-    
+
     if (missing.length > 0) {
-      throw new Error(`Missing required iGo credentials: ${missing.join(", ")}`);
+      throw new Error(
+        `Missing required iGo credentials: ${missing.join(", ")}`
+      );
     }
-    
+
     return true;
   },
 
@@ -200,6 +253,7 @@ const igoConfig = {
     Time: igoConfig.generateValidTime(),
   }),
 
+  // Build Vendors section (array of Vendor elements) - used for AgentBidRequest
   buildVendorSection: () => [
     {
       Vendor: {
@@ -208,30 +262,110 @@ const igoConfig = {
     },
   ],
 
-  buildPricingSection: ({ pricingModel, paymentPoint, price, flags = [] }) => ({
-    Model: pricingModel,
-    PaymentPoint: paymentPoint,
-    Price: price,
-    Flags: flags,
+  // Build single Vendor element (not wrapped in Vendors) - used for AgentBookingAvailabilityRequest
+  buildSingleVendorForAvailability: () => ({
+    $: { Id: igoConfig.vendorId },
   }),
 
+  // Build pricing section with modern AllowedAddons format (for AgentBookingAvailabilityRequest)
+  buildPricingSection: ({
+    pricingModel,
+    paymentPoint,
+    price,
+    quotedPrice,
+    allowedAddons,
+    flags = [],
+  }) => {
+    const pricingObj = {
+      Model: pricingModel,
+      PaymentPoint: paymentPoint,
+    };
+
+    // Helper function to convert pounds (decimal) to pence (integer)
+    // Protocol requires all monetary values as integers in pence (1 GBP = 100 pence)
+    const convertToPence = (value) => {
+      if (value === undefined || value === null || value === "") {
+        return null;
+      }
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      if (isNaN(numValue)) {
+        return null;
+      }
+      // If value is >= 1000 and is a whole number, assume it's already in pence
+      // Otherwise, assume it's in pounds and convert to pence
+      if (numValue >= 1000 && Number.isInteger(numValue)) {
+        // Already in pence (realistic taxi fares are usually 1000+ pence = £10+)
+        return Math.round(numValue);
+      } else {
+        // Assume pounds and convert to pence
+        return Math.round(numValue * 100);
+      }
+    };
+
+    // Add Price only if provided and not empty/undefined
+    // Convert to pence (integer) format as required by protocol
+    if (price !== undefined && price !== null && price !== "") {
+      const priceInPence = convertToPence(price);
+      if (priceInPence !== null) {
+        pricingObj.Price = priceInPence;
+      }
+    }
+
+    // Convert flags to AllowedAddons format (only Extras and WaitingTime are valid)
+    // If allowedAddons is explicitly provided, use it; otherwise convert from flags
+    if (allowedAddons !== undefined && allowedAddons !== null) {
+      if (typeof allowedAddons === "string" && allowedAddons.trim() !== "") {
+        pricingObj.AllowedAddons = allowedAddons;
+      } else if (Array.isArray(allowedAddons) && allowedAddons.length > 0) {
+        pricingObj.AllowedAddons = allowedAddons.join(" ");
+      }
+    } else if (flags && flags.length > 0) {
+      const convertedAddons = igoConfig.convertFlagsToAllowedAddons(flags);
+      if (convertedAddons) {
+        pricingObj.AllowedAddons = convertedAddons;
+      }
+    }
+
+    // Add QuotedPrice if provided (required for AgentBookingAvailabilityRequest)
+    // Convert to pence (integer) format - protocol requires integer pence values, no decimals
+    if (
+      quotedPrice !== undefined &&
+      quotedPrice !== null &&
+      quotedPrice !== ""
+    ) {
+      const quotedPriceInPence = convertToPence(quotedPrice);
+      if (quotedPriceInPence !== null) {
+        pricingObj.QuotedPrice = quotedPriceInPence;
+      }
+    }
+
+    return pricingObj;
+  },
+
   buildJourneySection: ({ pickup, dropoff, vias = [] }) => {
+    // Validate that pickup and dropoff are provided
+    if (!pickup || !dropoff) {
+      throw new Error(
+        `Missing required location data: pickup=${!!pickup}, dropoff=${!!dropoff}`
+      );
+    }
+
     // Build the journey section in the format required by iGo Protocol V1.41
     const journey = {
       From: {
         Type: "Address",
-        Data: pickup.address || "",
+        Data: pickup.address || pickup.Address || "",
         Coordinate: {
-          Latitude: pickup.lat,
-          Longitude: pickup.lng,
+          Latitude: pickup.lat || pickup.latitude || pickup.Latitude,
+          Longitude: pickup.lng || pickup.longitude || pickup.Longitude,
         },
       },
       To: {
         Type: "Address",
-        Data: dropoff.address || "",
+        Data: dropoff.address || dropoff.Address || "",
         Coordinate: {
-          Latitude: dropoff.lat,
-          Longitude: dropoff.lng,
+          Latitude: dropoff.lat || dropoff.latitude || dropoff.Latitude,
+          Longitude: dropoff.lng || dropoff.longitude || dropoff.Longitude,
         },
       },
     };
@@ -239,7 +373,7 @@ const igoConfig = {
     // Add Vias if any are provided
     if (vias.length > 0) {
       journey.Vias = {
-        Via: vias.map(via => ({
+        Via: vias.map((via) => ({
           Type: "Address",
           Data: via.address || "",
           Coordinate: {
@@ -271,35 +405,18 @@ const igoConfig = {
       },
       ...(dropoff.address ? { Address: dropoff.address } : {}),
     },
-    Time: new Date(time).toISOString(),
+    Time: igoConfig.convertToLocalVendorTime(time),
   }),
 
   buildPassengerSection: (passengers) => {
     // For the new schema, we expect a single passenger without IsLead attribute
-    const leadPassenger = passengers.find(p => p.isLead) || passengers[0] || {
-      name: "Default Passenger",
-      phone: "",
-      email: "",
-      isLead: true
-    };
-    
-    return {
-      PassengerDetails: {
-        Name: leadPassenger.name,
-        TelephoneNumber: leadPassenger.phone || "",
-        EmailAddress: leadPassenger.email || "",
-      }
-    };
-  },
-
-  // Bid-specific passenger section with IsLead attribute
-  buildBidPassengerSection: (passengers) => {
-    const leadPassenger = passengers.find(p => p.isLead) || passengers[0] || {
-      name: "Default Passenger",
-      phone: "",
-      email: "",
-      isLead: true,
-    };
+    const leadPassenger = passengers.find((p) => p.isLead) ||
+      passengers[0] || {
+        name: "Default Passenger",
+        phone: "",
+        email: "",
+        isLead: true,
+      };
 
     return {
       PassengerDetails: {
@@ -311,7 +428,33 @@ const igoConfig = {
     };
   },
 
-  buildRideSection: ({ vehicleTypeEnum, vehicleCategory, passengerCount = 1, luggage = 0, facilities = "None" }) => ({
+  // Bid-specific passenger section with IsLead attribute
+  buildBidPassengerSection: (passengers) => {
+    const leadPassenger = passengers.find((p) => p.isLead) ||
+      passengers[0] || {
+        name: "Default Passenger",
+        phone: "",
+        email: "",
+        isLead: true,
+      };
+
+    return {
+      PassengerDetails: {
+        $: { IsLead: leadPassenger.isLead ? "true" : "false" },
+        Name: leadPassenger.name,
+        TelephoneNumber: leadPassenger.phone || "",
+        EmailAddress: leadPassenger.email || "",
+      },
+    };
+  },
+
+  buildRideSection: ({
+    vehicleTypeEnum,
+    vehicleCategory,
+    passengerCount = 1,
+    luggage = 0,
+    facilities = "None",
+  }) => ({
     $: { Type: "Passenger" }, // Type as attribute instead of child node
     Count: passengerCount.toString(),
     Luggage: luggage.toString(),
@@ -322,7 +465,12 @@ const igoConfig = {
   }),
 
   // Bid-specific ride section (no Luggage; exact order)
-  buildBidRideSection: ({ vehicleTypeEnum, vehicleCategory, passengerCount = 1, facilities = "None" }) => ({
+  buildBidRideSection: ({
+    vehicleTypeEnum,
+    vehicleCategory,
+    passengerCount = 1,
+    facilities = "None",
+  }) => ({
     $: { Type: "Passenger" },
     Count: passengerCount.toString(),
     VehicleType: vehicleTypeEnum,
@@ -331,7 +479,7 @@ const igoConfig = {
     DriverType: "Any",
   }),
 
-  // Single vendor element for <Vendor Id="..."/>
+  // Single vendor element for <Vendor Id="..."/> - used for AgentBidRequest
   buildSingleVendor: () => ({
     $: { Id: igoConfig.vendorId },
   }),

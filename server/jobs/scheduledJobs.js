@@ -102,7 +102,7 @@ const initScheduledJobs = () => {
             igoConfig.buildXmlRequest({
               AgentBookingStatusRequest: {
                 Agent: igoConfig.buildAgentSection(),
-                Vendor: igoConfig.buildVendorSection(),
+                Vendor: igoConfig.buildSingleVendorForAvailability(), // Use single Vendor
                 AuthorizationReference: ride.igoAuthorizationReference,
               },
             })
