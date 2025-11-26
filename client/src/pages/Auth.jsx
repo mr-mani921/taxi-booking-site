@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaGoogle,
+  FaFacebook,
   FaEnvelope,
   FaLock,
   FaUser,
@@ -20,6 +21,14 @@ const handleGoogleLogin = () => {
   window.location.href = `${
     import.meta.env.VITE_API_URL || "http://localhost:5000"
   }/api/auth/google`;
+};
+
+// Function to handle Facebook login
+const handleFacebookLogin = () => {
+  // Redirect to Facebook OAuth endpoint on the backend
+  window.location.href = `${
+    import.meta.env.VITE_API_URL || "http://localhost:5000"
+  }/api/auth/facebook`;
 };
 
 function Auth() {
@@ -301,6 +310,14 @@ function Auth() {
                   >
                     <FaGoogle className="mr-2 text-red-500" />
                     Continue with Google
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFacebookLogin}
+                    className="flex items-center justify-center py-2 px-4 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors"
+                  >
+                    <FaFacebook className="mr-2 text-blue-600" />
+                    Continue with Facebook
                   </button>
                 </div>
               </motion.form>

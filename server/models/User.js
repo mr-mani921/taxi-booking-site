@@ -16,7 +16,8 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return !this.googleId; // Password is required only if not using Google Auth
+        // Password is required only if not using OAuth (Google or Facebook)
+        return !this.googleId && !this.facebookId;
       },
     },
     isAdmin: {
@@ -35,6 +36,11 @@ const userSchema = new mongoose.Schema(
       type: Date,
     },
     googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values and enforces uniqueness only for non-null values
+    },
+    facebookId: {
       type: String,
       unique: true,
       sparse: true, // Allows null values and enforces uniqueness only for non-null values
